@@ -75,23 +75,6 @@ services:
     networks:
       - intel-network
 
-  # Database migration service (runs once)
-  db-migrate:
-    build: .
-    container_name: intelligence-migrate
-    environment:
-      - DATABASE_URL=postgresql://intelligence:${DB_PASSWORD}@postgres-db:5432/intelligence_db
-      - MIGRATION_MODE=true
-    volumes:
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-    command: python migrate_sqlite_to_postgres.py
-    networks:
-      - intel-network
-    profiles:
-      - migration  # Only run when explicitly requested
-
   # Database backup service
   db-backup:
     image: postgres:15-alpine
