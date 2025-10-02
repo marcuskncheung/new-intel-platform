@@ -28,8 +28,6 @@ services:
       - intel-network
     volumes:
       - app_logs:/app/logs
-      # Mount SQLite data for migration
-      - ./instance:/app/migrate_data:ro
 
   postgres-db:
     image: postgres:15-alpine
@@ -85,7 +83,6 @@ services:
       - DATABASE_URL=postgresql://intelligence:${DB_PASSWORD}@postgres-db:5432/intelligence_db
       - MIGRATION_MODE=true
     volumes:
-      - ./instance:/app/migrate_data:ro  # Your SQLite data
     depends_on:
       postgres-db:
         condition: service_healthy
