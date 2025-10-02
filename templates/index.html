@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Search Subjects / Cases</h2>
+<form method="post" class="row g-2 mb-4">
+  <div class="col-md-6">
+    <input name="query" value="{{ query }}" list="subjects"
+           placeholder="Type Alleged Subject..." class="form-control">
+    <datalist id="subjects">
+      {% for s in suggestions %}
+      <option value="{{ s }}"></option>
+      {% endfor %}
+    </datalist>
+  </div>
+  <div class="col-md-3">
+    <input name="agent_num" value="{{ agent_num }}" placeholder="Agent Number" class="form-control">
+  </div>
+  <div class="col-md-3">
+    <button class="btn btn-primary w-100">Search</button>
+  </div>
+</form>
+{% if results %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Alleged Subject (English Name)</th>
+      <th>Alleged Subject (Chinese Name)</th>
+      <th>Agent Number</th>
+      <th>Case Number</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in results %}
+    <tr>
+      <td>{{ r[subj_en_col] }}</td>
+      <td>{{ r[subj_cn_col] }}</td>
+      <td>{{ r['Agent Number'] }}</td>
+      <td>{{ r['Case Number'] }}</td>
+      <td>
+        <a href="{{ url_for('alleged_subject_list', idx=r['__idx__']) }}" class="btn btn-sm btn-outline-primary">View</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+/* Hero Section */
+.hero-section {
+  background: linear-gradient(120deg, #1669d2 0%, #4f8cff 100%);
+  color: #fff;
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(22,105,210,0.18);
+  padding: 3.5rem 2.5rem 2.5rem 2.5rem;
+  margin-bottom: 3rem;
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-section .hero-content {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+  z-index: 2;
+}
+.hero-section h1 {
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  margin-bottom: 1.1rem;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: linear-gradient(90deg, #fff 10%, #eaf2ff 90%);
+  color: #1669d2;
+  border-radius: 0.7rem;
+  display: inline-block;
+  padding: 0.3em 1.2em;
+}
+.hero-section .lead {
+  font-size: 1.35rem;
+  margin-bottom: 2rem;
+  font-weight: 400;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+.hero-section .feature-list {
+  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.2rem;
+}
+.hero-section .feature-list li {
+  margin-bottom: 0;
+  font-size: 1.13rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  background: rgba(255,255,255,0.13);
+  border-radius: 2em;
+  padding: 0.5em 1.3em;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(22,105,210,0.07);
+  color: #fff;
+  transition: background 0.2s;
+}
+.hero-section .feature-list li:hover {
+  background: rgba(255,255,255,0.22);
+}
+.icon-badge {
+  display: inline-block;
+  background: #eaf2ff;
+  color: #1669d2;
+  border-radius: 50%;
+  width: 2.2rem;
+  height: 2.2rem;
+  text-align: center;
+  line-height: 2.2rem;
+  font-size: 1.3rem;
+  margin-right: 0.7rem;
+  vertical-align: middle;
+  box-shadow: 0 2px 8px rgba(22,105,210,0.07);
+}
+
+/* Cards */
+.feature-card {
+  border: none;
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 18px rgba(22,105,210,0.10);
+  margin-bottom: 2.2rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+  background: #fff;
+}
+.feature-card:hover {
+  box-shadow: 0 8px 32px rgba(22,105,210,0.18);
+  transform: translateY(-2px) scale(1.01);
+}
+.feature-card .card-header {
+  background: linear-gradient(90deg, #eaf2ff 0%, #f5f8ff 100%);
+  border-bottom: none;
+  font-weight: 700;
+  font-size: 1.18rem;
+  color: #1669d2;
+  border-radius: 1.2rem 1.2rem 0 0;
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+}
+.feature-list li {
+  margin-bottom: 0.7rem;
+  font-size: 1.08rem;
+}
+@media (max-width: 900px) {
+  .hero-section { flex-direction: column; min-height: unset; padding: 2.2rem 1rem 1.5rem 1rem;}
+  .hero-section .hero-content { max-width: 100%; }
+}
+</style>
+<div class="hero-section position-relative mb-5">
+  <div class="hero-content">
+    <h1>Intelligence Management Platform</h1>
+    <p class="lead">
+      The all-in-one solution for secure, efficient, and professional intelligence case management.
+    </p>
+    <ul class="list-unstyled feature-list">
+      <li><i class="bi bi-shield-lock-fill icon-badge"></i> Secure, role-based access for team</li>
+      <li><i class="bi bi-diagram-3-fill icon-badge"></i> Multi-source intelligence: Email, WhatsApp, Patrol, Surveillance</li>
+      <li><i class="bi bi-search icon-badge"></i> Fast search, smart dashboard, and profile management</li>
+      <li><i class="bi bi-bar-chart-fill icon-badge"></i> Assessment, scoring, and export for reporting</li>
+      <li><i class="bi bi-paperclip icon-badge"></i> Attachments, files, and case documentation</li>
+      <li><i class="bi bi-clock-history icon-badge"></i> <b>24/7 automated monitoring of the intelligence inbox for new emails</li>
+    </ul>
+  </div>
+</div>
+<div class="row">
+  <div class="col-md-4">
+    <div class="card feature-card h-100">
+      <div class="card-header"><i class="bi bi-grid"></i> Main Features</div>
+      <div class="card-body">
+        <ul>
+          <li><b>Alleged Subject List:</b> Visualize and manage all alleged subjects and their cases.</li>
+          <li><b>Search:</b> Instantly find cases or subjects by name or agent number.</li>
+          <li><b>Intel Source:</b> Centralize intelligence from Email, WhatsApp, Patrol, and Surveillance.</li>
+          <li><b>Profile Management:</b> Create/edit profiles, upload files, and manage attachments.</li>
+          <li><b>Export:</b> Download data to Excel (.xlsx) for reporting and analysis.</li>
+          <li><b>Authentication:</b> Secure login and signup for authorized access.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card feature-card h-100">
+      <div class="card-header"><i class="bi bi-lightbulb"></i> How to Use</div>
+      <div class="card-body">
+        <ol>
+          <li>Log in or sign up for an account.</li>
+          <li>Use the <b>Alleged Subject List</b> or <b>Search</b> to find or create profiles.</li>
+          <li>Go to <b>Intel Source</b> to manage intelligence from all channels.</li>
+          <li>Assess intelligence entries using the provided forms and save your assessments.</li>
+          <li>Export data as needed for further processing.</li>
+        </ol>
+        <div class="alert alert-primary mt-3" style="font-size:0.98em;">
+          <i class="bi bi-info-circle"></i>
+          <b>Tip:</b> Use the navigation bar to quickly access all platform features.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card feature-card h-100">
+      <div class="card-header"><i class="bi bi-info-circle"></i> Platform Overview</div>
+      <div class="card-body">
+        <p>
+          <b>Intelligence Management Platform</b> is built for professionals who need to handle sensitive intelligence from multiple sources in a secure, organized, and efficient way.
+        </p>
+        <ul>
+          <li>All data is securely stored and accessible only to authorized users.</li>
+          <li>Assessment forms and scoring help you prioritize and track cases.</li>
+          <li>Attachments and files are managed per case for easy reference.</li>
+          <li>Export options let you generate reports for further analysis.</li>
+        </ul>
+        <div class="alert alert-info mt-3" style="font-size:0.98em;">
+          <i class="bi bi-person-lines-fill"></i>
+          <b>Support:</b> If you encounter any issues or need help, please contact Marcus Cheung.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN (if not already in base.html) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+{% endblock %}

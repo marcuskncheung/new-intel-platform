@@ -1,0 +1,366 @@
+/* Custom styles for Intelligence Platform */
+
+/* Global Styles */
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --dark-color: #212529;
+    --light-color: #f8f9fa;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navigation Styles */
+.navbar-brand {
+    font-weight: bold;
+}
+
+.navbar-nav .nav-link {
+    transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Card Styles */
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+}
+
+/* Intelligence Platform Specific Styles */
+.intelligence-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.intelligence-stats {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.intelligence-stats h3 {
+    color: var(--primary-color);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.intelligence-stats p {
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Email and Message Styles */
+.email-item, .message-item {
+    border-left: 4px solid var(--primary-color);
+    background: white;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0 8px 8px 0;
+    transition: border-color 0.3s ease;
+}
+
+.email-item:hover, .message-item:hover {
+    border-left-color: var(--success-color);
+}
+
+.email-subject, .message-subject {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+}
+
+.email-meta, .message-meta {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.email-snippet, .message-snippet {
+    margin-top: 0.5rem;
+    color: #495057;
+    line-height: 1.5;
+}
+
+/* Alert Styles */
+.alert-intelligence {
+    border: none;
+    border-left: 4px solid var(--warning-color);
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alert-security {
+    border: none;
+    border-left: 4px solid var(--danger-color);
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Button Styles */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), #0b5ed7);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success-color), #157347);
+    border: none;
+}
+
+/* Search and Filter Styles */
+.search-container {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-input {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Table Styles */
+.table {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-top: 1px solid #e9ecef;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Dashboard Styles */
+.dashboard-widget {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-widget h5 {
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.dashboard-metric {
+    text-align: center;
+    padding: 1rem;
+}
+
+.dashboard-metric h2 {
+    color: var(--primary-color);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-metric p {
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Form Styles */
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+/* Intelligence Analysis Styles */
+.analysis-container {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-header {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.threat-level-high {
+    border-left: 4px solid var(--danger-color);
+}
+
+.threat-level-medium {
+    border-left: 4px solid var(--warning-color);
+}
+
+.threat-level-low {
+    border-left: 4px solid var(--success-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .intelligence-stats {
+        margin-bottom: 1rem;
+    }
+    
+    .dashboard-widget {
+        margin-bottom: 1rem;
+    }
+    
+    .email-item, .message-item {
+        margin-bottom: 0.75rem;
+    }
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(13, 110, 253, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Status Badges */
+.status-active {
+    background-color: var(--success-color);
+}
+
+.status-pending {
+    background-color: var(--warning-color);
+}
+
+.status-inactive {
+    background-color: #6c757d;
+}
+
+.status-alert {
+    background-color: var(--danger-color);
+}
+
+/* File Upload Styles */
+.file-upload-area {
+    border: 2px dashed #e9ecef;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: border-color 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary-color);
+}
+
+.file-upload-area.dragover {
+    border-color: var(--success-color);
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+/* Print Styles */
+@media print {
+    .navbar, .btn, .card:hover {
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6 !important;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #212529;
+        color: #f8f9fa;
+    }
+    
+    .card {
+        background-color: #343a40;
+        color: #f8f9fa;
+    }
+    
+    .table {
+        background-color: #343a40;
+        color: #f8f9fa;
+    }
+    
+    .form-control, .form-select {
+        background-color: #495057;
+        border-color: #6c757d;
+        color: #f8f9fa;
+    }
+}

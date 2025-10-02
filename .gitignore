@@ -1,0 +1,165 @@
+# Intelligence Platform - .gitignore
+# Comprehensive file exclusions for security and performance
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Environment Variables & Secrets (keep .env.production for deployment)
+.env
+.env.local
+.env.*.local
+# *.env - commented out to allow .env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database files - INCLUDED in repo for complete deployment
+# Note: Remove these lines if you want to exclude database files for security
+# instance/users.db
+# instance/users.db-wal  
+# instance/users.db-shm
+# *.db
+# *.sqlite
+# *.sqlite3
+
+# Security Sensitive Files - ALLOW PRODUCTION FILES for complete deployment
+# db_encryption.key  # Allow if needed
+# db_encryption.salt # Allow if needed
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+# Allow production environment and Docker SSL certificates  
+!.env.production
+!docker/.env
+!docker/ssl-certs/*.key
+!docker/ssl-certs/*.pem
+config/secrets.py
+
+# Email Attachments and Data
+email_attachments/
+data/
+uploads/
+temp/
+tmp/
+
+# Docker volumes and data
+docker/instance/
+docker-compose.override.yml
+
+# SSL Certificates (include docker/ssl-certs for complete deployment)
+ssl-certs/
+certs/
+*.cert
+*.crt
+# Allow SSL certificates in docker directory
+!docker/ssl-certs/
+!docker/ssl-certs/*.pem
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Compressed files (large deployment packages)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+Intelligence-Platform-Complete-*.zip
+
+# Node modules (if using frontend build tools)
+node_modules/
+
+# Coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution packages (keep source only)
+Intelligence-Platform-Complete/
+
+# Local development overrides
+docker-for-IT/
+docker-for-IT-HTTPS/
+local_config.py
+dev_settings.py
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Security scan results (regenerated on each run)
+bandit-report.*
+safety-report.*
+semgrep-report.*
+trivy-*.sarif
+
+# Test files with sensitive data
+security_test_cases.py

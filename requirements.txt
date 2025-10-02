@@ -1,0 +1,52 @@
+# Production Requirements for Intelligence Platform
+# ================================================
+# 
+# Core Framework
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-Migrate==4.0.5
+
+# Security Libraries
+bleach==6.0.0  # Secure HTML sanitization - CodeQL recommendation
+cryptography==44.0.1  # SECURITY UPDATE: Fixed NULL pointer dereference CVE (Dependabot Alert #17)
+
+# AI Integration (Company Internal Services) - Updated for security fixes
+requests>=2.32.4
+urllib3>=2.5.0
+
+# Production WSGI Server - Updated for HTTP smuggling security fix
+gunicorn>=23.0.0
+
+# Database Support
+SQLAlchemy==2.0.21
+# PostgreSQL support for enterprise deployment
+psycopg2-binary==2.9.7
+
+# Security - Updated for debugger remote execution vulnerability fix
+Werkzeug>=3.0.6
+
+# Data Processing
+numpy==1.24.3
+pandas==2.0.3
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+
+# Document Processing
+python-docx==0.8.11
+
+# Image Processing - Updated for CVE security fix
+Pillow>=10.3.0
+
+# Optional: Windows COM for Outlook integration (Windows only)
+# pywin32==306
+
+# Optional: Exchange Web Services for direct Exchange server connection
+exchangelib==5.2.0
+
+# Optional: System monitoring
+# psutil==5.9.5
+
+# Optional: Web scraping and HTML processing
+# beautifulsoup4==4.12.2
+# lxml==4.9.3

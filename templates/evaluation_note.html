@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow border-0 mb-4">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">Evaluation Note - <span class="fw-bold">{{ email.si_int_no or email.entry_id }}</span></h4>
+        </div>
+        <div class="card-body bg-light">
+          <form method="post">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">S/I INT No.</label>
+                <input type="text" class="form-control form-control-lg fw-bold border-primary" name="si_int_no" value="{{ evaluation_note.si_int_no if evaluation_note and evaluation_note.si_int_no else (email.si_int_no or email.entry_id) }}" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Assessment Date</label>
+                <input type="date" class="form-control" name="assessment_date" value="{{ evaluation_note.assessment_date|strftime('%Y-%m-%d') if evaluation_note and evaluation_note.assessment_date else '' }}" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Assessment Score</label>
+                <input type="number" class="form-control" name="score" min="0" max="10" value="{{ (email.source_reliability or 0) + (email.content_validity or 0) }}" readonly>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Reviewer Name</label>
+                <input type="text" class="form-control" name="reviewer_name" value="{{ evaluation_note.reviewer_name if evaluation_note else '' }}">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Re:</label>
+              <input type="text" class="form-control" name="re" value="{{ evaluation_note.re if evaluation_note else '' }}">
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Intelligence Folder</label>
+                <input type="text" class="form-control" name="intelligence_folder" value="{{ evaluation_note.intelligence_folder if evaluation_note else '' }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Preparer</label>
+                <input type="text" class="form-control" name="preparer" value="{{ evaluation_note.preparer if evaluation_note else '' }}">
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label fw-bold">Thoughts / Analysis</label>
+              <textarea class="form-control fs-6 border-info" name="thoughts" rows="6" placeholder="Enter your analysis, reasoning, or thoughts here...">{{ evaluation_note.thoughts if evaluation_note else '' }}</textarea>
+            </div>
+            <hr>
+            <div class="mb-4">
+              <label class="form-label fw-bold">Reviewer's Endorsement</label>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="endorsement" value="No Further Action" id="nfa" {% if evaluation_note and 'No Further Action' in evaluation_note.endorsement %}checked{% endif %}>
+                    <label class="form-check-label" for="nfa">No Further Action</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="endorsement" value="Save to S/I Intelligence Database" id="save_db" {% if evaluation_note and 'Save to S/I Intelligence Database' in evaluation_note.endorsement %}checked{% endif %}>
+                    <label class="form-check-label" for="save_db">Save to S/I Intelligence Database</label>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="endorsement" value="Open an ENF case for assessment and potential investigation" id="enf" {% if evaluation_note and 'Open an ENF case for assessment and potential investigation' in evaluation_note.endorsement %}checked{% endif %}>
+                    <label class="form-check-label" for="enf">Open an ENF case for assessment and potential investigation</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="endorsement" value="Refer to CDD for further handling" id="cdd" {% if email.endorsement and 'Refer to CDD for further handling' in email.endorsement %}checked{% endif %}>
+                    <label class="form-check-label" for="cdd">Refer to CDD for further handling</label>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="endorsement" value="Other" id="other">
+                    <label class="form-check-label" for="other">Other(s):</label>
+                  </div>
+                  <input type="text" class="form-control mt-1" name="endorsement_other" placeholder="Specify other action...">
+                </div>
+              </div>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Keywords to be saved in S/I Intelligence Database</label>
+                <input type="text" class="form-control" name="keywords" value="{{ evaluation_note.keywords if evaluation_note else '' }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Tag in S/I Intelligence Database (if keywords saved)</label>
+                <input type="text" class="form-control" name="tag" value="{{ evaluation_note.tag if evaluation_note else '' }}">
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Remark(s)</label>
+              <input type="text" class="form-control" name="remarks" value="{{ evaluation_note.remarks if evaluation_note else '' }}">
+            </div>
+            <div class="d-flex justify-content-between">
+              <div>
+                <button type="submit" class="btn btn-success px-4" name="generate" value="1">Generate Word/PDF</button>
+                <button type="submit" class="btn btn-primary px-4 ms-2" name="save" value="1">Save</button>
+              </div>
+              <a href="{{ url_for('evaluation_cases') }}" class="btn btn-secondary px-4">Back</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

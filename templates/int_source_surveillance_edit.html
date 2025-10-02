@@ -1,0 +1,691 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.surveillance-edit-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
+}
+
+.surveillance-edit-header {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  color: white;
+  padding: 2rem 3rem;
+  border-radius: 24px 24px 0 0;
+  margin-bottom: 0;
+  box-shadow: 0 8px 32px rgba(30, 64, 175, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.surveillance-edit-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+  opacity: 0.3;
+}
+
+.surveillance-edit-header-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.surveillance-edit-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.surveillance-edit-title i {
+  font-size: 2.5rem;
+  opacity: 0.9;
+}
+
+.surveillance-edit-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  color: white;
+}
+
+.surveillance-edit-body {
+  background: white;
+  border-radius: 0 0 24px 24px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px rgba(30, 64, 175, 0.1);
+}
+
+.form-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 20px;
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e1ecf7;
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.form-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+  border-radius: 20px 20px 0 0;
+}
+
+.form-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(37, 99, 235, 0.12);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.section-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-label i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+.form-control, .form-select {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.form-control[readonly] {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #64748b;
+  font-weight: 600;
+}
+
+.targets-container {
+  background: linear-gradient(135deg, #fefefe 0%, #f1f5f9 100%);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 2px solid #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.target-input-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.target-input-group:last-child {
+  margin-bottom: 0;
+}
+
+.target-input {
+  flex: 1;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.target-input:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  outline: none;
+}
+
+.btn-remove-target {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-remove-target:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.btn-add-target {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.875rem 1.5rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn-add-target:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
+}
+
+.textarea-enhanced {
+  min-height: 120px;
+  resize: vertical;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+.documents-section {
+  background: linear-gradient(135deg, #fefefe 0%, #f8f4ff 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 2px solid #e5e7eb;
+}
+
+.document-item {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.document-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.document-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.document-link:hover {
+  color: #1d4ed8;
+}
+
+.btn-delete-doc {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-delete-doc:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.4);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e2e8f0;
+}
+
+.btn-primary-enhanced {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 16px rgba(30, 64, 175, 0.3);
+}
+
+.btn-primary-enhanced:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(30, 64, 175, 0.4);
+}
+
+.btn-secondary-enhanced {
+  background: white;
+  color: #374151;
+  border: 2px solid #d1d5db;
+  border-radius: 16px;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary-enhanced:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .surveillance-edit-container {
+    padding: 1rem 0.5rem;
+  }
+  
+  .surveillance-edit-header {
+    padding: 1.5rem 1rem;
+  }
+  
+  .surveillance-edit-title {
+    font-size: 1.6rem;
+  }
+  
+  .surveillance-edit-body {
+    padding: 2rem 1rem;
+  }
+  
+  .form-section {
+    padding: 1.5rem;
+  }
+  
+  .surveillance-edit-header-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .surveillance-edit-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .target-input-group {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+</style>
+
+<div class="surveillance-edit-container">
+  <div class="surveillance-edit-header">
+    <div class="surveillance-edit-header-content">
+      <h1 class="surveillance-edit-title">
+        <i class="bi bi-pencil-square"></i>
+        {{ entry and "Edit" or "Add" }} Surveillance Operation
+      </h1>
+      <div class="surveillance-edit-actions">
+        <a href="{{ url_for('int_source') }}#surveillance" class="action-btn">
+          <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="surveillance-edit-body">
+    <form method="post" enctype="multipart/form-data">
+      
+      <!-- Basic Information Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="bi bi-info-circle"></i>
+          </div>
+          <h2 class="section-title">Basic Information</h2>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="operation_number" class="form-label">
+              <i class="bi bi-hash"></i> Operation Number
+            </label>
+            <input type="text" class="form-control" id="operation_number" name="operation_number" 
+                   value="{{ entry.operation_number if entry else '' }}" required readonly>
+          </div>
+          
+          <div class="form-group">
+            <label for="operation_type" class="form-label">
+              <i class="bi bi-gear"></i> Operation Type
+            </label>
+            <select name="operation_type" class="form-select" id="operation_type" required>
+              <option value="">Select Operation Type...</option>
+              <option value="Mystery Shopping" {% if entry and entry.operation_type == 'Mystery Shopping' %}selected{% endif %}>Mystery Shopping</option>
+              <option value="Surveillance" {% if entry and entry.operation_type == 'Surveillance' %}selected{% endif %}>Surveillance</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="date" class="form-label">
+              <i class="bi bi-calendar-event"></i> Operation Date
+            </label>
+            <input type="date" class="form-control" id="date" name="date" 
+                   value="{{ entry.date.strftime('%Y-%m-%d') if entry and entry.date else '' }}" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="venue" class="form-label">
+              <i class="bi bi-geo-alt"></i> Venue
+            </label>
+            <input type="text" class="form-control" id="venue" name="venue" 
+                   value="{{ entry.venue if entry else '' }}" placeholder="Enter operation venue">
+          </div>
+          
+          <div class="form-group">
+            <label for="conducted_by" class="form-label">
+              <i class="bi bi-person-badge"></i> Conducted By
+            </label>
+            <select class="form-select" id="conducted_by" name="conducted_by" required>
+              <option value="">Select Conductor...</option>
+              <option value="Private investigator" {% if entry and entry.conducted_by == 'Private investigator' %}selected{% endif %}>Private investigator</option>
+              <option value="IA staff" {% if entry and entry.conducted_by == 'IA staff' %}selected{% endif %}>IA staff</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Targets Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="bi bi-bullseye"></i>
+          </div>
+          <h2 class="section-title">Surveillance Targets</h2>
+        </div>
+        
+        <div class="targets-container" id="targets-list">
+          {% if entry and entry.targets %}
+            {% for t in entry.targets %}
+              <div class="target-input-group">
+                <input type="text" class="target-input" name="target_name[]" value="{{ t.name }}" placeholder="Target name" required>
+                <select class="form-select target-license-type" name="license_type[]">
+                  <option value="" {% if not t.license_type %}selected{% endif %}>N/A</option>
+                  <option value="Agent" {% if t.license_type=='Agent' %}selected{% endif %}>Agent</option>
+                  <option value="Broker" {% if t.license_type=='Broker' %}selected{% endif %}>Broker</option>
+                </select>
+                <input type="text" class="target-license-number form-control" name="license_number[]" value="{{ t.license_number or '' }}" placeholder="License # (if any)">
+                <button type="button" class="btn-remove-target remove-target"><i class="bi bi-trash"></i> Remove</button>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="target-input-group">
+              <input type="text" class="target-input" name="target_name[]" placeholder="Target name" required>
+              <select class="form-select target-license-type" name="license_type[]">
+                <option value="" selected>N/A</option>
+                <option value="Agent">Agent</option>
+                <option value="Broker">Broker</option>
+              </select>
+              <input type="text" class="target-license-number form-control" name="license_number[]" placeholder="License # (if any)">
+              <button type="button" class="btn-remove-target remove-target"><i class="bi bi-trash"></i> Remove</button>
+            </div>
+          {% endif %}
+        </div>
+        
+        <button type="button" class="btn-add-target" id="add-target">
+          <i class="bi bi-plus-circle"></i> Add Another Target
+        </button>
+      </div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const list = document.getElementById('targets-list');
+          document.getElementById('add-target').addEventListener('click', () => {
+            const group = document.createElement('div');
+            group.className = 'target-input-group';
+            group.innerHTML = `
+              <input type="text" class="target-input" name="target_name[]" placeholder="Target name" required>
+              <select class="form-select target-license-type" name="license_type[]">
+                <option value="" selected>N/A</option>
+                <option value="Agent">Agent</option>
+                <option value="Broker">Broker</option>
+              </select>
+              <input type="text" class="target-license-number form-control" name="license_number[]" placeholder="License # (if any)">
+              <button type="button" class="btn-remove-target remove-target"><i class="bi bi-trash"></i> Remove</button>
+            `;
+            list.appendChild(group);
+          });
+
+          list.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-target')) {
+              const group = e.target.closest('.target-input-group');
+              if (group) group.remove();
+            }
+          });
+        });
+      </script>
+
+      <!-- Details Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="bi bi-file-text"></i>
+          </div>
+          <h2 class="section-title">Operation Details</h2>
+        </div>
+        
+        <div class="form-group">
+          <label for="details_of_finding" class="form-label">
+            <i class="bi bi-journal-text"></i> Details of Finding
+          </label>
+          <textarea class="form-control textarea-enhanced" id="details_of_finding" name="details_of_finding" 
+                    placeholder="Enter detailed findings and observations from the surveillance operation...">{{ entry.details_of_finding if entry else '' }}</textarea>
+        </div>
+      </div>
+
+      <!-- Documents Section -->
+      {% if documents %}
+      <div class="form-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="bi bi-folder2-open"></i>
+          </div>
+          <h2 class="section-title">Related Documents ({{ documents|length }})</h2>
+        </div>
+        
+        <div class="documents-section">
+          {% for doc in documents %}
+          <div class="document-item">
+            <a href="{{ url_for('surveillance_document_download', doc_id=doc.id) }}" class="document-link">
+              <i class="bi bi-file-earmark-text"></i>
+              {{ doc.filename }}
+            </a>
+            <form method="post" style="display:inline;">
+              <input type="hidden" name="delete_doc_id" value="{{ doc.id }}">
+              <button class="btn-delete-doc" onclick="return confirm('Are you sure you want to delete this document?')">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="submit" class="btn-primary-enhanced">
+          <i class="bi bi-check-circle"></i>
+          {{ entry and "Update Operation" or "Save Operation" }}
+        </button>
+        <a href="{{ url_for('int_source') }}#surveillance" class="btn-secondary-enhanced">
+          <i class="bi bi-x-circle"></i>
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Add target functionality
+  document.getElementById('add-target').addEventListener('click', function() {
+    var container = document.getElementById('targets-list');
+    var div = document.createElement('div');
+    div.className = 'target-input-group';
+    div.innerHTML = `
+      <input type="text" class="target-input" name="targets[]" placeholder="Enter target name" required>
+      <button type="button" class="btn-remove-target remove-target">
+        <i class="bi bi-trash"></i> Remove
+      </button>
+    `;
+    container.appendChild(div);
+  });
+
+  // Remove target functionality
+  document.getElementById('targets-list').addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-target') || e.target.closest('.remove-target')) {
+      const targetGroup = e.target.closest('.target-input-group');
+      const container = document.getElementById('targets-list');
+      
+      // Ensure at least one target input remains
+      if (container.children.length > 1) {
+        targetGroup.remove();
+      } else {
+        // Clear the input instead of removing if it's the last one
+        const input = targetGroup.querySelector('.target-input');
+        input.value = '';
+      }
+    }
+  });
+
+  // Enhanced form validation
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function(e) {
+    const targetInputs = document.querySelectorAll('.target-input');
+    let hasValidTarget = false;
+    
+    targetInputs.forEach(input => {
+      if (input.value.trim()) {
+        hasValidTarget = true;
+      }
+    });
+    
+    if (!hasValidTarget) {
+      e.preventDefault();
+      alert('Please enter at least one surveillance target.');
+      return false;
+    }
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.admin-pro-header {
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+  color: #fff;
+  border-radius: 0.8rem 0.8rem 0 0;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.admin-pro-card {
+  background: #fff;
+  border-radius: 0.7rem;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+  padding: 2rem 2rem 1.5rem 2rem;
+  margin-bottom: 2rem;
+}
+.admin-pro-btn-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.2rem;
+}
+.admin-pro-btn {
+  font-weight: 600;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 4px rgba(22,105,210,0.07);
+  transition: background 0.15s, color 0.15s;
+  padding: 0.7rem 1.5rem;
+  font-size: 1.1em;
+}
+.admin-pro-btn-primary {
+  background: #2e8bfa;
+  color: #fff;
+  border: none;
+}
+.admin-pro-btn-primary:hover {
+  background: #1669d2;
+  color: #fff;
+}
+.admin-pro-btn-danger {
+  background: #ff6384;
+  color: #fff;
+  border: none;
+}
+.admin-pro-btn-danger:hover {
+  background: #d32f2f;
+  color: #fff;
+}
+.admin-pro-btn-outline {
+  background: #fff;
+  color: #2e8bfa;
+  border: 2px solid #2e8bfa;
+}
+.admin-pro-btn-outline:hover {
+  background: #2e8bfa;
+  color: #fff;
+}
+.admin-pro-section-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #0a2540;
+  letter-spacing: 0.01em;
+}
+.admin-user-table th, .admin-user-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+.admin-user-table th {
+  background: linear-gradient(90deg, #e3eefd 0%, #f7fafd 100%);
+  font-weight: 700;
+}
+.admin-user-table {
+  background: #f9fbfe;
+  border-radius: 0.6rem;
+  box-shadow: 0 2px 12px rgba(10,37,64,0.07);
+  margin-bottom: 1.5rem;
+}
+</style>
+<div class="container mt-4">
+  <div class="admin-pro-header">
+    <span><i class="bi bi-shield-lock"></i> Admin Backend</span>
+    <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  </div>
+  <div class="admin-pro-card">
+    <div class="admin-pro-section-title"><i class="bi bi-person-badge"></i> User Management</div>
+    <div class="table-responsive">
+      <table class="table table-sm admin-user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>
+              {% if user.id != current_user.id %}
+              <form method="post" action="{{ url_for('admin_user_delete', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Delete user {{ user.username }}?');">
+                <button class="admin-pro-btn admin-pro-btn-danger btn-sm" type="submit"><i class="bi bi-trash"></i> Delete</button>
+              </form>
+              {% else %}
+              <span class="text-muted">Current</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="post" action="{{ url_for('admin_user_add') }}" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <input type="text" name="username" class="form-control" placeholder="New Username" required>
+      </div>
+      <div class="col-auto">
+        <input type="password" name="password" class="form-control" placeholder="Password" required>
+      </div>
+      <div class="col-auto">
+        <button class="admin-pro-btn admin-pro-btn-primary" type="submit"><i class="bi bi-person-plus"></i> Add User</button>
+      </div>
+    </form>
+  </div>
+  <div class="admin-pro-card">
+    <div class="admin-pro-section-title"><i class="bi bi-database"></i> Database Actions</div>
+    <div class="admin-pro-btn-group">
+      <form method="post" action="{{ url_for('admin_db_reload') }}" style="display:inline;">
+        <button class="admin-pro-btn admin-pro-btn-primary" type="submit"><i class="bi bi-arrow-clockwise"></i> Reload Database</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_db_clear') }}" style="display:inline;" onsubmit="return confirm('Clear all database records?');">
+        <button class="admin-pro-btn admin-pro-btn-danger" type="submit"><i class="bi bi-trash"></i> Clear Database</button>
+      </form>
+      
+      <a href="{{ url_for('admin_db_export', fmt='excel') }}" class="admin-pro-btn admin-pro-btn-outline"><i class="bi bi-file-earmark-excel"></i> Export Excel</a>
+      <a href="{{ url_for('admin_db_view') }}" class="admin-pro-btn admin-pro-btn-outline"><i class="bi bi-table"></i> View Columns</a>
+    </div>
+  </div>
+  <div class="admin-pro-card">
+    <div class="admin-pro-section-title"><i class="bi bi-terminal"></i> SQL Query</div>
+    <form method="post" action="{{ url_for('admin_db_query') }}">
+      <div class="mb-3">
+        <textarea name="query" class="form-control" rows="3" placeholder="Enter SQL query (e.g. SELECT * FROM [Database])"></textarea>
+      </div>
+      <button class="admin-pro-btn admin-pro-btn-primary" type="submit"><i class="bi bi-play"></i> Run Query</button>
+    </form>
+  </div>
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+{% endblock %}

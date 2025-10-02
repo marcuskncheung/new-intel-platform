@@ -1,0 +1,1101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="card shadow-sm rounded">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background: #1669d2; color: #fff;">
+      <div>
+        <h5 class="mb-0">{{ email.subject or "(No Subject)" }}</h5>
+        <small>From: {{ email.sender }} | Received: {{ email.received }}</small>
+      </div>
+      <div class="btn-group">
+        <!-- AI Analysis Button (comprehensive only) -->
+        <button class="btn btn-outline-warning btn-sm ai-comprehensive-detail-btn" 
+                data-email-id="{{ email.id }}" 
+                title="Comprehensive AI analysis with attachments">
+          <i class="bi bi-gear"></i> AI Analysis
+        </button>
+        <a href="{{ url_for('int_source') }}#inbox" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-left"></i> Back to Inbox
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- AI Details Section (always visible) -->
+      {% if email.ai_analysis_summary or (email.preparer and 'AI' in email.preparer) %}
+        <div class="card border-primary mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-robot"></i> AI Details</h5>
+          </div>
+          <div class="card-body">
+            {% if email.ai_analysis_summary %}
+              <div class="mb-3">
+                <label class="form-label text-primary"><strong>🤖 AI Comprehensive Analysis Report</strong></label>
+                <div class="form-control-plaintext bg-light p-3 rounded border">
+                  <div style="max-height: 300px; overflow-y: auto;">
+                    {{ email.ai_analysis_summary | replace(' | ', '<br><br>') | safe }}
+                  </div>
+                </div>
+              </div>
+            {% elif email.preparer and 'AI' in email.preparer %}
+              <div class="mb-3">
+                <label class="form-label text-warning"><strong>🤖 Legacy AI Analysis (Preparer Field)</strong></label>
+                <div class="form-control-plaintext bg-warning-subtle p-3 rounded">
+                  {% set ai_summary = email.preparer.replace('AI Analysis: ', '').replace('COMPREHENSIVE AI: ', '') %}
+                  {{ ai_summary }}
+                </div>
+              </div>
+            {% endif %}
+            <small class="text-muted">
+              <i class="bi bi-info-circle"></i> This section shows the latest AI-generated analysis report. Each new AI run will overwrite the previous report.
+            </small>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Case Management Section -->
+      <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-folder-open"></i> Case Management
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('assign_case_number', email_id=email.id) }}">
+            <div class="row">
+              <div class="col-md-4">
+                <label class="form-label"><strong>Case Number:</strong></label>
+                <div class="input-group">
+                  <input type="text" 
+                         class="form-control" 
+                         name="case_number" 
+                         value="{{ email.case_number or '' }}"
+                         placeholder="Enter case number (e.g., C2025-001)"
+                         pattern="[A-Z]{1,3}[0-9]{4}-[0-9]{3,4}"
+                         title="Format: C2025-001, IA2025-015">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Assign
+                  </button>
+                </div>
+                <small class="text-muted">Format: C2025-001, IA2025-015, etc.</small>
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label"><strong>Case Status:</strong></label>
+                <div class="d-flex align-items-center">
+                  {% if email.case_number %}
+                    <span class="badge bg-success me-2">
+                      <i class="fas fa-check"></i> Case {{ email.case_number }}
+                    </span>
+                    <span class="text-muted">
+                      ({{ email.case_email_count }} email{{ 's' if email.case_email_count != 1 else '' }})
+                    </span>
+                  {% else %}
+                    <span class="badge bg-warning">
+                      <i class="fas fa-clock"></i> No Case Assigned
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label"><strong>Case Info:</strong></label>
+                {% if email.case_assigned_by %}
+                  <div class="small">
+                    <i class="fas fa-user"></i> Assigned by: {{ email.case_assigned_by }}<br>
+                    <i class="fas fa-calendar"></i> Date: {{ email.case_assigned_at.strftime('%Y-%m-%d %H:%M') if email.case_assigned_at else 'Unknown' }}
+                  </div>
+                {% else %}
+                  <span class="text-muted">Not yet assigned</span>
+                {% endif %}
+              </div>
+            </div>
+          </form>
+          
+          <!-- Related Case Emails -->
+          {% if email.case_number and email.related_case_emails %}
+          <hr>
+          <h6><i class="fas fa-link"></i> Related Emails in Case {{ email.case_number }}:</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Email ID</th>
+                  <th>Date</th>
+                  <th>From</th>
+                  <th>Subject</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for related_email in email.related_case_emails %}
+                <tr {% if related_email.id == email.id %}class="table-warning"{% endif %}>
+                  <td>
+                    <span class="badge bg-info">{{ related_email.id }}</span>
+                    {% if related_email.is_case_master %}
+                      <i class="fas fa-star text-warning" title="Master Email"></i>
+                    {% endif %}
+                  </td>
+                  <td class="small">{{ related_email.received or 'Unknown' }}</td>
+                  <td class="small">{{ related_email.sender or 'Unknown' }}</td>
+                  <td class="small">{{ (related_email.subject or 'No Subject')[:50] }}{% if (related_email.subject|length or 0) > 50 %}...{% endif %}</td>
+                  <td>
+                    <a href="{{ url_for('int_source_email_detail', email_id=related_email.id) }}" 
+                       class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye"></i> View
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Email Content -->
+      {% for block in thread_blocks %}
+        <details class="mb-3" {% if loop.first %}open{% endif %}>
+          <summary class="fw-bold text-primary mb-2" style="cursor: pointer;">
+            {% if block.meta.type == 'current' %}
+              📧 Current Email
+            {% elif block.meta.type == 'thread' %}
+              📜 Previous Email Thread
+            {% elif loop.length == 1 %}
+              📧 Email Content
+            {% else %}
+              📧 Email Content {{ loop.index }}
+            {% endif %}
+          </summary>
+          <div class="email-body-enhanced" style="padding: 15px; background-color: #f8f9fa; border-left: 4px solid #1669d2; margin: 10px 0;">
+            {% if block.content %}
+              {{ block.content | safe }}
+            {% else %}
+              <em class="text-muted">No content available</em>
+            {% endif %}
+          </div>
+        </details>
+      {% endfor %}
+
+      <!-- Attachments -->
+      {% if attachments %}
+        <div class="mb-3">
+          <b>Attachments:</b>
+          <div class="mt-2">
+            {% for att in attachments %}
+              <div class="d-flex align-items-center mb-2 p-2 border rounded bg-light">
+                <div class="flex-grow-1">
+                  <i class="bi bi-paperclip me-2"></i>
+                  <strong>{{ att.filename }}</strong>
+                </div>
+                <div class="btn-group" role="group">
+                  <a href="{{ url_for('int_source_embedded_attachment_viewer', att_id=att.id) }}" 
+                     class="btn btn-sm btn-outline-primary" 
+                     title="View attachment">
+                    <i class="bi bi-eye"></i> View
+                  </a>
+                  <a href="{{ url_for('int_source_download_email_attachment', att_id=att.id) }}" 
+                     class="btn btn-sm btn-outline-secondary" 
+                     download
+                     title="Download attachment">
+                    <i class="bi bi-download"></i> Download
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- AI Analysis Results Section -->
+      {% if email.alleged_subject and (email.preparer and 'AI' in email.preparer) %}
+        <div class="mt-4 mb-4">
+          <div class="card border-success">
+            <div class="card-header bg-success text-white">
+              <h6 class="mb-0"><i class="bi bi-robot"></i> AI Analysis Results</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label text-primary"><strong>🎯 Alleged Subject(s)</strong></label>
+                    <div class="form-control-plaintext bg-light p-2 rounded">
+                      {{ email.alleged_subject or 'Not identified' }}
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label class="form-label text-primary"><strong>⚖️ Allegation Type</strong></label>
+                    <div class="form-control-plaintext bg-light p-2 rounded">
+                      {{ email.alleged_nature or 'Not classified' }}
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label text-primary"><strong>📊 Source Reliability</strong></label>
+                    <div class="form-control-plaintext bg-light p-2 rounded">
+                      {% if email.source_reliability %}
+                        {{ email.source_reliability }}/5
+                        {% if email.source_reliability >= 4 %}
+                          <span class="badge bg-success">High</span>
+                        {% elif email.source_reliability >= 3 %}
+                          <span class="badge bg-warning">Medium</span>
+                        {% else %}
+                          <span class="badge bg-danger">Low</span>
+                        {% endif %}
+                      {% else %}
+                        Not assessed
+                      {% endif %}
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label class="form-label text-primary"><strong>✅ Content Validity</strong></label>
+                    <div class="form-control-plaintext bg-light p-2 rounded">
+                      {% if email.content_validity %}
+                        {{ email.content_validity }}/5
+                        {% if email.content_validity >= 4 %}
+                          <span class="badge bg-success">High</span>
+                        {% elif email.content_validity >= 3 %}
+                          <span class="badge bg-warning">Medium</span>
+                        {% else %}
+                          <span class="badge bg-danger">Low</span>
+                        {% endif %}
+                      {% else %}
+                        Not assessed
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {% if email.ai_analysis_summary %}
+                <div class="mt-3">
+                  <label class="form-label text-primary"><strong>🤖 AI Comprehensive Analysis Results</strong></label>
+                  <div class="form-control-plaintext bg-light p-3 rounded border">
+                    <div style="max-height: 200px; overflow-y: auto;">
+                      {{ email.ai_analysis_summary | replace(' | ', '<br><br>') | safe }}
+                    </div>
+                  </div>
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle"></i> 
+                    This comprehensive analysis was generated automatically by AI. Please review and verify all information.
+                  </small>
+                </div>
+              {% elif email.preparer and 'AI' in email.preparer %}
+                <div class="mt-3">
+                  <label class="form-label text-warning"><strong>🤖 Legacy AI Analysis (Preparer Field)</strong></label>
+                  <div class="form-control-plaintext bg-warning-subtle p-3 rounded">
+                    {% set ai_summary = email.preparer.replace('AI Analysis: ', '').replace('COMPREHENSIVE AI: ', '') %}
+                    {{ ai_summary }}
+                  </div>
+                  <small class="text-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    This is legacy AI data stored in preparer field. Run new AI analysis for comprehensive results.
+                  </small>
+                </div>
+              {% endif %}
+              
+              <div class="mt-3 text-center">
+                <small class="text-muted">
+                  <i class="bi bi-lightbulb"></i> 
+                  Run AI Comprehensive Analysis above to get detailed reasoning, confidence scores, and risk assessment.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Assessment Form -->
+      <form method="POST" action="{{ url_for('int_source_update_assessment', email_id=email.id) }}" class="mt-4" novalidate>
+        <h6 class="text-primary mb-3">Assessment Details</h6>
+        <table class="table table-bordered align-middle" style="max-width:800px;margin:auto;">
+          <tr>
+            <td><b>Date:</b></td>
+            <td>{{ (email.assessment_updated_at or "")|strftime("%Y-%m-%d %H:%M:%S") }}</td>
+          </tr>
+          <tr>
+            <td><b>Preparer:</b></td>
+            <td>
+              {% if email.preparer and ('AI' in email.preparer or 'COMPREHENSIVE' in email.preparer) %}
+                <div class="alert alert-info mb-2">
+                  <i class="bi bi-robot"></i> 
+                  <strong>AI Generated:</strong> This assessment was automatically generated by AI. 
+                  Please review and assign a human preparer if needed.
+                </div>
+              {% endif %}
+              
+              <select name="preparer" class="form-select">
+                <option value="">Select Preparer...</option>
+                <option value="Nicola" {% if email.preparer == 'Nicola' %}selected{% endif %}>Nicola</option>
+                <option value="Erney" {% if email.preparer == 'Erney' %}selected{% endif %}>Erney</option>
+                <option value="Alex" {% if email.preparer == 'Alex' %}selected{% endif %}>Alex</option>
+                <option value="Queenie" {% if email.preparer == 'Queenie' %}selected{% endif %}>Queenie</option>
+                <option value="Charlie" {% if email.preparer == 'Charlie' %}selected{% endif %}>Charlie</option>
+                <option value="Eunice" {% if email.preparer == 'Eunice' %}selected{% endif %}>Eunice</option>
+                <option value="Marcus" {% if email.preparer == 'Marcus' %}selected{% endif %}>Marcus</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Alleged Subject(s)</b></td>
+            <td>
+              <div id="alleged-subjects">
+                {% if email.alleged_subject_english or email.alleged_subject_chinese %}
+                  {% set english_names = email.alleged_subject_english.split(',') if email.alleged_subject_english else [] %}
+                  {% set chinese_names = email.alleged_subject_chinese.split(',') if email.alleged_subject_chinese else [] %}
+                  {% set max_len = [english_names|length, chinese_names|length] | max %}
+                  
+                  {% for i in range(max_len) %}
+                    <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+                          🗑️ Remove
+                        </button>
+                      </div>
+                      
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label">📝 English Name</label>
+                          <input type="text" name="alleged_subjects_en[]" class="form-control" 
+                                 value="{{ english_names[i].strip() if i < english_names|length else '' }}" 
+                                 placeholder="Enter English name">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                          <input type="text" name="alleged_subjects_cn[]" class="form-control" 
+                                 value="{{ chinese_names[i].strip() if i < chinese_names|length else '' }}"
+                                 placeholder="Enter Chinese name">
+                        </div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+                          <label class="form-check-label">Is this an insurance intermediary?</label>
+                        </div>
+                      </div>
+                      
+                      <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <div class="row">
+                          <div class="col-6">
+                            <label class="form-label">License Type:</label>
+                            <select name="intermediary_type[]" class="form-select">
+                              <option value="">Select Type</option>
+                              <option value="Agent">Agent</option>
+                              <option value="Broker">Broker</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label">License Number:</label>
+                            <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p class="text-muted mt-2 mb-0">
+                        <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                      </p>
+                    </div>
+                  {% endfor %}
+                {% elif email.alleged_subject %}
+                  {% set subjects = email.alleged_subject.split(',') %}
+                  {% for subject in subjects %}
+                    <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+                          🗑️ Remove
+                        </button>
+                      </div>
+                      
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label">📝 English Name</label>
+                          <input type="text" name="alleged_subjects_en[]" class="form-control" value="{{ subject.strip() }}" placeholder="Enter English name">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                          <input type="text" name="alleged_subjects_cn[]" class="form-control" placeholder="Enter Chinese name">
+                        </div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+                          <label class="form-check-label">Is this an insurance intermediary?</label>
+                        </div>
+                      </div>
+                      
+                      <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <div class="row">
+                          <div class="col-6">
+                            <label class="form-label">License Type:</label>
+                            <select name="intermediary_type[]" class="form-select">
+                              <option value="">Select Type</option>
+                              <option value="Agent">Agent</option>
+                              <option value="Broker">Broker</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label">License Number:</label>
+                            <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p class="text-muted mt-2 mb-0">
+                        <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                      </p>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h6 class="text-primary mb-0">📋 Alleged Subject Details</h6>
+                      <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)" style="display: none;">
+                        🗑️ Remove
+                      </button>
+                    </div>
+                    
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label">📝 English Name</label>
+                        <input type="text" name="alleged_subjects_en[]" class="form-control" placeholder="Enter English name">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                        <input type="text" name="alleged_subjects_cn[]" class="form-control" placeholder="Enter Chinese name">
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+                        <label class="form-check-label">Is this an insurance intermediary?</label>
+                      </div>
+                    </div>
+                    
+                    <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                      <div class="row">
+                        <div class="col-6">
+                          <label class="form-label">License Type:</label>
+                          <select name="intermediary_type[]" class="form-select">
+                            <option value="">Select Type</option>
+                            <option value="Agent">Agent</option>
+                            <option value="Broker">Broker</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label">License Number:</label>
+                          <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p class="text-muted mt-2 mb-0">
+                      <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                    </p>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="text-center mt-3">
+                <button class="btn btn-success" type="button" onclick="addAllegedSubject()">
+                  ➕ Add Another Subject (English/Chinese)
+                </button>
+              </div>
+              <div class="alert alert-info mt-3">
+                <i class="bi bi-lightbulb"></i> 
+                <strong>Tip:</strong> You can add multiple alleged subjects, each with English and Chinese names
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Alleged Nature</b><br><small class="text-muted">Standardized category for statistics</small></td>
+            <td>
+              <select name="alleged_nature" class="form-select">
+                <option value="">Select standardized category...</option>
+                <option value="Cross-border selling" {% if email.alleged_nature == 'Cross-border selling' %}selected{% endif %}>Cross-border selling</option>
+                <option value="Unlicensed practice" {% if email.alleged_nature == 'Unlicensed practice' %}selected{% endif %}>Unlicensed practice</option>
+                <option value="Misleading promotion" {% if email.alleged_nature == 'Misleading promotion' %}selected{% endif %}>Misleading promotion</option>
+                <option value="Unauthorized advice" {% if email.alleged_nature == 'Unauthorized advice' %}selected{% endif %}>Unauthorized advice</option>
+                <option value="Illegal commission" {% if email.alleged_nature == 'Illegal commission' %}selected{% endif %}>Illegal commission</option>
+                <option value="Policy churning" {% if email.alleged_nature == 'Policy churning' %}selected{% endif %}>Policy churning</option>
+                <option value="Cold calling" {% if email.alleged_nature == 'Cold calling' %}selected{% endif %}>Cold calling</option>
+                <option value="Pyramid scheme" {% if email.alleged_nature == 'Pyramid scheme' %}selected{% endif %}>Pyramid scheme</option>
+                <option value="Fraudulent claims" {% if email.alleged_nature == 'Fraudulent claims' %}selected{% endif %}>Fraudulent claims</option>
+                <option value="Breach of duty" {% if email.alleged_nature == 'Breach of duty' %}selected{% endif %}>Breach of duty</option>
+                <option value="Money laundering" {% if email.alleged_nature == 'Money laundering' %}selected{% endif %}>Money laundering</option>
+                <option value="Identity theft" {% if email.alleged_nature == 'Identity theft' %}selected{% endif %}>Identity theft</option>
+                <option value="Regulatory violation" {% if email.alleged_nature == 'Regulatory violation' %}selected{% endif %}>Regulatory violation</option>
+                <option value="Consumer complaint" {% if email.alleged_nature == 'Consumer complaint' %}selected{% endif %}>Consumer complaint</option>
+                <option value="Professional misconduct" {% if email.alleged_nature == 'Professional misconduct' %}selected{% endif %}>Professional misconduct</option>
+                <option value="Other" {% if email.alleged_nature == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Allegation Summary</b><br><small class="text-muted">Detailed description of the allegation</small></td>
+            <td>
+              <textarea name="allegation_summary" class="form-control" rows="4" placeholder="Enter detailed description of the allegation/complaint...">{{ email.allegation_summary or '' }}</textarea>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Source Reliability</b></td>
+            <td>
+              <select name="source_reliability" class="form-select">
+                <option value="">Select...</option>
+                <option value="5" {% if email.source_reliability == 5 %}selected{% endif %}>5 - Completely Reliable</option>
+                <option value="4" {% if email.source_reliability == 4 %}selected{% endif %}>4 - Usually Reliable</option>
+                <option value="3" {% if email.source_reliability == 3 %}selected{% endif %}>3 - Fairly Reliable</option>
+                <option value="2" {% if email.source_reliability == 2 %}selected{% endif %}>2 - Not Usually Reliable</option>
+                <option value="1" {% if email.source_reliability == 1 %}selected{% endif %}>1 - Unreliable</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Content Validity</b></td>
+            <td>
+              <select name="content_validity" class="form-select">
+                <option value="">Select...</option>
+                <option value="5" {% if email.content_validity == 5 %}selected{% endif %}>5 - Confirmed True</option>
+                <option value="4" {% if email.content_validity == 4 %}selected{% endif %}>4 - Probably True</option>
+                <option value="3" {% if email.content_validity == 3 %}selected{% endif %}>3 - Doubtfully True</option>
+                <option value="2" {% if email.content_validity == 2 %}selected{% endif %}>2 - Probably False</option>
+                <option value="1" {% if email.content_validity == 1 %}selected{% endif %}>1 - Confirmed False</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Combined Score</b></td>
+            <td>
+              {% set reviewer_name = (email.reviewer_name or '').strip() %}
+              {% set reviewer_comment = (email.reviewer_comment or '').strip() %}
+              {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
+              <span class="fw-bold">{{ combined_score }}</span>
+              {% if email.source_reliability is none or email.content_validity is none or not reviewer_name or not reviewer_comment %}
+                <span class="badge bg-light text-muted ms-2">Pending</span>
+              {% elif combined_score >= 8 %}
+                <span class="badge bg-success ms-2">Case Opened</span>
+              {% else %}
+                <span class="badge bg-secondary ms-2">Unsubstantial</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td><b>Reviewer</b></td>
+            <td>
+              <input type="text" name="reviewer_name" value="{{ email.reviewer_name or '' }}" class="form-control" placeholder="Enter reviewer name">
+            </td>
+          </tr>
+          <tr>
+            <td><b>Reviewer Comment</b></td>
+            <td>
+              <textarea name="reviewer_comment" class="form-control" rows="2" placeholder="e.g. Agree with the score, or provide reasoning">{{ email.reviewer_comment or '' }}</textarea>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Reviewer Decision</b></td>
+            <td>
+              <select name="reviewer_decision" class="form-select">
+                <option value="">Select Decision...</option>
+                <option value="agree" {% if email.reviewer_decision == 'agree' %}selected{% endif %}>[AGREE] Agree</option>
+                <option value="disagree" {% if email.reviewer_decision == 'disagree' %}selected{% endif %}>[DISAGREE] Disagree</option>
+              </select>
+              <small class="text-muted">
+                This decision affects whether an intelligence case will be opened based on the combined score.
+              </small>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" class="text-end">
+              <button type="submit" class="btn btn-primary" id="saveAssessmentBtn">Save Assessment</button>
+            </td>
+          </tr>
+        </table>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.email-body-enhanced {
+  margin-bottom: 8px;
+  padding: 14px 18px;
+  background: #fcfcfd;
+  border-radius: 5px;
+  border: 1px solid #e5e7eb;
+  word-break: break-word;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 1.08em;
+  line-height: 1.7;
+}
+.email-body-enhanced blockquote, .email-body-enhanced .quoted {
+  margin: 8px 0 8px 12px;
+  padding-left: 12px;
+  border-left: 3px solid #b3c6e0;
+  color: #555;
+  background: #f4f7fa;
+}
+</style>
+
+<script>
+// Force form submission without validation
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('form[action*="update_assessment"]');
+  const saveBtn = document.getElementById('saveAssessmentBtn');
+  
+  if (form && saveBtn) {
+    // Remove any HTML5 validation
+    form.setAttribute('novalidate', 'true');
+    
+    // Override form submission to bypass validation
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Remove validation from all form elements
+      const allInputs = form.querySelectorAll('input, select, textarea');
+      allInputs.forEach(function(input) {
+        input.removeAttribute('required');
+        input.setCustomValidity('');
+      });
+      
+      // Force form submission
+      form.submit();
+    });
+    
+    // Also handle button click directly
+    saveBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Remove validation from all form elements
+      const allInputs = form.querySelectorAll('input, select, textarea');
+      allInputs.forEach(function(input) {
+        input.removeAttribute('required');
+        input.setCustomValidity('');
+      });
+      
+      // Force form submission
+      form.submit();
+    });
+  }
+});
+
+function toggleInsuranceFields(checkbox) {
+  const subjectRow = checkbox.closest('.alleged-subject-row');
+  const insuranceFields = subjectRow.querySelector('.insurance-fields');
+  
+  if (checkbox.checked) {
+    insuranceFields.style.display = 'block';
+  } else {
+    insuranceFields.style.display = 'none';
+    // Clear the fields when unchecked
+    const typeSelect = insuranceFields.querySelector('select[name="intermediary_type[]"]');
+    const licenseInput = insuranceFields.querySelector('input[name="license_numbers[]"]');
+    if (typeSelect) typeSelect.value = '';
+    if (licenseInput) licenseInput.value = '';
+  }
+}
+
+function addAllegedSubject() {
+  const container = document.getElementById('alleged-subjects');
+  const newRow = document.createElement('div');
+  newRow.className = 'alleged-subject-row mb-3 p-3 border rounded';
+  newRow.style.backgroundColor = '#f8f9fa';
+  newRow.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="text-primary mb-0">📋 Alleged Subject Details</h6>
+      <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+        🗑️ Remove
+      </button>
+    </div>
+    
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">📝 English Name</label>
+        <input type="text" name="alleged_subjects_en[]" class="form-control" placeholder="Enter English name">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+        <input type="text" name="alleged_subjects_cn[]" class="form-control" placeholder="Enter Chinese name">
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+        <label class="form-check-label">Is this an insurance intermediary?</label>
+      </div>
+    </div>
+    
+    <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">License Type:</label>
+          <select name="intermediary_type[]" class="form-select">
+            <option value="">Select Type</option>
+            <option value="Agent">Agent</option>
+            <option value="Broker">Broker</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">License Number:</label>
+          <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+        </div>
+      </div>
+    </div>
+    
+    <p class="text-muted mt-2 mb-0">
+      <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+    </p>
+  `;
+  container.appendChild(newRow);
+  
+  // Update remove button visibility
+  updateRemoveButtons();
+}
+
+function removeAllegedSubject(button) {
+  const container = document.getElementById('alleged-subjects');
+  const rows = container.querySelectorAll('.alleged-subject-row');
+  
+  // Don't allow removing the last row
+  if (rows.length > 1) {
+    button.closest('.alleged-subject-row').remove();
+    updateRemoveButtons();
+  } else {
+    // Clear all fields instead of removing the row
+    const subjectRow = button.closest('.alleged-subject-row');
+    const englishInput = subjectRow.querySelector('input[name="alleged_subjects_en[]"]');
+    const chineseInput = subjectRow.querySelector('input[name="alleged_subjects_cn[]"]');
+    const checkbox = subjectRow.querySelector('input[name="is_insurance_intermediary[]"]');
+    const typeSelect = subjectRow.querySelector('select[name="intermediary_type[]"]');
+    const licenseInput = subjectRow.querySelector('input[name="license_numbers[]"]');
+    
+    if (englishInput) englishInput.value = '';
+    if (chineseInput) chineseInput.value = '';
+    if (checkbox) {
+      checkbox.checked = false;
+      toggleInsuranceFields(checkbox);
+    }
+    if (typeSelect) typeSelect.value = '';
+    if (licenseInput) licenseInput.value = '';
+  }
+}
+
+function updateRemoveButtons() {
+  const container = document.getElementById('alleged-subjects');
+  const rows = container.querySelectorAll('.alleged-subject-row');
+  
+  rows.forEach((row, index) => {
+    const removeBtn = row.querySelector('.remove-subject-btn');
+    if (index === 0 && rows.length === 1) {
+      removeBtn.style.display = 'none';
+    } else {
+      removeBtn.style.display = 'block';
+    }
+  });
+}
+
+// Function to handle attachment downloads in desktop environment
+function downloadAttachment(attachmentId) {
+  // Build download URL without using Flask url_for in JavaScript
+  const downloadUrl = `/int_source/download_email_attachment/${attachmentId}`;
+  
+  // For desktop compatibility, try multiple approaches in sequence
+  console.log('Attempting to download attachment:', attachmentId);
+  
+  // Method 1: Try fetch API with blob download (best for desktop)
+  fetch(downloadUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'attachment';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      return { blob: response.blob(), filename: filename };
+    })
+    .then(data => {
+      return data.blob.then(blob => ({ blob, filename: data.filename }));
+    })
+    .then(({ blob, filename }) => {
+      
+      // Create blob URL and download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      console.log('Download initiated successfully');
+    })
+    .catch(error => {
+      console.log('Fetch method failed, trying fallback:', error);
+      
+      // Method 2: Create temporary link (fallback)
+      try {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = '';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        console.log('Link click method attempted');
+      } catch (e) {
+        console.log('Link click failed, trying window.open:', e);
+        
+        // Method 3: Open in new window (last resort)
+        try {
+          window.open(downloadUrl, '_blank');
+          console.log('Window.open method attempted');
+        } catch (e2) {
+          console.log('All download methods failed:', e2);
+          alert('Download failed. Please try refreshing the page and try again.');
+        }
+      }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  updateRemoveButtons();
+  
+  // COMPREHENSIVE VALIDATION BYPASS - FORCE FORM SUBMISSION
+  const form = document.getElementById('assessmentForm');
+  const saveButton = document.getElementById('saveAssessmentBtn');
+  
+  if (form && saveButton) {
+    console.log('Adding comprehensive validation bypass...');
+    
+    // Method 1: Override form submit event
+    form.addEventListener('submit', function(e) {
+      console.log('Form submit intercepted - bypassing all validation');
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove all validation attributes
+      const inputs = form.querySelectorAll('input, select, textarea');
+      inputs.forEach(input => {
+        input.removeAttribute('required');
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+      });
+      
+      // Force submit without validation
+      form.noValidate = true;
+      form.submit();
+      return false;
+    });
+    
+    // Method 2: Override button click event
+    saveButton.addEventListener('click', function(e) {
+      console.log('Save button clicked - forcing submission');
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove all validation constraints
+      const allInputs = form.querySelectorAll('input, select, textarea');
+      allInputs.forEach(input => {
+        input.removeAttribute('required');
+        input.removeAttribute('pattern');
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+        
+        // Clear any validation states
+        if (input.checkValidity) {
+          try {
+            input.setCustomValidity('');
+          } catch (err) {
+            console.log('Validation clearing error:', err);
+          }
+        }
+      });
+      
+      // Disable HTML5 validation completely
+      form.noValidate = true;
+      form.setAttribute('novalidate', 'novalidate');
+      
+      // Force form submission
+      console.log('Forcing form submission...');
+      form.submit();
+      
+      return false;
+    });
+    
+    // Method 3: Remove validation on page load
+    setTimeout(function() {
+      const allElements = form.querySelectorAll('*');
+      allElements.forEach(element => {
+        element.removeAttribute('required');
+        element.removeAttribute('pattern');
+        if (element.setCustomValidity) {
+          element.setCustomValidity('');
+        }
+      });
+      form.noValidate = true;
+      form.setAttribute('novalidate', 'novalidate');
+      console.log('All validation attributes removed');
+    }, 100);
+    
+    console.log('Validation bypass setup complete');
+  } else {
+    console.log('Form or button not found for validation bypass');
+  }
+  
+  // AI Analysis Handler for Email Detail Page (comprehensive only)
+  
+  document.addEventListener('click', function(e) {
+    // Comprehensive AI Analysis
+    if (e.target.closest('.ai-comprehensive-detail-btn')) {
+      var button = e.target.closest('.ai-comprehensive-detail-btn');
+      var emailId = button.getAttribute('data-email-id');
+      
+      if (confirm('Run comprehensive AI analysis with attachments and detailed reasoning? This may take longer.')) {
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+        
+        fetch('/ai/comprehensive-analyze/' + emailId, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Show comprehensive analysis results in modal
+            showComprehensiveAnalysisModal(data.analysis);
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-gear"></i> AI+ Comprehensive';
+            // Also refresh to show updated basic fields
+            setTimeout(function() {
+              location.reload();
+            }, 1000);
+          } else {
+            alert('Comprehensive AI analysis failed: ' + (data.message || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-gear"></i> AI+ Comprehensive';
+          }
+        })
+        .catch(error => {
+          console.error('Comprehensive AI Analysis error:', error);
+          alert('Comprehensive AI analysis failed. Please try again.');
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-gear"></i> AI+ Comprehensive';
+        });
+      }
+    }
+  });
+  
+  // Function to show comprehensive analysis results in modal (reused from main page)
+  function showComprehensiveAnalysisModal(analysis) {
+    // Create modal if it doesn't exist
+    var modalId = 'comprehensive-analysis-modal-detail';
+    var existingModal = document.getElementById(modalId);
+    
+    if (!existingModal) {
+      // Create the modal HTML
+      var modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+              <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                  <i class="bi bi-robot"></i> AI Comprehensive Analysis Results
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" id="comprehensive-analysis-body-detail">
+                <!-- Analysis results will be populated here -->
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                  <i class="bi bi-printer"></i> Print Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Add modal to page
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+    
+    // Build comprehensive analysis display
+    var html = '<div class="comprehensive-analysis-results">';
+    
+    // Alleged Persons Section
+    if (analysis.alleged_persons && analysis.alleged_persons.length > 0) {
+      html += '<div class="section mb-4">';
+      html += '<h5 class="text-primary"><i class="bi bi-people"></i> Alleged Persons</h5>';
+      analysis.alleged_persons.forEach(function(person, index) {
+        html += '<div class="alleged-person-card border rounded p-3 mb-2">';
+        html += '<div class="row">';
+        html += '<div class="col-md-6">';
+        if (person.name_english) html += '<strong>English Name:</strong> ' + person.name_english + '<br>';
+        if (person.name_chinese) html += '<strong>Chinese Name:</strong> ' + person.name_chinese + '<br>';
+        html += '</div>';
+        html += '<div class="col-md-6">';
+        if (person.agent_number) html += '<strong>Agent Number:</strong> ' + person.agent_number + '<br>';
+        if (person.license_number) html += '<strong>License Number:</strong> ' + person.license_number + '<br>';
+        if (person.company) html += '<strong>Company:</strong> ' + person.company + '<br>';
+        if (person.role) html += '<strong>Role:</strong> ' + person.role + '<br>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    
+    // Analysis Summary
+    html += '<div class="section mb-4">';
+    html += '<h5 class="text-info"><i class="bi bi-file-text"></i> Analysis Summary</h5>';
+    html += '<p><strong>Allegation Type:</strong> ' + (analysis.allegation_type || 'N/A') + '</p>';
+    html += '<p><strong>Summary:</strong> ' + (analysis.allegation_summary || 'N/A') + '</p>';
+    html += '</div>';
+    
+    // Detailed Reasoning
+    if (analysis.detailed_reasoning) {
+      html += '<div class="section mb-4">';
+      html += '<h5 class="text-warning"><i class="bi bi-gear"></i> Detailed AI Reasoning</h5>';
+      html += '<div class="reasoning-box bg-light p-3 rounded">';
+      html += '<p>' + analysis.detailed_reasoning.replace(/\n/g, '<br>') + '</p>';
+      html += '</div>';
+      html += '</div>';
+    }
+    
+    html += '</div>';
+    
+    // Populate modal and show
+    document.getElementById('comprehensive-analysis-body-detail').innerHTML = html;
+    var modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
+  }
+});
+</script>
+
+{% endblock %}
