@@ -48,8 +48,8 @@ class IntelligenceAI:
                 json={
                     "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
                     "prompt": prompt,
-                    "max_tokens": 2000,  # Increased for comprehensive analysis
-                    "temperature": 0.1,
+                    "max_tokens": 3000,  # Increased to handle complex cases with multiple persons
+                    "temperature": 0.3,  # Balanced for analytical tasks
                     "stop": ["</comprehensive_analysis>"]
                 }
             )
@@ -73,7 +73,7 @@ class IntelligenceAI:
         """Create comprehensive analysis prompt for detailed investigation"""
         return f"""
 <comprehensive_analysis_task>
-You are an expert AI assistant helping insurance regulators investigate complaints. You must analyze ALL available content including email and attachments to provide a comprehensive verdict.
+You are an expert AI helping insurance regulators analyze complaints. Your job: accurately identify WHO is being accused, WHAT they're accused of, and summarize the key facts clearly.
 
 EMAIL CONTENT:
 SUBJECT: {email_data.get('subject', 'N/A')}
@@ -84,100 +84,55 @@ BODY: {email_data.get('body', 'N/A')[:3000]}...
 ATTACHMENT CONTENT:
 {attachment_content[:2000] if attachment_content else 'No attachments found'}...
 
-ANALYSIS REQUIREMENTS:
+YOUR TASKS:
 
-1. ALLEGED_PERSONS: Extract ALL individuals/entities being complained about
-   - Search for names in both English AND Chinese characters
-   - Include agent numbers, license numbers if mentioned
-   - If multiple persons, create separate entries
+1. **IDENTIFY ALLEGED SUBJECTS** - Find who is being complained about:
+   - Extract BOTH English name AND Chinese name (if available)
+   - Extract agent number, license number, registration number (if mentioned)
+   - Extract company name (if mentioned)
+   - If multiple people are accused, create separate entries for each person
+   - Example: "Billy Ng 黃志明, Agent #12345, ABC Insurance Company"
 
-2. DETAILED_REASONING: Provide comprehensive analysis reasoning
-   - What evidence supports the allegations?
-   - What regulatory violations are suggested?
-   - Cross-reference email and attachment content
+2. **IDENTIFY ALLEGATION TYPE** - Choose ONE specific category:
+   - Cross-border Insurance Solicitation (跨境保險招攬)
+   - Unlicensed Practice (無牌經營)
+   - Mis-selling (誤導銷售)
+   - Fraud/Misrepresentation (欺詐/失實陳述)
+   - Churning (不當替換保單)
+   - Failure to Disclose (未有披露)
+   - Poor Customer Service (服務欠佳)
+   - Policy Dispute (保單糾紛)
+   - Commission Dispute (佣金糾紛)
+   - General Inquiry (一般查詢)
+   - Other
 
-3. AGENT_LICENSE_NUMBERS: Extract any license/agent numbers mentioned
-   - Format: agent number, license number, registration number
-   - Link to specific alleged persons
+3. **WRITE ALLEGATION SUMMARY** - Write a clear, concise summary (2-4 sentences):
+   - What happened? (the key facts)
+   - What is the complainant alleging?
+   - What evidence is provided?
+   - Keep it factual and precise for regulators to quickly understand
 
-4. REGULATORY_IMPACT: Assess severity and regulatory significance
-   - Consumer harm potential
-   - Market conduct issues
-   - Licensing violations
-
-5. INVESTIGATION_PRIORITY: Rate urgency and resource allocation
-   - HIGH: Serious violations, consumer harm, systemic issues
-   - MEDIUM: Standard complaints requiring investigation
-   - LOW: Minor issues or insufficient evidence
-
-6. EVIDENCE_QUALITY: Assess the strength of evidence provided
-   - Documentation quality
-   - Witness statements
-   - Financial impact
+DO NOT include scores, ratings, or confidence levels. Just provide the facts.
 
 Format response as JSON:
 {{
     "alleged_persons": [
         {{
-            "name_english": "...",
-            "name_chinese": "...",
-            "agent_number": "...",
-            "license_number": "...",
-            "company": "...",
-            "role": "agent/broker/company"
+            "name_english": "Billy Ng" or "Unknown",
+            "name_chinese": "黃志明" or "",
+            "agent_number": "A12345" or "",
+            "license_number": "" or "",
+            "company": "ABC Insurance" or "",
+            "role": "agent" or "broker" or "company" or "unknown"
         }}
     ],
-    "allegation_type": "...",
-    "allegation_summary": "...",
-    "detailed_reasoning": "Comprehensive analysis of evidence and regulatory implications...",
-    "evidence_quality": "STRONG/MODERATE/WEAK",
-    "investigation_priority": "HIGH/MEDIUM/LOW",
-    "regulatory_impact": "...",
-    "recommended_actions": ["action1", "action2", "action3"],
-    "source_reliability": 4,
-    "content_validity": 4,
-    "confidence_score": 0.85,
-    "attachment_analysis": "Summary of key findings from attachments",
-    "consumer_harm_level": "HIGH/MEDIUM/LOW/NONE"
+    "allegation_type": "Cross-border Insurance Solicitation",
+    "allegation_summary": "Clear 2-4 sentence summary of what happened and what is being alleged, with key evidence mentioned."
 }}
 </comprehensive_analysis_task>
 
 <comprehensive_analysis>
 """
-        """
-        Analyze an email to extract alleged subjects and allegation details
-        """
-        prompt = self._create_analysis_prompt(email_data)
-        
-        try:
-            # Call LLM for analysis using configured session
-            response = self.session.post(
-                f"{self.llm_api}/completions",
-                headers={"Content-Type": "application/json"},
-                json={
-                    "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
-                    "prompt": prompt,
-                    "max_tokens": 2000,  # Increased for better summaries
-                    "temperature": 0.1,
-                    "stop": ["</analysis>"]
-                }
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                analysis_text = result.get('choices', [{}])[0].get('text', '')
-                print(f"[DEBUG] LLM response: {analysis_text[:200]}...")
-                parsed_result = self._parse_analysis_result(analysis_text)
-                print(f"[DEBUG] Parsed analysis: {parsed_result}")
-                return parsed_result
-            else:
-                print(f"LLM API error: {response.status_code} - {response.text}")
-                return self._get_default_analysis()
-                
-        except Exception as e:
-            print(f"[ERROR] Error calling LLM API: {e}")
-            print(f"[DEBUG] Email data: {email_data}")
-            return self._get_default_analysis()
     
     def _create_analysis_prompt(self, email_data: Dict) -> str:
         """Create prompt for LLM to analyze insurance allegation emails"""
@@ -298,21 +253,14 @@ Format your response as JSON:
                 comprehensive_result = {
                     'alleged_persons': alleged_persons,
                     'allegation_type': result.get('allegation_type', '')[:255],
-                    'allegation_summary': result.get('allegation_summary', '')[:1000],
-                    'detailed_reasoning': result.get('detailed_reasoning', '')[:5000],
-                    'evidence_quality': result.get('evidence_quality', 'MODERATE'),
-                    'investigation_priority': result.get('investigation_priority', 'MEDIUM'),
-                    'regulatory_impact': result.get('regulatory_impact', '')[:1000],
-                    'recommended_actions': result.get('recommended_actions', [])[:10],
-                    'source_reliability': min(max(int(result.get('source_reliability', 3)), 1), 5),
-                    'content_validity': min(max(int(result.get('content_validity', 3)), 1), 5),
-                    'confidence_score': float(result.get('confidence_score', 0.5)),
-                    'attachment_analysis': result.get('attachment_analysis', '')[:1000],
-                    'consumer_harm_level': result.get('consumer_harm_level', 'LOW'),
+                    'allegation_summary': result.get('allegation_summary', '')[:2000],
                     'ai_analysis_completed': True,
-                    'analysis_type': 'comprehensive'
+                    'analysis_type': 'comprehensive',
+                    # Keep minimal fields for compatibility
+                    'source_reliability': 3,
+                    'content_validity': 3
                 }
-                print(f"[DEBUG] Successfully parsed comprehensive result")
+                print(f"[DEBUG] Successfully parsed comprehensive result with {len(alleged_persons)} alleged persons")
                 return comprehensive_result
             else:
                 print(f"[ERROR] No valid JSON found in comprehensive response")
@@ -327,54 +275,35 @@ Format your response as JSON:
             'alleged_persons': [],
             'allegation_type': 'ANALYSIS_FAILED',
             'allegation_summary': 'Comprehensive AI analysis failed - manual review required',
-            'detailed_reasoning': 'AI analysis could not be completed. Please review email and attachments manually.',
-            'evidence_quality': 'UNKNOWN',
-            'investigation_priority': 'MEDIUM',
-            'regulatory_impact': 'Requires manual assessment',
-            'recommended_actions': ['manual_review', 'verify_allegations'],
             'source_reliability': 3,
             'content_validity': 3,
-            'confidence_score': 0.0,
-            'attachment_analysis': 'Not available',
-            'consumer_harm_level': 'UNKNOWN',
             'ai_analysis_completed': False,
             'analysis_type': 'comprehensive'
         }
     
-    def find_similar_cases(self, email_text: str, limit: int = 5) -> List[Dict]:
+    def ai_summarize_email(self, email_data: Dict, attachments: List[Dict] = None) -> Dict:
         """
-        Use embedding model to find similar cases
+        Use AI to analyze email including PDF attachments: summary, allegation nature, and alleged person
+        Now reads PDF attachments just like analyze_allegation_email_comprehensive()
         """
         try:
-            # Get embedding for current email using configured session
-            response = self.session.post(
-                f"{self.embedding_api}/embeddings",
-                headers={"Content-Type": "application/json"},
-                json={
-                    "model": "hosted_vllm/Dmeta",
-                    "input": email_text[:1000]  # Limit text length
-                }
-            )
+            # Process PDF attachments to extract text content (SAME AS COMPREHENSIVE FUNCTION)
+            attachment_content = ""
+            if attachments:
+                for attachment in attachments:
+                    # Only process PDF files
+                    filename = attachment.get('filename', '').lower()
+                    if filename.endswith('.pdf') and attachment.get('filepath'):
+                        print(f"[AI SUMMARIZE] Processing PDF attachment: {filename}")
+                        doc_result = self.process_attachment_with_docling(attachment['filepath'])
+                        if doc_result.get('success'):
+                            attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} ---\n"
+                            attachment_content += doc_result.get('text_content', '')[:2000]  # Limit per PDF
+                            print(f"[AI SUMMARIZE] Successfully extracted {len(doc_result.get('text_content', ''))} chars from PDF")
+                        else:
+                            print(f"[AI SUMMARIZE] Failed to extract content from PDF: {filename}")
             
-            if response.status_code == 200:
-                embedding = response.json().get('data', [{}])[0].get('embedding', [])
-                # Here you would compare with stored embeddings in your database
-                # For now, return empty list
-                return []
-            else:
-                print(f"Embedding API error: {response.status_code}")
-                return []
-                
-        except Exception as e:
-            print(f"Error calling embedding API: {e}")
-            return []
-    
-    def ai_summarize_email(self, email_data: Dict) -> Dict:
-        """
-        Use AI to comprehensively analyze email: summary, allegation nature, and alleged person
-        """
-        try:
-            # Enhanced prompt for comprehensive analysis focusing on EMAIL BODY
+            # Enhanced prompt for comprehensive analysis focusing on EMAIL BODY + ATTACHMENTS
             email_body = email_data.get('body', '')
             
             # Clean and prepare email body for analysis
@@ -388,35 +317,38 @@ Format your response as JSON:
             else:
                 clean_body = "No email body content available"
             
-            prompt = f"""You are analyzing an email for a professional investigation report. Focus on the EMAIL BODY CONTENT to understand what this email is really about.
+            prompt = f"""You are analyzing an email for a professional investigation report. Focus on the EMAIL BODY CONTENT and PDF ATTACHMENTS to understand what this email is really about.
 
 EMAIL DETAILS:
 Subject: {email_data.get('subject', 'N/A')}
 From: {email_data.get('sender', 'N/A')}
 To: {email_data.get('recipients', 'N/A')}
 
-IMPORTANT - ANALYZE THIS EMAIL BODY CONTENT:
+EMAIL BODY CONTENT:
 {clean_body}
 
+PDF ATTACHMENT CONTENT:
+{attachment_content if attachment_content else 'No PDF attachments'}
+
 INSTRUCTIONS:
-1. READ THE EMAIL BODY CAREFULLY - ignore the subject line, focus on what the email content actually says
-2. Determine what type of issue/complaint/inquiry this email is about based on the BODY content
-3. Identify who is being complained about or investigated based on the BODY content
-4. Create a professional summary based on what you read in the EMAIL BODY
+1. READ THE EMAIL BODY AND PDF ATTACHMENTS CAREFULLY - focus on what the actual content says
+2. Determine what type of issue/complaint/inquiry this email is about based on the content
+3. Identify who is being complained about or investigated based on the content
+4. Create a professional summary based on what you read
 
 Respond in JSON format:
 {{
-    "email_summary": "Professional 2-3 sentence summary based on EMAIL BODY content (not subject line)",
-    "allegation_nature": "Specific allegation type based on EMAIL BODY (e.g., Cross-border Insurance Solicitation, Unlicensed Practice, Mis-selling, Fraud, Consumer Complaint, Inquiry, Investigation Request)",
-    "alleged_person": "Name/company being complained about based on EMAIL BODY content",
+    "email_summary": "Professional 2-3 sentence summary based on email body and PDF content",
+    "allegation_nature": "Specific allegation type (e.g., Cross-border Insurance Solicitation, Unlicensed Practice, Mis-selling, Fraud, Consumer Complaint, Inquiry, Investigation Request)",
+    "alleged_person": "Name/company being complained about based on the content",
     "email_type": "complaint/inquiry/response/follow-up/investigation",
     "confidence": "High/Medium/Low confidence in analysis"
 }}
 
 Analysis:"""
             
-            print(f"[AI SUMMARIZE] Analyzing email body content for email {email_data.get('id', 'unknown')}...")
-            print(f"[AI SUMMARIZE] Email body length: {len(email_body)} chars, clean body: {len(clean_body)} chars")
+            print(f"[AI SUMMARIZE] Analyzing email + {len(attachments) if attachments else 0} attachments for email {email_data.get('id', 'unknown')}...")
+            print(f"[AI SUMMARIZE] Email body: {len(email_body)} chars, Attachments: {len(attachment_content)} chars")
             
             response = self.session.post(
                 f"{self.llm_api}/completions",
@@ -424,11 +356,11 @@ Analysis:"""
                 json={
                     "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
                     "prompt": prompt,
-                    "max_tokens": 1000,  # Increased for comprehensive body analysis
-                    "temperature": 0.2,
-                    "stop": ["Analysis:", "\n\n---"]
+                    "max_tokens": 1500,  # Increased for comprehensive summaries
+                    "temperature": 0.3,  # Balanced for analysis
+                    "stop": ["</ai_summary>"]
                 },
-                timeout=60  # Increased timeout for body analysis
+                timeout=60
             )
             
             if response.status_code == 200:
@@ -536,8 +468,8 @@ Analysis:"""
                 json={
                     "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
                     "prompt": prompt,
-                    "max_tokens": 6000,  # Increased for processing more emails
-                    "temperature": 0.1,
+                    "max_tokens": 6000,  # Large enough for grouping many emails
+                    "temperature": 0.15,  # Lower for factual extraction tasks
                     "stop": ["</ai_grouping>"]
                 }
             )
@@ -582,53 +514,35 @@ Sender: {sender_short}
 
         return f"""
 <ai_grouping_task>
-You are an AI assistant for ULTRA-STRICT email title grouping. You MUST follow these rules EXACTLY.
+You are an AI for STRICT email title grouping. Group emails ONLY if they have IDENTICAL core subjects after removing prefixes.
 
 EMAILS TO GROUP:
 {emails_text}
 
-**ULTRA-STRICT TITLE GROUPING RULES:**
-1. **EXACT TITLE MATCH ONLY**: Group emails ONLY if they have the SAME core subject
-2. **REMOVE PREFIXES**: Strip "Re:", "FW:", "Fwd:", "Forward:", "Reply:", "回复:", "转发:", "轉發:" etc.
-3. **CORE SUBJECT MUST BE IDENTICAL**: After removing prefixes, the remaining text must be nearly identical
-4. **NO CONTENT MIXING**: NEVER group different subjects even if they mention same person/topic
-5. **NO ASSUMPTIONS**: If subjects look different, they ARE different - do NOT group them
+**RULES:**
+1. Remove prefixes: "Re:", "FW:", "Fwd:", "Forward:", "Reply:", "回复:", "转发:", "轉發:"
+2. Group ONLY if core subjects are IDENTICAL (case-insensitive)
+3. Different subjects = Different groups (even if same person/topic)
 
-**CRITICAL EXAMPLES:**
-- "請發出1月對賬單" + "Re: 請發出1月對賬單" + "FW: 轉發：Re: 請發出1月對賬單" = SAME GROUP (same core: "請發出1月對賬單")
-- "転介人举报" + "請發出1月對賬單" = DIFFERENT GROUPS (completely different subjects)
-- "Billy Ng complaint" + "Billy Ng inquiry" = DIFFERENT GROUPS (different words: complaint vs inquiry)
-- "Insurance case #123" + "Insurance case #456" = DIFFERENT GROUPS (different case numbers)
+**Examples:**
+✓ SAME: "請發出1月對賬單" + "Re: 請發出1月對賬單" = Group together
+✗ DIFFERENT: "Billy Ng complaint" + "Billy Ng inquiry" = Separate groups
 
-**WHAT SUBJECTS ARE THE SAME:**
-✓ "Subject" + "Re: Subject" + "FW: Subject" = SAME
-✓ "Title" + "Reply: Title" + "Forward: Title" = SAME  
-✓ "问题" + "Re: 问题" + "转发: 问题" = SAME
-
-**WHAT SUBJECTS ARE DIFFERENT:**
-✗ "Subject A" + "Subject B" = DIFFERENT
-✗ "问题1" + "问题2" = DIFFERENT
-✗ "Billy complaint" + "Billy inquiry" = DIFFERENT
-✗ "Case #1" + "Case #2" = DIFFERENT
-
-**MANDATORY OUTPUT**: Return ONLY this exact JSON format:
+**Output JSON:**
 {{
     "email_groups": [
         {{
             "group_id": "EXACT_001",
-            "group_name": "Email Title: [EXACT CORE SUBJECT]",
-            "group_type": "exact_title_match", 
-            "email_ids": [list of IDs with same core subject],
-            "core_subject": "[core subject after removing Re:/FW: prefixes]",
-            "reasoning": "EXACT title match after removing prefixes"
+            "group_name": "Email Title: [core subject]",
+            "email_ids": [list of IDs],
+            "core_subject": "[subject after removing prefixes]"
         }}
     ],
-    "ungrouped_emails": [IDs of emails with unique subjects],
+    "ungrouped_emails": [IDs with unique subjects],
     "grouping_summary": {{
         "total_emails": {len(email_summaries)},
-        "total_groups": "number of groups created",
-        "ungrouped_count": "number of unique emails",
-        "grouping_method": "ultra_strict_title_only"
+        "total_groups": 0,
+        "ungrouped_count": 0
     }}
 }}
 </ai_grouping_task>
@@ -717,128 +631,70 @@ EMAILS TO GROUP:
         }
 
     def _fallback_grouping(self, emails: List[Dict]) -> Dict:
-        """Enhanced fallback grouping - STRICT title-based threading only"""
-        print("[AI GROUPING] Using strict title-based fallback grouping method")
+        """Simplified fallback grouping - STRICT title-based threading only"""
+        import re
         
-        def clean_subject_for_ultra_strict_grouping(subject):
-            """Clean subject for ULTRA-STRICT title matching - only group identical core subjects"""
+        def clean_subject(subject):
+            """Clean subject for strict title matching"""
             if not subject:
                 return ""
-            
-            # Convert to lowercase for comparison
             clean = subject.lower().strip()
-            
-            # Remove common prefixes but be very careful about variations
-            prefixes_to_remove = [
-                're:', 'fw:', 'fwd:', 'forward:', 'reply:', 'ref:', 'r:', 'f:',
-                '回复:', '回复：', '转发:', '转发：', '轉發:', '轉發：',
-                'reply:', 'forward:', 'fwd:'
-            ]
-            
-            # Keep removing prefixes until none are found
-            original_clean = ""
-            while clean != original_clean:
-                original_clean = clean
-                for prefix in prefixes_to_remove:
+            # Remove prefixes iteratively
+            prefixes = ['re:', 'fw:', 'fwd:', 'forward:', 'reply:', '回复:', '回复：', '转发:', '转发：', '轉發:', '轉發：']
+            changed = True
+            while changed:
+                changed = False
+                for prefix in prefixes:
                     if clean.startswith(prefix):
-                        clean = clean[len(prefix):].strip()
-                        # Remove any leading colons or spaces
-                        clean = clean.lstrip(':').strip()
+                        clean = clean[len(prefix):].strip().lstrip(':').strip()
+                        changed = True
                         break
-                        
-                # Remove email tags like [EXTERNAL], [Internal], etc.
+                # Remove email tags like [EXTERNAL]
                 if clean.startswith('[') and ']' in clean:
-                    tag_end = clean.find(']')
-                    clean = clean[tag_end+1:].strip()
-            
-            # Normalize whitespace but preserve exact wording
-            import re
-            clean = re.sub(r'\s+', ' ', clean)
-            return clean.strip()
+                    clean = clean[clean.find(']')+1:].strip()
+                    changed = True
+            return re.sub(r'\s+', ' ', clean).strip()
         
-        # Group ONLY by EXACT title matches - ultra strict
+        # Group by exact core subject
         title_groups = {}
         ungrouped = []
-        
-        print(f"[FALLBACK GROUPING] Using ULTRA-STRICT title matching for {len(emails)} emails")
         
         for email in emails:
             email_id = email.get('id')
             subject = email.get('subject', '')
+            core_subject = clean_subject(subject)
             
-            if not subject or len(subject.strip()) < 2:
+            # Skip if subject too short
+            if len(core_subject) < 2:
                 ungrouped.append(email_id)
-                print(f"[FALLBACK] Email {email_id}: No subject or too short - ungrouped")
                 continue
             
-            # Get the core subject (without Re:/FW: prefixes)
-            core_subject = clean_subject_for_ultra_strict_grouping(subject)
-            
-            if len(core_subject) < 2:  # Too short to be meaningful
-                ungrouped.append(email_id)
-                print(f"[FALLBACK] Email {email_id}: Core subject too short '{core_subject}' - ungrouped")
-                continue
-            
-            # Debug logging
-            print(f"[FALLBACK] Email {email_id}: '{subject}' -> core: '{core_subject}'")
-            
-            # Group by exact core subject match
+            # Group by core subject
             if core_subject not in title_groups:
-                title_groups[core_subject] = {
-                    'email_ids': [],
-                    'original_subjects': [],
-                    'has_replies': False
-                }
+                title_groups[core_subject] = {'email_ids': [], 'has_replies': False}
             
             title_groups[core_subject]['email_ids'].append(email_id)
-            title_groups[core_subject]['original_subjects'].append(subject)
-            
-            # Check if this is a reply/forward
-            original_lower = subject.lower()
-            if any(prefix in original_lower for prefix in ['re:', 'fw:', 'fwd:', 'reply', '回复', '转发', '轉發']):
+            # Check for reply patterns
+            if any(p in subject.lower() for p in ['re:', 'fw:', 'fwd:', 'reply', '回复', '转发', '轉發']):
                 title_groups[core_subject]['has_replies'] = True
         
-        # Convert to AI grouping format - only create groups with multiple emails OR clear reply chains
+        # Create groups only for multiple emails or reply threads
         email_groups = []
         group_counter = 1
         
-        print(f"[FALLBACK] Found {len(title_groups)} unique core subjects")
-        
-        for core_subject, group_data in title_groups.items():
-            email_count = len(group_data['email_ids'])
-            print(f"[FALLBACK] Core subject '{core_subject}': {email_count} emails, has_replies: {group_data['has_replies']}")
-            
-            # Only create a group if:
-            # 1. Multiple emails with same core subject, OR
-            # 2. Has reply/forward patterns (even if just 1 email)
-            if email_count > 1 or group_data['has_replies']:
-                
-                # Determine group type
-                if group_data['has_replies']:
-                    group_type = 'exact_reply_thread'
-                    group_name = f'Email Thread: {core_subject[:60]}'
-                else:
-                    group_type = 'exact_title_match'
-                    group_name = f'Same Title: {core_subject[:60]}'
-                
+        for core_subject, data in title_groups.items():
+            email_count = len(data['email_ids'])
+            if email_count > 1 or data['has_replies']:
                 email_groups.append({
                     'group_id': f'EXACT_{group_counter:03d}',
-                    'group_name': group_name,
-                    'group_type': group_type,
-                    'email_ids': group_data['email_ids'],
-                    'core_subject': core_subject,
-                    'title_pattern': f'{email_count} emails with identical core title',
-                    'reasoning': f'EXACT title match: "{core_subject}"',
-                    'original_subjects': group_data['original_subjects'][:5]  # Show first 5 examples
+                    'group_name': f'Email Thread: {core_subject[:60]}' if data['has_replies'] else f'Same Title: {core_subject[:60]}',
+                    'group_type': 'exact_reply_thread' if data['has_replies'] else 'exact_title_match',
+                    'email_ids': data['email_ids'],
+                    'core_subject': core_subject
                 })
                 group_counter += 1
-                print(f"[FALLBACK] Created group {group_counter-1}: '{group_name}' with {email_count} emails")
             else:
-                # Single emails with no reply patterns go to ungrouped
-                ungrouped.extend(group_data['email_ids'])
-                print(f"[FALLBACK] Single email with core '{core_subject}' -> ungrouped")
-        
-        print(f"[FALLBACK] Final result: {len(email_groups)} groups, {len(ungrouped)} ungrouped emails")
+                ungrouped.extend(data['email_ids'])
         
         return {
             'email_groups': email_groups,
@@ -846,8 +702,7 @@ EMAILS TO GROUP:
             'grouping_summary': {
                 'total_emails': len(emails),
                 'total_groups': len(email_groups),
-                'ungrouped_count': len(ungrouped),
-                'main_group_types': ['exact_reply_thread', 'exact_title_match'],
+                'ungrouped_count': len(ungrouped)
                 'grouping_method': 'ultra_strict_title_only'
             },
             'ai_grouping_success': False,
@@ -885,11 +740,14 @@ EMAILS TO GROUP:
                                 'success': True,
                                 'endpoint_used': endpoint
                             }
-                    except:
+                        else:
+                            print(f"Docling endpoint {endpoint} returned status {response.status_code}")
+                    except (requests.RequestException, json.JSONDecodeError) as e:
+                        print(f"Docling endpoint {endpoint} failed: {type(e).__name__}: {str(e)}")
                         continue
                 
                 # If all endpoints fail, return graceful fallback
-                print(f"Docling API: All endpoints failed, using fallback text extraction")
+                print("Docling API: All endpoints failed, using fallback text extraction")
                 return {
                     'text_content': 'Docling service unavailable - manual document review required',
                     'metadata': {'error': 'Service unavailable'},
