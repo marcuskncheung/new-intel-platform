@@ -76,7 +76,7 @@ yarn-error.log*
 
 # Security Sensitive Files - ALLOW PRODUCTION FILES for complete deployment
 # db_encryption.key  # Allow if needed
-# db_encryption.salt # Allow if needed
+db_encryption.salt # Exclude sensitive encryption salt
 *.key
 *.pem
 *.p12

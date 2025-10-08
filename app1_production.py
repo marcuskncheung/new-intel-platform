@@ -551,13 +551,13 @@ class AuditLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     username = db.Column(db.String(80))
     action = db.Column(db.String(100), nullable=False)
-    resource_type = db.Column(db.String(50))  # email, attachment, user, etc.
-    resource_id = db.Column(db.String(36))    # ID of affected resource
+    resource_type = db.Column(db.String(200))  # email, attachment, user, etc. - Increased from 50 to 200
+    resource_id = db.Column(db.String(100))    # ID of affected resource - Increased from 36 to 100
     details = db.Column(db.Text)              # Encrypted sensitive details - must be TEXT not VARCHAR
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))    # Browser/client info
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    session_id = db.Column(db.String(100))    # Track user sessions
+    session_id = db.Column(db.String(200))    # Track user sessions - Increased from 100 to 200
     severity = db.Column(db.String(20), default='info')  # info, warning, critical
     
     @staticmethod
@@ -586,17 +586,29 @@ class AuditLog(db.Model):
                 else:
                     encrypted_details = details_str
             
+            # Safely truncate data to fit database constraints
+            username_val = (user.username if user else 'Anonymous')[:80] if user and user.username else 'Anonymous'
+            action_val = action[:100] if action else ''
+            resource_type_val = resource_type[:200] if resource_type else None
+            resource_id_val = str(resource_id)[:100] if resource_id else None
+            ip_address_val = (request.remote_addr if has_request_context() and request else None)
+            if ip_address_val and len(ip_address_val) > 45:
+                ip_address_val = ip_address_val[:45]
+            user_agent_val = (request.headers.get('User-Agent', '') if has_request_context() and request else '')[:500]
+            session_id_val = (flask_session.get('_id', 'unknown') if has_request_context() and flask_session else 'unknown')[:200]
+            severity_val = severity[:20] if severity else 'info'
+            
             log_entry = AuditLog(
                 user_id=user.id if user else None,
-                username=user.username if user else 'Anonymous',
-                action=action,
-                resource_type=resource_type,
-                resource_id=str(resource_id) if resource_id else None,
+                username=username_val,
+                action=action_val,
+                resource_type=resource_type_val,
+                resource_id=resource_id_val,
                 details=encrypted_details,
-                ip_address=request.remote_addr if has_request_context() and request else None,
-                user_agent=request.headers.get('User-Agent', '')[:500] if has_request_context() and request else None,
-                session_id=flask_session.get('_id', 'unknown') if has_request_context() and flask_session else None,
-                severity=severity
+                ip_address=ip_address_val,
+                user_agent=user_agent_val,
+                session_id=session_id_val,
+                severity=severity_val
             )
             
             # Safely add to database with proper error handling
@@ -1075,7 +1087,7 @@ with app.app_context():
 
 @login_mgr.user_loader
 def load_user(uid):
-    return User.query.get(int(uid))
+    return db.session.get(User, int(uid))
 
 BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, "data")
