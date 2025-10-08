@@ -18,6 +18,11 @@
 - **Problem**: Long data causing database errors
 - **Fix**: Added proper truncation in `AuditLog.log_action()` method
 
+### 4. Dark Mode Support ✅
+- **Feature**: Added comprehensive dark/light theme toggle
+- **Benefits**: Better user experience for users with dark mode preferences
+- **Implementation**: CSS variables, theme persistence, smooth transitions
+
 ## Server Deployment Steps:
 
 ### Step 1: Pull Latest Code
@@ -28,24 +33,26 @@ git pull origin main
 
 ### Step 2: Run Database Migration
 ```bash
-# Run the migration script to update schema
-python3 fix_audit_log_columns.py
+# Run the migration script inside the container
+docker exec -it intelligence-app python3 fix_audit_log_columns.py
+# OR if service name is different:
+docker compose exec intelligence-platform python3 fix_audit_log_columns.py
 ```
 
 ### Step 3: Restart Docker Services
 ```bash
 # Restart containers to apply code changes
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 ### Step 4: Verify Deployment
 ```bash
 # Check container status
-docker-compose ps
+docker compose ps
 
-# Check logs for errors
-docker-compose logs intelligence-app --tail 50
+# Check logs for errors (use correct service name from docker compose ps)
+docker compose logs intelligence-platform --tail 50
 
 # Test the application
 curl -k https://your-server-ip/health
@@ -76,6 +83,9 @@ docker-compose up -d
 ## Files Modified:
 - `app1_production.py`: Fixed SQLAlchemy deprecation and added data truncation
 - `fix_audit_log_columns.py`: Database migration script
+- `static/css/dark-mode.css`: Comprehensive dark mode support
+- `static/js/theme.js`: Theme management and toggle functionality
+- `templates/base.html`: Added theme toggle and dark mode resources
 - `DEPLOYMENT_CHECKLIST.md`: This file
 
 ## Database Compatibility:
