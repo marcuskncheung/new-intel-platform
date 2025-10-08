@@ -553,7 +553,7 @@ class AuditLog(db.Model):
     action = db.Column(db.String(100), nullable=False)
     resource_type = db.Column(db.String(50))  # email, attachment, user, etc.
     resource_id = db.Column(db.String(36))    # ID of affected resource
-    details = db.Column(db.Text)              # Encrypted sensitive details
+    details = db.Column(db.Text)              # Encrypted sensitive details - must be TEXT not VARCHAR
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))    # Browser/client info
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -571,14 +571,20 @@ class AuditLog(db.Model):
                 print(f"⚠️ Audit log skipped - no app context: {action}")
                 return
             
-            # Encrypt sensitive details
+            # Encrypt sensitive details with size protection
             encrypted_details = None
-            if details and SECURITY_MODULE_AVAILABLE:
+            if details:
                 if isinstance(details, dict):
                     details = json.dumps(details)
-                encrypted_details = encrypt_field(str(details))
-            else:
-                encrypted_details = str(details) if details else None
+                # Truncate extremely long details to prevent database errors
+                details_str = str(details)
+                if len(details_str) > 5000:  # Limit to 5KB
+                    details_str = details_str[:4900] + "...[truncated]"
+                
+                if SECURITY_MODULE_AVAILABLE:
+                    encrypted_details = encrypt_field(details_str)
+                else:
+                    encrypted_details = details_str
             
             log_entry = AuditLog(
                 user_id=user.id if user else None,
