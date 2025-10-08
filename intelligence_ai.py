@@ -256,9 +256,9 @@ Format your response as JSON:
                     'allegation_summary': result.get('allegation_summary', '')[:2000],
                     'ai_analysis_completed': True,
                     'analysis_type': 'comprehensive',
-                    # Keep minimal fields for compatibility
-                    'source_reliability': 3,
-                    'content_validity': 3
+                    # Set to None - let humans manually rate if needed
+                    'source_reliability': None,
+                    'content_validity': None
                 }
                 print(f"[DEBUG] Successfully parsed comprehensive result with {len(alleged_persons)} alleged persons")
                 return comprehensive_result
@@ -275,8 +275,8 @@ Format your response as JSON:
             'alleged_persons': [],
             'allegation_type': 'ANALYSIS_FAILED',
             'allegation_summary': 'Comprehensive AI analysis failed - manual review required',
-            'source_reliability': 3,
-            'content_validity': 3,
+            'source_reliability': None,
+            'content_validity': None,
             'ai_analysis_completed': False,
             'analysis_type': 'comprehensive'
         }

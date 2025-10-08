@@ -6395,9 +6395,11 @@ def ai_comprehensive_analyze_email(email_id):
             if ai_summary_parts:
                 email.ai_analysis_summary = " | ".join(ai_summary_parts)[:3000]  # Store full AI analysis
             
-            # Update other fields
-            email.source_reliability = analysis.get('source_reliability', 3)
-            email.content_validity = analysis.get('content_validity', 3)
+            # DO NOT save AI-generated scores - let humans manually rate if needed
+            # AI should not assess source reliability or content validity
+            # Leave these fields NULL for human judgment
+            email.source_reliability = None
+            email.content_validity = None
             
             # Keep preparer field clean for human assignment
             email.preparer = None  # Clear so humans can be assigned
