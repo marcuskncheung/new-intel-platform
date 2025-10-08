@@ -4243,8 +4243,7 @@ def add_surveillance():
             venue=venue,
             details_of_finding=details_of_finding,
             conducted_by=conducted_by,
-            source_reliability=int(source_reliability) if source_reliability else None,
-            content_validity=int(content_validity) if content_validity else None
+            source_reliability=int(source_reliability) if source_reliability else None
         )
         db.session.add(entry)
         db.session.flush()  # Ensure entry.id is available
@@ -4255,8 +4254,8 @@ def add_surveillance():
             lt = license_types[idx] if idx < len(license_types) else ''
             ln = license_numbers[idx] if idx < len(license_numbers) else ''
             db.session.add(Target(name=name, surveillance_entry_id=entry.id,
-                                  license_type=(lt or None), license_number=(ln or None)))
-        db.session.add(entry)
+                                  license_type=(lt or None), license_number=(ln or None),
+                                  content_validity=int(content_validity) if content_validity else None))
         db.session.commit()
         flash("Surveillance entry created", "success")
         return redirect(url_for("int_source"))
