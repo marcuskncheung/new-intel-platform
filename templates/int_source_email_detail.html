@@ -987,115 +987,23 @@ document.addEventListener('DOMContentLoaded', function() {
           if (data.success) {
             // Show comprehensive analysis results in modal
             showComprehensiveAnalysisModal(data.analysis);
+            
+            // ✅ NEW: Update form with alleged persons data
+            if (data.alleged_persons && data.alleged_persons.length > 0) {
+              updateAllegedSubjectsForm(data.alleged_persons);
+            }
+            
             button.disabled = false;
-            button.innerHTML = '<i class="bi bi-gear"></i> AI+ Comprehensive';
+            button.innerHTML = '<i class="bi bi-gear"></i> AI Analysis Complete';
+            button.classList.remove('btn-outline-warning');
+            button.classList.add('btn-success');
+            
+            // Show success message
+            alert('✅ AI analysis complete! Found ' + (data.alleged_persons_count || 0) + ' alleged person(s).');
+            
             // Also refresh to show updated basic fields
             setTimeout(function() {
               location.reload();
-            }, 1000);
+            }, 2000);
           } else {
-            alert('Comprehensive AI analysis failed: ' + (data.message || 'Unknown error'));
-            button.disabled = false;
-            button.innerHTML = '<i class="bi bi-gear"></i> AI+ Comprehensive';
-          }
-        })
-        .catch(error => {
-          console.error('Comprehensive AI Analysis error:', error);
-          alert('Comprehensive AI analysis failed. Please try again.');
-          button.disabled = false;
-          button.innerHTML = '<i class="bi bi-gear"></i> AI+ Comprehensive';
-        });
-      }
-    }
-  });
-  
-  // Function to show comprehensive analysis results in modal (reused from main page)
-  function showComprehensiveAnalysisModal(analysis) {
-    // Create modal if it doesn't exist
-    var modalId = 'comprehensive-analysis-modal-detail';
-    var existingModal = document.getElementById(modalId);
-    
-    if (!existingModal) {
-      // Create the modal HTML
-      var modalHTML = `
-        <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-              <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                  <i class="bi bi-robot"></i> AI Comprehensive Analysis Results
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body" id="comprehensive-analysis-body-detail">
-                <!-- Analysis results will be populated here -->
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="window.print()">
-                  <i class="bi bi-printer"></i> Print Analysis
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      // Add modal to page
-      document.body.insertAdjacentHTML('beforeend', modalHTML);
-    }
-    
-    // Build comprehensive analysis display
-    var html = '<div class="comprehensive-analysis-results">';
-    
-    // Alleged Persons Section
-    if (analysis.alleged_persons && analysis.alleged_persons.length > 0) {
-      html += '<div class="section mb-4">';
-      html += '<h5 class="text-primary"><i class="bi bi-people"></i> Alleged Persons</h5>';
-      analysis.alleged_persons.forEach(function(person, index) {
-        html += '<div class="alleged-person-card border rounded p-3 mb-2">';
-        html += '<div class="row">';
-        html += '<div class="col-md-6">';
-        if (person.name_english) html += '<strong>English Name:</strong> ' + person.name_english + '<br>';
-        if (person.name_chinese) html += '<strong>Chinese Name:</strong> ' + person.name_chinese + '<br>';
-        html += '</div>';
-        html += '<div class="col-md-6">';
-        if (person.agent_number) html += '<strong>Agent Number:</strong> ' + person.agent_number + '<br>';
-        if (person.license_number) html += '<strong>License Number:</strong> ' + person.license_number + '<br>';
-        if (person.company) html += '<strong>Company:</strong> ' + person.company + '<br>';
-        if (person.role) html += '<strong>Role:</strong> ' + person.role + '<br>';
-        html += '</div>';
-        html += '</div>';
-        html += '</div>';
-      });
-      html += '</div>';
-    }
-    
-    // Analysis Summary
-    html += '<div class="section mb-4">';
-    html += '<h5 class="text-info"><i class="bi bi-file-text"></i> Analysis Summary</h5>';
-    html += '<p><strong>Allegation Type:</strong> ' + (analysis.allegation_type || 'N/A') + '</p>';
-    html += '<p><strong>Summary:</strong> ' + (analysis.allegation_summary || 'N/A') + '</p>';
-    html += '</div>';
-    
-    // Detailed Reasoning
-    if (analysis.detailed_reasoning) {
-      html += '<div class="section mb-4">';
-      html += '<h5 class="text-warning"><i class="bi bi-gear"></i> Detailed AI Reasoning</h5>';
-      html += '<div class="reasoning-box bg-light p-3 rounded">';
-      html += '<p>' + analysis.detailed_reasoning.replace(/\n/g, '<br>') + '</p>';
-      html += '</div>';
-      html += '</div>';
-    }
-    
-    html += '</div>';
-    
-    // Populate modal and show
-    document.getElementById('comprehensive-analysis-body-detail').innerHTML = html;
-    var modal = new bootstrap.Modal(document.getElementById(modalId));
-    modal.show();
-  }
-});
-</script>
-
-{% endblock %}
+            alert('Comprehensive AI analysis failed: ' + (data.message or

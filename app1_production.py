@@ -6362,6 +6362,106 @@ def ai_comprehensive_analyze_email(email_id):
             if allegation_detail:
                 email.allegation_summary = allegation_detail[:2000]  # Longer field for detailed description
             
+            # ✅ EXTRACT AND STORE ALLEGED PERSONS NAMES (English + Chinese)
+            alleged_persons = analysis.get('alleged_persons', [])
+            
+            # ✅ FIX #1: Add error handling for AI response
+            if not isinstance(alleged_persons, list):
+                print(f"[AI SAVE] ⚠️ WARNING: alleged_persons is not a list, got {type(alleged_persons)}. Setting to empty list.")
+                alleged_persons = []
+            
+            print(f"[AI SAVE] Found {len(alleged_persons)} alleged persons to save")
+            
+            if alleged_persons:
+                # Extract English and Chinese names separately
+                english_names = []
+                chinese_names = []
+                agent_numbers = []
+                license_numbers = []
+                
+                for person in alleged_persons:
+                    # ✅ FIX #1: Validate person is a dictionary
+                    if not isinstance(person, dict):
+                        print(f"[AI SAVE] ⚠️ WARNING: Skipping invalid person entry (not a dict): {person}")
+                        continue
+                    name_en = person.get('name_english', '').strip()
+                    name_cn = person.get('name_chinese', '').strip()
+                    agent_num = person.get('agent_number', '').strip()
+                    license_num = person.get('license_number', '').strip()
+                    
+                    if name_en and name_en.lower() != 'unknown':
+                        english_names.append(name_en)
+                        print(f"[AI SAVE] Added English name: {name_en}")
+                    
+                    if name_cn:
+                        chinese_names.append(name_cn)
+                        print(f"[AI SAVE] Added Chinese name: {name_cn}")
+                    
+                    if agent_num:
+                        agent_numbers.append(agent_num)
+                        print(f"[AI SAVE] Found agent number: {agent_num}")
+                    
+                    if license_num:
+                        license_numbers.append(license_num)
+                        print(f"[AI SAVE] Found license number: {license_num}")
+                
+                # Save to database fields
+                if english_names:
+                    # ✅ FIX #2: Deduplicate English names
+                    seen_en = set()
+                    english_names = [x for x in english_names if not (x in seen_en or seen_en.add(x))]
+                    full_english = ', '.join(english_names)
+                    email.alleged_subject_english = full_english[:500]
+                    # ✅ FIX #3: Add truncation warning
+                    if len(full_english) > 500:
+                        print(f"[AI SAVE] ⚠️ WARNING: English names truncated from {len(full_english)} to 500 chars. {len(english_names)} names affected.")
+                    print(f"[AI SAVE] ✅ Saved alleged_subject_english: {email.alleged_subject_english}")
+                
+                if chinese_names:
+                    # ✅ FIX #2: Deduplicate Chinese names
+                    seen_cn = set()
+                    chinese_names = [x for x in chinese_names if not (x in seen_cn or seen_cn.add(x))]
+                    full_chinese = ', '.join(chinese_names)
+                    email.alleged_subject_chinese = full_chinese[:500]
+                    # ✅ FIX #3: Add truncation warning
+                    if len(full_chinese) > 500:
+                        print(f"[AI SAVE] ⚠️ WARNING: Chinese names truncated from {len(full_chinese)} to 500 chars. {len(chinese_names)} names affected.")
+                    print(f"[AI SAVE] ✅ Saved alleged_subject_chinese: {email.alleged_subject_chinese}")
+                
+                # Also save to legacy alleged_subject field (for backward compatibility)
+                combined_names = []
+                for i in range(max(len(english_names), len(chinese_names))):
+                    parts = []
+                    if i < len(english_names):
+                        parts.append(english_names[i])
+                    if i < len(chinese_names):
+                        parts.append(chinese_names[i])
+                    if parts:
+                        combined_names.append(' '.join(parts))
+                
+                if combined_names:
+                    email.alleged_subject = ', '.join(combined_names)[:255]
+                    print(f"[AI SAVE] ✅ Saved legacy alleged_subject: {email.alleged_subject}")
+                
+                # Save agent/license numbers to JSON fields
+                if agent_numbers or license_numbers:
+                    license_data = []
+                    for i, person in enumerate(alleged_persons):
+                        person_license = {
+                            'person': person.get('name_english', '') or person.get('name_chinese', '') or f"Person {i+1}",
+                            'agent_number': person.get('agent_number', ''),
+                            'license_number': person.get('license_number', ''),
+                            'company': person.get('company', ''),
+                            'role': person.get('role', '')
+                        }
+                        license_data.append(person_license)
+                    
+                    email.license_numbers_json = json.dumps(license_data, ensure_ascii=False)
+                    print(f"[AI SAVE] ✅ Saved {len(license_data)} license records to JSON")
+                
+            else:
+                print(f"[AI SAVE] ⚠️ No alleged persons found in AI analysis")
+            
             # Store comprehensive AI analysis results and reasoning
             ai_reasoning = analysis.get('detailed_reasoning', '')
             ai_confidence = analysis.get('confidence_score', '')
@@ -6389,10 +6489,17 @@ def ai_comprehensive_analyze_email(email_id):
             email.preparer = None  # Clear so humans can be assigned
             
             db.session.commit()
+            print(f"[AI SAVE] ✅ All AI analysis results saved to database for email {email_id}")
             
             return jsonify({
                 'success': True,
                 'analysis': analysis,
+                'alleged_persons': alleged_persons,  # ✅ Include detected persons for frontend
+                'alleged_persons_count': len(alleged_persons),
+                'alleged_subject_english': email.alleged_subject_english,
+                'alleged_subject_chinese': email.alleged_subject_chinese,
+                'allegation_summary': email.allegation_summary,
+                'alleged_nature': email.alleged_nature,
                 'standardized_nature': standardized_nature,
                 'message': 'Comprehensive email analysis completed successfully',
                 'analysis_type': 'comprehensive'
