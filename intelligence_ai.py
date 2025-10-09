@@ -845,23 +845,37 @@ EMAILS TO GROUP:
                 if response.status_code == 200:
                     result = response.json()
                     
+                    # Debug: Log the Docling response structure
+                    print(f"[DOCLING DEBUG] Response keys: {list(result.keys())}")
+                    print(f"[DOCLING DEBUG] Response structure: {str(result)[:500]}...")
+                    
                     # Extract text content from Docling response
                     document_data = result.get('document', {})
+                    
+                    # Debug: Check document structure
+                    if isinstance(document_data, dict):
+                        print(f"[DOCLING DEBUG] Document keys: {list(document_data.keys())}")
+                        if 'text_content' in document_data:
+                            print(f"[DOCLING DEBUG] Found text_content field with {len(document_data['text_content'])} chars")
+                        if 'markdown' in document_data:
+                            print(f"[DOCLING DEBUG] Found markdown field with {len(document_data['markdown'])} chars")
                     
                     # Try to get text from different possible response formats
                     text_content = ""
                     if isinstance(document_data, str):
                         text_content = document_data
                     elif isinstance(document_data, dict):
-                        # Try common text fields
+                        # Try common text fields in order of preference
                         text_content = (
+                            document_data.get('text_content', '') or
+                            document_data.get('markdown', '') or
                             document_data.get('text', '') or
                             document_data.get('content', '') or
-                            document_data.get('markdown', '') or
                             str(document_data)
                         )
                     
                     print(f"[DOCLING] ✅ Successfully extracted {len(text_content)} characters from {filename}")
+                    print(f"[DOCLING DEBUG] First 300 chars of extracted text: {text_content[:300]}...")
                     
                     return {
                         'text_content': text_content,
