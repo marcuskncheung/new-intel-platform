@@ -30,12 +30,32 @@ class IntelligenceAI:
         # First, process all attachments to extract text content
         attachment_content = ""
         if attachments:
+            print(f"[AI COMPREHENSIVE] Processing {len(attachments)} attachments")
             for attachment in attachments:
-                if attachment.get('filepath'):
-                    doc_result = self.process_attachment_with_docling(attachment['filepath'])
+                filename = attachment.get('filename', 'Unknown')
+                file_data = attachment.get('file_data')  # Binary data from database
+                filepath = attachment.get('filepath')     # Legacy filepath
+                
+                print(f"[AI COMPREHENSIVE] Attachment: {filename}, has_data: {file_data is not None}, filepath: {filepath}")
+                
+                if file_data or filepath:
+                    print(f"[AI COMPREHENSIVE] Calling Docling for: {filename}")
+                    doc_result = self.process_attachment_with_docling(
+                        file_data=file_data,
+                        file_path=filepath,
+                        filename=filename
+                    )
                     if doc_result.get('success'):
-                        attachment_content += f"\n\n--- {attachment.get('filename', 'Unknown')} ---\n"
-                        attachment_content += doc_result.get('text_content', '')
+                        extracted_text = doc_result.get('text_content', '')
+                        print(f"[AI COMPREHENSIVE] ✅ Successfully extracted {len(extracted_text)} chars from {filename}")
+                        attachment_content += f"\n\n--- {filename} ---\n"
+                        attachment_content += extracted_text
+                    else:
+                        print(f"[AI COMPREHENSIVE] ❌ Failed to extract from {filename}: {doc_result.get('error', 'Unknown error')}")
+                else:
+                    print(f"[AI COMPREHENSIVE] ⚠️ No file_data or filepath provided for {filename}")
+        else:
+            print(f"[AI COMPREHENSIVE] No attachments provided")
         
         # Create comprehensive analysis prompt
         prompt = self._create_comprehensive_analysis_prompt(email_data, attachment_content)
@@ -293,9 +313,16 @@ Format your response as JSON:
                 for attachment in attachments:
                     # Only process PDF files
                     filename = attachment.get('filename', '').lower()
-                    if filename.endswith('.pdf') and attachment.get('filepath'):
+                    file_data = attachment.get('file_data')  # Binary data from database
+                    filepath = attachment.get('filepath')     # Legacy filepath
+                    
+                    if filename.endswith('.pdf') and (file_data or filepath):
                         print(f"[AI SUMMARIZE] Processing PDF attachment: {filename}")
-                        doc_result = self.process_attachment_with_docling(attachment['filepath'])
+                        doc_result = self.process_attachment_with_docling(
+                            file_data=file_data,
+                            file_path=filepath,
+                            filename=attachment.get('filename', 'document.pdf')
+                        )
                         if doc_result.get('success'):
                             attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} ---\n"
                             attachment_content += doc_result.get('text_content', '')[:2000]  # Limit per PDF
@@ -702,58 +729,82 @@ EMAILS TO GROUP:
             'grouping_summary': {
                 'total_emails': len(emails),
                 'total_groups': len(email_groups),
-                'ungrouped_count': len(ungrouped)
+                'ungrouped_count': len(ungrouped),
                 'grouping_method': 'ultra_strict_title_only'
             },
             'ai_grouping_success': False,
             'fallback_method': 'ultra_strict_title_matching'
         }
 
-    def process_attachment_with_docling(self, file_path: str) -> Dict:
+    def process_attachment_with_docling(self, file_data: bytes = None, file_path: str = None, filename: str = "document.pdf") -> Dict:
         """
         Use Docling to extract text from email attachments
+        
+        Args:
+            file_data: Binary data from database (preferred)
+            file_path: Legacy filepath for migration support
+            filename: Original filename for the file upload
         """
         try:
-            with open(file_path, 'rb') as f:
-                files = {'file': f}
-                # Try multiple possible endpoints for Docling
-                endpoints_to_try = [
-                    f"{self.docling_api}/convert",
-                    f"{self.docling_api}/api/convert", 
-                    f"{self.docling_api}/v1/convert",
-                    "https://ai-poc.corp.ia/docling/api/v1/convert"
-                ]
-                
-                for endpoint in endpoints_to_try:
-                    try:
+            # Prepare file for upload - support both binary data and filepath
+            if file_data:
+                # Direct binary data from database (modern approach)
+                files = {'file': (filename, file_data, 'application/pdf')}
+            elif file_path:
+                # Legacy filepath approach (for migration support)
+                with open(file_path, 'rb') as f:
+                    files = {'file': (filename, f, 'application/pdf')}
+            else:
+                return {'success': False, 'error': 'No file_data or file_path provided'}
+            
+            # Try multiple possible endpoints for Docling
+            endpoints_to_try = [
+                f"{self.docling_api}/convert",
+                f"{self.docling_api}/api/convert", 
+                f"{self.docling_api}/v1/convert",
+                "https://ai-poc.corp.ia/docling/api/v1/convert"
+            ]
+            
+            for endpoint in endpoints_to_try:
+                try:
+                    # For file_data approach, files dict is already prepared
+                    if file_data:
                         response = self.session.post(
                             endpoint,
                             files=files,
                             timeout=30
                         )
-                        
-                        if response.status_code == 200:
-                            result = response.json()
-                            return {
-                                'text_content': result.get('text', ''),
-                                'metadata': result.get('metadata', {}),
-                                'success': True,
-                                'endpoint_used': endpoint
-                            }
-                        else:
-                            print(f"Docling endpoint {endpoint} returned status {response.status_code}")
-                    except (requests.RequestException, json.JSONDecodeError) as e:
-                        print(f"Docling endpoint {endpoint} failed: {type(e).__name__}: {str(e)}")
-                        continue
-                
-                # If all endpoints fail, return graceful fallback
-                print("Docling API: All endpoints failed, using fallback text extraction")
-                return {
-                    'text_content': 'Docling service unavailable - manual document review required',
-                    'metadata': {'error': 'Service unavailable'},
-                    'success': False,
-                    'endpoint_used': 'fallback'
-                }
+                    else:
+                        # For filepath approach, need to reopen file each time
+                        with open(file_path, 'rb') as f:
+                            response = self.session.post(
+                                endpoint,
+                                files={'file': (filename, f, 'application/pdf')},
+                                timeout=30
+                            )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        return {
+                            'text_content': result.get('text', ''),
+                            'metadata': result.get('metadata', {}),
+                            'success': True,
+                            'endpoint_used': endpoint
+                        }
+                    else:
+                        print(f"Docling endpoint {endpoint} returned status {response.status_code}")
+                except (requests.RequestException, json.JSONDecodeError) as e:
+                    print(f"Docling endpoint {endpoint} failed: {type(e).__name__}: {str(e)}")
+                    continue
+            
+            # If all endpoints fail, return graceful fallback
+            print("Docling API: All endpoints failed, using fallback text extraction")
+            return {
+                'text_content': 'Docling service unavailable - manual document review required',
+                'metadata': {'error': 'Service unavailable'},
+                'success': False,
+                'endpoint_used': 'fallback'
+            }
                 
         except Exception as e:
             print(f"Error calling Docling API: {e}")

@@ -6309,42 +6309,26 @@ def ai_comprehensive_analyze_email(email_id):
             try:
                 attachment_info = {
                     'filename': attachment.filename,
-                    'filepath': attachment.filepath,
+                    'file_data': attachment.file_data,  # Binary data from database (primary)
+                    'filepath': attachment.filepath,     # Legacy filepath for migration support
                     'content_type': attachment.filename.split('.')[-1] if '.' in attachment.filename else 'unknown',
-                    'size': getattr(attachment, 'file_size', 0),
-                    'content': None  # Will try to read content
+                    'size': len(attachment.file_data) if attachment.file_data else getattr(attachment, 'file_size', 0)
                 }
                 
-                # Try to read attachment content for AI analysis
-                try:
-                    if attachment.filepath and os.path.exists(attachment.filepath):
-                        # Read file content
-                        with open(attachment.filepath, 'rb') as f:
-                            file_content = f.read()
-                        
-                        # If it's a text-based file, convert to text for AI
-                        if attachment.filename.lower().endswith(('.txt', '.pdf', '.doc', '.docx')):
-                            try:
-                                if attachment.filename.lower().endswith('.pdf'):
-                                    # Use existing PDF analysis function
-                                    pdf_analysis = analyze_pdf_file(file_content, attachment.filename)
-                                    attachment_info['content'] = pdf_analysis.get('text_content', '') or pdf_analysis.get('summary', '')
-                                elif attachment.filename.lower().endswith(('.doc', '.docx')):
-                                    # Try to extract text from Word documents
-                                    attachment_info['content'] = f"[Word Document: {attachment.filename} - Content extraction available]"
-                                else:
-                                    # Plain text files
-                                    attachment_info['content'] = file_content.decode('utf-8', errors='ignore')[:5000]  # Limit to 5KB
-                            except Exception as e:
-                                attachment_info['content'] = f"[File: {attachment.filename} - Content extraction failed: {str(e)}]"
-                        else:
-                            attachment_info['content'] = f"[File: {attachment.filename} - Binary file, content not extracted]"
-                    else:
-                        attachment_info['content'] = f"[File: {attachment.filename} - File not found at {attachment.filepath}]"
-                        
-                except Exception as e:
-                    print(f"⚠️ Error reading attachment {attachment.filename}: {e}")
-                    attachment_info['content'] = f"[File: {attachment.filename} - Error reading: {str(e)}]"
+                # For PDF files, the AI will use Docling to extract text
+                if attachment.file_data:
+                    print(f"📎 Found attachment: {attachment.filename} ({len(attachment.file_data)} bytes in database)")
+                    if not attachment.filename.lower().endswith('.pdf'):
+                        # For non-PDF files, AI will skip them (as per requirement: "ai can only read pdf")
+                        attachment_info['note'] = f"Non-PDF file - AI will analyze email content only"
+                elif attachment.filepath and os.path.exists(attachment.filepath):
+                    # Legacy: File stored on disk (migration support)
+                    print(f"📎 Found attachment: {attachment.filename} at {attachment.filepath}")
+                    if not attachment.filename.lower().endswith('.pdf'):
+                        attachment_info['note'] = f"Non-PDF file - AI will analyze email content only"
+                else:
+                    print(f"⚠️ Attachment not found: {attachment.filename} (no file_data or filepath)")
+                    attachment_info['note'] = "File not found in database or disk"
                 
                 attachments.append(attachment_info)
                 
