@@ -31,29 +31,39 @@ class IntelligenceAI:
         attachment_content = ""
         if attachments:
             print(f"[AI COMPREHENSIVE] Processing {len(attachments)} attachments")
-            for attachment in attachments:
-                filename = attachment.get('filename', 'Unknown')
-                file_data = attachment.get('file_data')  # Binary data from database
-                filepath = attachment.get('filepath')     # Legacy filepath
-                
-                print(f"[AI COMPREHENSIVE] Attachment: {filename}, has_data: {file_data is not None}, filepath: {filepath}")
-                
-                if file_data or filepath:
-                    print(f"[AI COMPREHENSIVE] Calling Docling for: {filename}")
-                    doc_result = self.process_attachment_with_docling(
-                        file_data=file_data,
-                        file_path=filepath,
-                        filename=filename
-                    )
-                    if doc_result.get('success'):
-                        extracted_text = doc_result.get('text_content', '')
-                        print(f"[AI COMPREHENSIVE] ✅ Successfully extracted {len(extracted_text)} chars from {filename}")
-                        attachment_content += f"\n\n--- {filename} ---\n"
-                        attachment_content += extracted_text
+            
+            # ⚠️ TEMPORARY: Skip PDF processing if Docling is down (502 errors)
+            # This allows AI analysis to continue with email body only
+            skip_pdf_processing = True  # Set to False when Docling is back online
+            
+            if skip_pdf_processing:
+                print(f"[AI COMPREHENSIVE] ⚠️ PDF processing temporarily disabled (Docling service unavailable)")
+                print(f"[AI COMPREHENSIVE] Will analyze email body only")
+                attachment_content = "PDF attachments available but not processed due to Docling service issues. Analysis based on email content only."
+            else:
+                for attachment in attachments:
+                    filename = attachment.get('filename', 'Unknown')
+                    file_data = attachment.get('file_data')  # Binary data from database
+                    filepath = attachment.get('filepath')     # Legacy filepath
+                    
+                    print(f"[AI COMPREHENSIVE] Attachment: {filename}, has_data: {file_data is not None}, filepath: {filepath}")
+                    
+                    if file_data or filepath:
+                        print(f"[AI COMPREHENSIVE] Calling Docling for: {filename}")
+                        doc_result = self.process_attachment_with_docling(
+                            file_data=file_data,
+                            file_path=filepath,
+                            filename=filename
+                        )
+                        if doc_result.get('success'):
+                            extracted_text = doc_result.get('text_content', '')
+                            print(f"[AI COMPREHENSIVE] ✅ Successfully extracted {len(extracted_text)} chars from {filename}")
+                            attachment_content += f"\n\n--- {filename} ---\n"
+                            attachment_content += extracted_text
+                        else:
+                            print(f"[AI COMPREHENSIVE] ❌ Failed to extract from {filename}: {doc_result.get('error', 'Unknown error')}")
                     else:
-                        print(f"[AI COMPREHENSIVE] ❌ Failed to extract from {filename}: {doc_result.get('error', 'Unknown error')}")
-                else:
-                    print(f"[AI COMPREHENSIVE] ⚠️ No file_data or filepath provided for {filename}")
+                        print(f"[AI COMPREHENSIVE] ⚠️ No file_data or filepath provided for {filename}")
         else:
             print(f"[AI COMPREHENSIVE] No attachments provided")
         

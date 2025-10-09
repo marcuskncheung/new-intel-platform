@@ -1183,29 +1183,110 @@ function showComprehensiveAnalysisModal(analysis) {
     `;
   }
   
-  // Analysis Summary
-  if (analysis.analysis_summary) {
-    modalContent += `
-      <div class="card border-info mb-3">
-        <div class="card-header bg-info text-white">
-          <h6 class="mb-0"><i class="bi bi-file-text"></i> Analysis Summary</h6>
-        </div>
-        <div class="card-body">
-          <p>${analysis.analysis_summary}</p>
-        </div>
+  // Allegation Type & Summary
+  modalContent += `
+    <div class="card border-info mb-3">
+      <div class="card-header bg-info text-white">
+        <h6 class="mb-0"><i class="bi bi-file-text"></i> Analysis Summary</h6>
       </div>
-    `;
-  }
+      <div class="card-body">
+        <p class="mb-2"><strong>Allegation Type:</strong> <span class="badge bg-warning text-dark">${analysis.allegation_type || 'N/A'}</span></p>
+        <p class="mb-0"><strong>Summary:</strong> ${analysis.allegation_summary || analysis.analysis_summary || 'N/A'}</p>
+      </div>
+    </div>
+  `;
   
   // Detailed Reasoning
   if (analysis.detailed_reasoning) {
     modalContent += `
       <div class="card border-warning mb-3">
         <div class="card-header bg-warning">
-          <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Detailed Reasoning</h6>
+          <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Detailed AI Reasoning</h6>
         </div>
         <div class="card-body">
-          <pre style="white-space: pre-wrap; font-family: inherit;">${analysis.detailed_reasoning}</pre>
+          <div class="reasoning-box bg-light p-3 rounded">
+            <pre style="white-space: pre-wrap; font-family: inherit;">${analysis.detailed_reasoning}</pre>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // ✅ NEW: Assessment Metrics
+  modalContent += `
+    <div class="card border-success mb-3">
+      <div class="card-header bg-success text-white">
+        <h6 class="mb-0"><i class="bi bi-speedometer2"></i> Assessment Metrics</h6>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Evidence Quality:</strong> 
+            <span class="badge bg-info">${analysis.evidence_quality || 'N/A'}</span>
+          </div>
+          <div class="col-md-4">
+            <strong>Investigation Priority:</strong> 
+            <span class="badge bg-warning text-dark">${analysis.investigation_priority || analysis.priority_level || 'N/A'}</span>
+          </div>
+          <div class="col-md-4">
+            <strong>Consumer Harm Level:</strong> 
+            <span class="badge bg-danger">${analysis.consumer_harm_level || 'N/A'}</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4">
+            <strong>Source Reliability:</strong> ${analysis.source_reliability || 'N/A'}/5
+          </div>
+          <div class="col-md-4">
+            <strong>Content Validity:</strong> ${analysis.content_validity || 'N/A'}/5
+          </div>
+          <div class="col-md-4">
+            <strong>Confidence Score:</strong> ${analysis.confidence_score ? Math.round(analysis.confidence_score * 100) + '%' : 'N/A'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // ✅ NEW: Regulatory Impact
+  if (analysis.regulatory_impact) {
+    modalContent += `
+      <div class="card border-danger mb-3">
+        <div class="card-header bg-danger text-white">
+          <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Regulatory Impact</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">${analysis.regulatory_impact}</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  // ✅ NEW: Recommended Actions
+  if (analysis.recommended_actions && analysis.recommended_actions.length > 0) {
+    modalContent += `
+      <div class="card border-secondary mb-3">
+        <div class="card-header bg-secondary text-white">
+          <h6 class="mb-0"><i class="bi bi-list-check"></i> Recommended Actions</h6>
+        </div>
+        <div class="card-body">
+          <ul class="mb-0">
+            ${analysis.recommended_actions.map(action => `<li>${action}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
+  // ✅ NEW: Attachment Analysis
+  if (analysis.attachment_analysis) {
+    modalContent += `
+      <div class="card border-primary mb-3">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="bi bi-paperclip"></i> Attachment Analysis</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">${analysis.attachment_analysis}</p>
         </div>
       </div>
     `;

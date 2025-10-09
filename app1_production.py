@@ -6491,6 +6491,9 @@ def ai_comprehensive_analyze_email(email_id):
             db.session.commit()
             print(f"[AI SAVE] ✅ All AI analysis results saved to database for email {email_id}")
             
+            # ✅ Add email_id to analysis object for frontend use
+            analysis['email_id'] = email_id
+            
             return jsonify({
                 'success': True,
                 'analysis': analysis,
