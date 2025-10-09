@@ -57,9 +57,17 @@ class IntelligenceAI:
                         )
                         if doc_result.get('success'):
                             extracted_text = doc_result.get('text_content', '')
-                            print(f"[AI COMPREHENSIVE] ✅ Successfully extracted {len(extracted_text)} chars from {filename}")
+                            
+                            # Clean up the extracted text - remove base64 image data
+                            import re
+                            # Remove base64 image data that's not useful for analysis
+                            clean_text = re.sub(r'!\[Image\]\(data:image/[^)]+\)', '[IMAGE]', extracted_text)
+                            # Remove long base64 strings
+                            clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
+                            
+                            print(f"[AI COMPREHENSIVE] ✅ Successfully extracted {len(extracted_text)} chars from {filename} (cleaned: {len(clean_text)} chars)")
                             attachment_content += f"\n\n--- {filename} ---\n"
-                            attachment_content += extracted_text
+                            attachment_content += clean_text
                         else:
                             print(f"[AI COMPREHENSIVE] ❌ Failed to extract from {filename}: {doc_result.get('error', 'Unknown error')}")
                     else:
@@ -115,25 +123,28 @@ You are an expert AI helping insurance regulators analyze complaints.
 
 CRITICAL: Respond ONLY with valid JSON. No explanations, no reasoning, no additional text. Just pure JSON.
 
-EMAIL CONTENT:
+EMAIL FORWARDING INFO (Context only):
 SUBJECT: {email_data.get('subject', 'N/A')}
 SENDER: {email_data.get('sender', 'N/A')}
 RECIPIENTS: {email_data.get('recipients', 'N/A')}
 BODY: {email_data.get('body', 'N/A')[:3000]}...
 
-ATTACHMENT CONTENT:
+ATTACHMENT CONTENT (CRITICAL - READ CAREFULLY):
 {attachment_content[:15000] if attachment_content else 'No attachments found'}...
+
+ANALYSIS INSTRUCTIONS:
+**IMPORTANT**: The PDF attachment contains the main complaint details. Read it carefully and base your analysis primarily on the PDF content, not just the email forwarding text.
 
 YOUR TASKS:
 
-1. **IDENTIFY ALLEGED SUBJECTS** - Find who is being complained about:
-   - Extract BOTH English name AND Chinese name (if available)
+1. **IDENTIFY ALLEGED SUBJECTS FROM PDF** - Look in the PDF content for who is being complained about:
+   - Extract BOTH English name AND Chinese name (if available) 
    - Extract agent number, license number, registration number (if mentioned)
    - Extract company/broker name (保險公司名稱) (if mentioned)
    - If multiple people are accused, create separate entries for each person
    - Example: "LEUNG SHEUNG MAN EMERSON 梁尚文, Prudential Hong Kong Limited"
 
-2. **IDENTIFY ALLEGATION TYPE** - Choose ONE specific category:
+2. **IDENTIFY ALLEGATION TYPE FROM PDF** - Based on PDF content, choose ONE specific category:
    - Cross-border selling (跨境保險招攬)
    - Unlicensed practice (無牌經營)
    - Misleading promotion (誤導銷售)
@@ -151,10 +162,11 @@ YOUR TASKS:
    - Professional misconduct (專業失當)
    - Other
 
-3. **WRITE ALLEGATION SUMMARY** - Write a clear, concise summary (2-4 sentences in English):
-   - What happened? (the key facts)
-   - What is the complainant alleging?
-   - What evidence is provided?
+3. **WRITE ALLEGATION SUMMARY BASED ON PDF** - Write a clear, concise summary (2-4 sentences in English) focusing on what the PDF attachment reveals:
+   - What specific allegations are made in the PDF document?
+   - Who is being complained about according to the PDF?
+   - What evidence or details are provided in the PDF?
+   - Include specific names, dates, amounts, or case references from the PDF
    - Keep it factual and precise for regulators to quickly understand
 
 IMPORTANT: 
