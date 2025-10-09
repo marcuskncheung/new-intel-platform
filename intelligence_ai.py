@@ -101,6 +101,14 @@ class IntelligenceAI:
 
     def _create_comprehensive_analysis_prompt(self, email_data: Dict, attachment_content: str) -> str:
         """Create comprehensive analysis prompt for detailed investigation"""
+        # Debug: Show how much attachment content we're including
+        attachment_preview = attachment_content[:15000] if attachment_content else 'No attachments found'
+        print(f"[PROMPT DEBUG] Email body length: {len(email_data.get('body', ''))}")
+        print(f"[PROMPT DEBUG] Full attachment content length: {len(attachment_content)}")
+        print(f"[PROMPT DEBUG] Attachment content included in prompt: {len(attachment_preview)} chars")
+        if attachment_content:
+            print(f"[PROMPT DEBUG] First 200 chars of attachment: {attachment_content[:200]}...")
+        
         return f"""
 <comprehensive_analysis_task>
 You are an expert AI helping insurance regulators analyze complaints. 
@@ -114,7 +122,7 @@ RECIPIENTS: {email_data.get('recipients', 'N/A')}
 BODY: {email_data.get('body', 'N/A')[:3000]}...
 
 ATTACHMENT CONTENT:
-{attachment_content[:2000] if attachment_content else 'No attachments found'}...
+{attachment_content[:15000] if attachment_content else 'No attachments found'}...
 
 YOUR TASKS:
 
