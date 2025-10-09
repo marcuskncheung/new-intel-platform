@@ -93,7 +93,9 @@ class IntelligenceAI:
         """Create comprehensive analysis prompt for detailed investigation"""
         return f"""
 <comprehensive_analysis_task>
-You are an expert AI helping insurance regulators analyze complaints. Your job: accurately identify WHO is being accused, WHAT they're accused of, and summarize the key facts clearly.
+You are an expert AI helping insurance regulators analyze complaints. 
+
+CRITICAL: Respond ONLY with valid JSON. No explanations, no reasoning, no additional text. Just pure JSON.
 
 EMAIL CONTENT:
 SUBJECT: {email_data.get('subject', 'N/A')}
@@ -109,45 +111,53 @@ YOUR TASKS:
 1. **IDENTIFY ALLEGED SUBJECTS** - Find who is being complained about:
    - Extract BOTH English name AND Chinese name (if available)
    - Extract agent number, license number, registration number (if mentioned)
-   - Extract company name (if mentioned)
+   - Extract company/broker name (保險公司名稱) (if mentioned)
    - If multiple people are accused, create separate entries for each person
-   - Example: "Billy Ng 黃志明, Agent #12345, ABC Insurance Company"
+   - Example: "LEUNG SHEUNG MAN EMERSON 梁尚文, Prudential Hong Kong Limited"
 
 2. **IDENTIFY ALLEGATION TYPE** - Choose ONE specific category:
-   - Cross-border Insurance Solicitation (跨境保險招攬)
-   - Unlicensed Practice (無牌經營)
-   - Mis-selling (誤導銷售)
-   - Fraud/Misrepresentation (欺詐/失實陳述)
-   - Churning (不當替換保單)
-   - Failure to Disclose (未有披露)
-   - Poor Customer Service (服務欠佳)
-   - Policy Dispute (保單糾紛)
-   - Commission Dispute (佣金糾紛)
-   - General Inquiry (一般查詢)
+   - Cross-border selling (跨境保險招攬)
+   - Unlicensed practice (無牌經營)
+   - Misleading promotion (誤導銷售)
+   - Unauthorized advice (未經授權提供意見)
+   - Illegal commission (非法佣金)
+   - Policy churning (不當替換保單)
+   - Cold calling (未經同意推銷)
+   - Pyramid scheme (傳銷)
+   - Fraudulent claims (欺詐索償)
+   - Breach of duty (違反責任)
+   - Money laundering (洗錢)
+   - Identity theft (身份盜竊)
+   - Regulatory violation (違反規例)
+   - Consumer complaint (消費者投訴)
+   - Professional misconduct (專業失當)
    - Other
 
-3. **WRITE ALLEGATION SUMMARY** - Write a clear, concise summary (2-4 sentences):
+3. **WRITE ALLEGATION SUMMARY** - Write a clear, concise summary (2-4 sentences in English):
    - What happened? (the key facts)
    - What is the complainant alleging?
    - What evidence is provided?
    - Keep it factual and precise for regulators to quickly understand
 
-DO NOT include scores, ratings, or confidence levels. Just provide the facts.
+IMPORTANT: 
+- agent_company_broker should be the company name (e.g., "Prudential Hong Kong Limited", "AIA", "Manulife")
+- role should be "Agent" or "Broker" based on context
+- Output ONLY valid JSON, nothing else
 
-Format response as JSON:
+Required JSON format (output this EXACTLY):
 {{
     "alleged_persons": [
         {{
-            "name_english": "Billy Ng" or "Unknown",
-            "name_chinese": "黃志明" or "",
-            "agent_number": "A12345" or "",
-            "license_number": "" or "",
-            "company": "ABC Insurance" or "",
-            "role": "agent" or "broker" or "company" or "unknown"
+            "name_english": "LEUNG SHEUNG MAN EMERSON",
+            "name_chinese": "梁尚文",
+            "agent_number": "",
+            "license_number": "",
+            "agent_company_broker": "Prudential Hong Kong Limited",
+            "role": "Agent"
         }}
     ],
-    "allegation_type": "Cross-border Insurance Solicitation",
-    "allegation_summary": "Clear 2-4 sentence summary of what happened and what is being alleged, with key evidence mentioned."
+    "allegation_type": "Cold calling",
+    "allegation_summary": "The complainant alleges that the agent sent unsolicited mass marketing emails to government employees without consent. The complainant questions how personal data was obtained and requests investigation into data protection violations. Evidence includes email screenshots."
 }}
 </comprehensive_analysis_task>
 
@@ -250,13 +260,34 @@ Format your response as JSON:
     def _parse_comprehensive_analysis(self, analysis_text: str) -> Dict:
         """Parse comprehensive LLM response into structured data"""
         try:
-            print(f"[DEBUG] Parsing comprehensive analysis: {analysis_text}")
+            print(f"[DEBUG] Parsing comprehensive analysis: {analysis_text[:500]}...")
+            
+            # ✅ IMPROVED: Find JSON even if LLM adds thinking text before/after
+            # Look for first { and last } to extract JSON block
             start = analysis_text.find('{')
             end = analysis_text.rfind('}') + 1
+            
             if start >= 0 and end > start:
                 json_str = analysis_text[start:end]
-                print(f"[DEBUG] Extracted comprehensive JSON: {json_str}")
-                result = json.loads(json_str)
+                
+                # ✅ NEW: Try to clean up any text inside the JSON that's not valid
+                # Sometimes LLM adds comments or text inside the JSON structure
+                try:
+                    result = json.loads(json_str)
+                except json.JSONDecodeError as e:
+                    print(f"[DEBUG] First JSON parse failed: {e}. Trying to extract valid JSON...")
+                    # Try to find a valid JSON object by looking for "alleged_persons" key
+                    import re
+                    # Find JSON that contains our expected keys
+                    pattern = r'\{[^{}]*"alleged_persons"[^{}]*\[[^\[\]]*\][^{}]*"allegation_type"[^{}]*"allegation_summary"[^{}]*\}'
+                    match = re.search(pattern, analysis_text, re.DOTALL)
+                    if match:
+                        json_str = match.group(0)
+                        result = json.loads(json_str)
+                    else:
+                        raise ValueError("Could not find valid JSON structure with required keys")
+                
+                print(f"[DEBUG] Extracted comprehensive JSON: {json_str[:300]}...")
                 
                 # Parse alleged persons with proper validation
                 alleged_persons = []
