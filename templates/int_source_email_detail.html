@@ -1006,4 +1006,298 @@ document.addEventListener('DOMContentLoaded', function() {
               location.reload();
             }, 2000);
           } else {
-            alert('Comprehensive AI analysis failed: ' + (data.message or
+            alert('Comprehensive AI analysis failed: ' + (data.message || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-gear"></i> AI Analysis';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Network error: ' + error.message);
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-gear"></i> AI Analysis';
+        });
+      }
+    }
+  });
+});
+
+// ✅ NEW FUNCTION: Update alleged subjects form with AI-detected persons
+function updateAllegedSubjectsForm(allegedPersons) {
+  console.log('📝 Updating form with', allegedPersons.length, 'alleged persons');
+  
+  const container = document.getElementById('alleged-subjects');
+  if (!container) {
+    console.error('❌ Container #alleged-subjects not found');
+    return;
+  }
+  
+  // Clear existing subjects
+  container.innerHTML = '';
+  
+  // Add each person to the form
+  allegedPersons.forEach((person, index) => {
+    const englishName = person.name_english || '';
+    const chineseName = person.name_chinese || '';
+    const agentNumber = person.agent_number || '';
+    const licenseNumber = person.license_number || '';
+    const company = person.agent_company_broker || '';
+    const role = person.role || '';
+    
+    const isIntermediary = agentNumber || licenseNumber || company;
+    const licenseType = role === 'Agent' ? 'Agent' : (role === 'Broker' ? 'Broker' : '');
+    
+    const newRow = document.createElement('div');
+    newRow.className = 'alleged-subject-row mb-3 p-3 border rounded';
+    newRow.style.backgroundColor = '#f8f9fa';
+    newRow.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="text-primary mb-0">📋 Alleged Subject ${index + 1} <span class="badge bg-info">Auto-populated by AI</span></h6>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+          🗑️ Remove
+        </button>
+      </div>
+      
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">📝 English Name</label>
+          <input type="text" name="alleged_subjects_en[]" class="form-control" value="${englishName}" placeholder="Enter English name">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+          <input type="text" name="alleged_subjects_cn[]" class="form-control" value="${chineseName}" placeholder="Enter Chinese name">
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" ${isIntermediary ? 'checked' : ''} onchange="toggleInsuranceFields(this)">
+          <label class="form-check-label">Is this an insurance intermediary?</label>
+        </div>
+      </div>
+      
+      <div class="insurance-fields" style="display: ${isIntermediary ? 'block' : 'none'}; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+        <div class="row">
+          <div class="col-6">
+            <label class="form-label">License Type:</label>
+            <select name="intermediary_type[]" class="form-select">
+              <option value="">Select Type</option>
+              <option value="Agent" ${licenseType === 'Agent' ? 'selected' : ''}>Agent</option>
+              <option value="Broker" ${licenseType === 'Broker' ? 'selected' : ''}>Broker</option>
+              <option value="Other" ${licenseType === 'Other' ? 'selected' : ''}>Other</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">License Number:</label>
+            <input type="text" name="license_numbers[]" class="form-control" value="${licenseNumber}" placeholder="Enter license number">
+          </div>
+        </div>
+        ${agentNumber ? `<div class="mt-2"><small class="text-muted">Agent Number: ${agentNumber}</small></div>` : ''}
+        ${company ? `<div class="mt-1"><small class="text-muted">Company: ${company}</small></div>` : ''}
+      </div>
+      
+      <p class="text-muted mt-2 mb-0">
+        <i class="bi bi-info-circle"></i> Auto-populated by AI analysis - please review and verify
+      </p>
+    `;
+    
+    container.appendChild(newRow);
+  });
+  
+  updateRemoveButtons();
+  console.log('✅ Form updated successfully');
+}
+
+// ✅ NEW FUNCTION: Show comprehensive analysis modal with alleged persons
+function showComprehensiveAnalysisModal(analysis) {
+  const modalId = 'comprehensiveAnalysisModalDetail';
+  
+  // Check if modal already exists, if not create it
+  let existingModal = document.getElementById(modalId);
+  if (!existingModal) {
+    const modalHTML = `
+      <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="${modalId}Label"><i class="bi bi-robot"></i> AI Comprehensive Analysis Results</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="${modalId}Body">
+              <!-- Content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  }
+  
+  // Build modal content
+  let modalContent = '<div class="container-fluid">';
+  
+  // Alleged Persons Section
+  if (analysis.alleged_persons && analysis.alleged_persons.length > 0) {
+    modalContent += `
+      <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="bi bi-people-fill"></i> Alleged Persons Detected</h6>
+          <span class="badge bg-light text-dark">${analysis.alleged_persons.length} person(s)</span>
+        </div>
+        <div class="card-body">
+          <div class="row">
+    `;
+    
+    analysis.alleged_persons.forEach((person, index) => {
+      modalContent += `
+        <div class="col-md-6 mb-3">
+          <div class="card h-100 border-secondary">
+            <div class="card-header bg-light">
+              <strong>👤 Person ${index + 1}</strong>
+            </div>
+            <div class="card-body">
+              <p class="mb-2"><strong>📝 English Name:</strong> ${person.name_english || 'N/A'}</p>
+              <p class="mb-2"><strong>🈚 Chinese Name:</strong> ${person.name_chinese || 'N/A'}</p>
+              <p class="mb-2"><strong>🔢 Agent Number:</strong> ${person.agent_number || 'N/A'}</p>
+              <p class="mb-2"><strong>📋 License Number:</strong> ${person.license_number || 'N/A'}</p>
+              <p class="mb-2"><strong>🏢 Company/Broker:</strong> ${person.agent_company_broker || 'N/A'}</p>
+              <p class="mb-0"><strong>👔 Role:</strong> ${person.role || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    modalContent += `
+          </div>
+          <div class="mt-3 text-center">
+            <button class="btn btn-success btn-lg" onclick="autoCreateProfiles(${analysis.email_id}, event)">
+              <i class="bi bi-plus-circle"></i> Auto-Create All Profiles
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Analysis Summary
+  if (analysis.analysis_summary) {
+    modalContent += `
+      <div class="card border-info mb-3">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="bi bi-file-text"></i> Analysis Summary</h6>
+        </div>
+        <div class="card-body">
+          <p>${analysis.analysis_summary}</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Detailed Reasoning
+  if (analysis.detailed_reasoning) {
+    modalContent += `
+      <div class="card border-warning mb-3">
+        <div class="card-header bg-warning">
+          <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Detailed Reasoning</h6>
+        </div>
+        <div class="card-body">
+          <pre style="white-space: pre-wrap; font-family: inherit;">${analysis.detailed_reasoning}</pre>
+        </div>
+      </div>
+    `;
+  }
+  
+  modalContent += '</div>';
+  
+  // Insert content and show modal
+  document.getElementById(modalId + 'Body').innerHTML = modalContent;
+  const modal = new bootstrap.Modal(document.getElementById(modalId));
+  modal.show();
+}
+
+// ✅ NEW FUNCTION: Auto-create profiles for all alleged persons
+function autoCreateProfiles(emailId, event) {
+  event.preventDefault();
+  
+  if (!confirm('Create profiles for all detected alleged persons?')) {
+    return;
+  }
+  
+  const btn = event.target.closest('button');
+  const originalHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating profiles...';
+  
+  fetch('/api/auto-create-profiles/' + emailId, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('✅ Success! Created ' + data.created_count + ' profile(s).' + 
+            (data.skipped_count > 0 ? '\n⚠️ Skipped ' + data.skipped_count + ' duplicate(s).' : ''));
+      btn.innerHTML = '<i class="bi bi-check-circle"></i> Profiles Created';
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-secondary');
+    } else {
+      alert('❌ Error: ' + (data.error || 'Unknown error'));
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('❌ Network error: ' + error.message);
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  });
+}
+
+// ✅ NEW FUNCTION: Create single profile
+function createSingleProfile(emailId, personIndex, event) {
+  event.preventDefault();
+  
+  const btn = event.target.closest('button');
+  const originalHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating...';
+  
+  fetch('/api/auto-create-profiles/' + emailId, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      person_index: personIndex
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('✅ Profile created successfully!');
+      btn.innerHTML = '<i class="bi bi-check-circle"></i> Created';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    } else {
+      alert('❌ Error: ' + (data.error || 'Unknown error'));
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('❌ Network error: ' + error.message);
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  });
+}
+</script>
+
+{% endblock %}
