@@ -806,7 +806,7 @@ EMAILS TO GROUP:
                 'file_sources': [
                     {
                         'filename': filename,
-                        'content': pdf_base64
+                        'base64_string': pdf_base64
                     }
                 ],
                 'options': {
