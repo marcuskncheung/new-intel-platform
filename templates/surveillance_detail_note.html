@@ -477,7 +477,15 @@
           <div>
             <p class="meta-label">Operation Date</p>
             <p class="meta-value">
-              {{ entry.date.strftime('%B %d, %Y') if entry.date else 'Not specified' }}
+              {% if entry.date %}
+                {% if entry.date is string %}
+                  {{ entry.date }}
+                {% else %}
+                  {{ entry.date.strftime('%B %d, %Y') }}
+                {% endif %}
+              {% else %}
+                Not specified
+              {% endif %}
             </p>
           </div>
         </div>
