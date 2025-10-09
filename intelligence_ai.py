@@ -32,9 +32,9 @@ class IntelligenceAI:
         if attachments:
             print(f"[AI COMPREHENSIVE] Processing {len(attachments)} attachments")
             
-            # ⚠️ TEMPORARY: Skip PDF processing if Docling is down (502 errors)
-            # This allows AI analysis to continue with email body only
-            skip_pdf_processing = True  # Set to False when Docling is back online
+            # ✅ UPDATED: PDF processing enabled with correct Docling v1alpha API
+            # Using proper JSON format with base64-encoded content
+            skip_pdf_processing = False  # Now using correct endpoint and format!
             
             if skip_pdf_processing:
                 print(f"[AI COMPREHENSIVE] ⚠️ PDF processing temporarily disabled (Docling service unavailable)")
@@ -779,77 +779,122 @@ EMAILS TO GROUP:
 
     def process_attachment_with_docling(self, file_data: bytes = None, file_path: str = None, filename: str = "document.pdf") -> Dict:
         """
-        Use Docling to extract text from email attachments
+        Use Docling to extract text from email attachments using the correct v1alpha API
         
         Args:
             file_data: Binary data from database (preferred)
             file_path: Legacy filepath for migration support
             filename: Original filename for the file upload
         """
+        import base64
+        
         try:
-            # Prepare file for upload - support both binary data and filepath
+            # Get file content - support both binary data and filepath
             if file_data:
-                # Direct binary data from database (modern approach)
-                files = {'file': (filename, file_data, 'application/pdf')}
+                pdf_content = file_data
             elif file_path:
-                # Legacy filepath approach (for migration support)
                 with open(file_path, 'rb') as f:
-                    files = {'file': (filename, f, 'application/pdf')}
+                    pdf_content = f.read()
             else:
                 return {'success': False, 'error': 'No file_data or file_path provided'}
             
-            # Try multiple possible endpoints for Docling
-            endpoints_to_try = [
-                f"{self.docling_api}/convert",
-                f"{self.docling_api}/api/convert", 
-                f"{self.docling_api}/v1/convert",
-                "https://ai-poc.corp.ia/docling/api/v1/convert"
-            ]
+            # Base64 encode the PDF content (required by Docling v1alpha API)
+            pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
             
-            for endpoint in endpoints_to_try:
-                try:
-                    # For file_data approach, files dict is already prepared
-                    if file_data:
-                        response = self.session.post(
-                            endpoint,
-                            files=files,
-                            timeout=30
-                        )
-                    else:
-                        # For filepath approach, need to reopen file each time
-                        with open(file_path, 'rb') as f:
-                            response = self.session.post(
-                                endpoint,
-                                files={'file': (filename, f, 'application/pdf')},
-                                timeout=30
-                            )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        return {
-                            'text_content': result.get('text', ''),
-                            'metadata': result.get('metadata', {}),
-                            'success': True,
-                            'endpoint_used': endpoint
-                        }
-                    else:
-                        print(f"Docling endpoint {endpoint} returned status {response.status_code}")
-                except (requests.RequestException, json.JSONDecodeError) as e:
-                    print(f"Docling endpoint {endpoint} failed: {type(e).__name__}: {str(e)}")
-                    continue
-            
-            # If all endpoints fail, return graceful fallback
-            print("Docling API: All endpoints failed, using fallback text extraction")
-            return {
-                'text_content': 'Docling service unavailable - manual document review required',
-                'metadata': {'error': 'Service unavailable'},
-                'success': False,
-                'endpoint_used': 'fallback'
+            # Create the correct JSON request format
+            request_data = {
+                'file_sources': [
+                    {
+                        'filename': filename,
+                        'content': pdf_base64
+                    }
+                ],
+                'options': {
+                    'to_formats': ['text'],  # Extract as plain text
+                    'do_ocr': True,         # Enable OCR for scanned PDFs
+                    'force_ocr': False,     # Don't replace existing text
+                    'do_table_structure': True,  # Extract table structure
+                    'include_images': False,     # Don't need images for text analysis
+                    'abort_on_error': False      # Continue processing even if errors
+                }
             }
+            
+            # Use the correct Docling v1alpha endpoint
+            endpoint = f"{self.docling_api}/v1alpha/convert/source"
+            
+            print(f"[DOCLING] Calling {endpoint} for file: {filename}")
+            
+            try:
+                response = self.session.post(
+                    endpoint,
+                    headers={'Content-Type': 'application/json'},
+                    json=request_data,
+                    timeout=60  # Longer timeout for PDF processing
+                )
+                
+                print(f"[DOCLING] Response status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Extract text content from Docling response
+                    document_data = result.get('document', {})
+                    
+                    # Try to get text from different possible response formats
+                    text_content = ""
+                    if isinstance(document_data, str):
+                        text_content = document_data
+                    elif isinstance(document_data, dict):
+                        # Try common text fields
+                        text_content = (
+                            document_data.get('text', '') or
+                            document_data.get('content', '') or
+                            document_data.get('markdown', '') or
+                            str(document_data)
+                        )
+                    
+                    print(f"[DOCLING] ✅ Successfully extracted {len(text_content)} characters from {filename}")
+                    
+                    return {
+                        'text_content': text_content,
+                        'metadata': {
+                            'processing_time': result.get('processing_time', 0),
+                            'status': result.get('status', 'success'),
+                            'filename': filename
+                        },
+                        'success': True,
+                        'endpoint_used': endpoint
+                    }
+                else:
+                    error_msg = f"Status {response.status_code}: {response.text[:200]}"
+                    print(f"[DOCLING] ❌ {error_msg}")
+                    
+                    return {
+                        'text_content': f'Docling processing failed ({response.status_code}) - manual document review required',
+                        'metadata': {'error': error_msg, 'filename': filename},
+                        'success': False,
+                        'endpoint_used': endpoint
+                    }
+                    
+            except (requests.RequestException, json.JSONDecodeError) as e:
+                error_msg = f"{type(e).__name__}: {str(e)}"
+                print(f"[DOCLING] ❌ Request failed: {error_msg}")
+                
+                return {
+                    'text_content': 'Docling service unavailable - manual document review required',
+                    'metadata': {'error': error_msg, 'filename': filename},
+                    'success': False,
+                    'endpoint_used': endpoint
+                }
                 
         except Exception as e:
-            print(f"Error calling Docling API: {e}")
-            return {'success': False, 'error': str(e)}
+            error_msg = f"Unexpected error: {str(e)}"
+            print(f"[DOCLING] ❌ {error_msg}")
+            return {
+                'success': False, 
+                'error': error_msg,
+                'text_content': 'PDF processing failed - manual document review required'
+            }
 
 # Global AI instance
 intelligence_ai = IntelligenceAI()
