@@ -121,12 +121,22 @@ class IntelligenceAI:
                         MAX_DOCLING_SIZE_MB = 10
                         if file_size_mb > MAX_DOCLING_SIZE_MB:
                             print(f"[AI COMPREHENSIVE] ⚠️ PDF too large for Docling API: {filename} ({file_size_mb:.1f} MB > {MAX_DOCLING_SIZE_MB} MB)")
-                            print(f"[AI COMPREHENSIVE]    Docling API has nginx limit - will analyze email body only")
-                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                            attachment_content += f"[PDF TOO LARGE FOR AUTOMATIC EXTRACTION: {file_size_mb:.1f} MB]\n"
-                            attachment_content += "This PDF exceeds the Docling API size limit. Please review manually.\n"
-                            attachment_content += f"Filename: {filename}\n"
-                            attachment_content += "Note: AI analysis will be based on email content only.\n"
+                            print(f"[AI COMPREHENSIVE]    Using local PDF extraction instead (bypasses API size limit)")
+                            
+                            # ✅ Extract text locally for large PDFs
+                            local_result = self.extract_pdf_locally(file_data, filename)
+                            
+                            if local_result.get('success'):
+                                extracted_text = local_result.get('text_content', '')
+                                print(f"[AI COMPREHENSIVE] ✅ Local extraction successful: {len(extracted_text)} chars from {filename}")
+                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) [LOCAL EXTRACTION] ---\n"
+                                attachment_content += extracted_text
+                            else:
+                                error_msg = local_result.get('error', 'Unknown error')
+                                print(f"[AI COMPREHENSIVE] ❌ Local extraction failed for {filename}: {error_msg}")
+                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
+                                attachment_content += f"[PDF EXTRACTION FAILED: {error_msg}]\n"
+                                attachment_content += "Please review this PDF manually.\n"
                             continue
                         
                         print(f"[AI COMPREHENSIVE] Calling Docling for PDF: {filename} (Email {email_id}, Attachment {att_id})")
@@ -894,6 +904,103 @@ EMAILS TO GROUP:
             'ai_grouping_success': False,
             'fallback_method': 'ultra_strict_title_matching'
         }
+
+    def extract_pdf_locally(self, file_data: bytes, filename: str) -> Dict:
+        """
+        Extract text from PDF using local Python library (for large files that exceed Docling API limits)
+        
+        This is a fallback method for PDFs >10MB that would fail with Docling's nginx limit.
+        Uses PyPDF2 for simple text extraction without API calls.
+        
+        Args:
+            file_data: Binary PDF data from database
+            filename: Original filename for logging
+            
+        Returns:
+            Dict with 'success', 'text_content', 'error'
+        """
+        import io
+        
+        try:
+            # Try PyPDF2 first (more reliable)
+            try:
+                import PyPDF2
+                
+                pdf_file = io.BytesIO(file_data)
+                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                
+                text = ""
+                page_count = len(pdf_reader.pages)
+                print(f"[LOCAL EXTRACT] Processing {page_count} pages from {filename}")
+                
+                for page_num, page in enumerate(pdf_reader.pages, 1):
+                    try:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += f"\n--- Page {page_num} ---\n{page_text}"
+                    except Exception as e:
+                        print(f"[LOCAL EXTRACT] ⚠️ Failed to extract page {page_num}: {e}")
+                        text += f"\n--- Page {page_num} [EXTRACTION FAILED] ---\n"
+                
+                if text.strip():
+                    print(f"[LOCAL EXTRACT] ✅ Successfully extracted {len(text)} chars using PyPDF2")
+                    return {
+                        'success': True,
+                        'text_content': text,
+                        'method': 'PyPDF2',
+                        'page_count': page_count
+                    }
+                else:
+                    raise Exception("No text extracted from PDF")
+                    
+            except ImportError:
+                print(f"[LOCAL EXTRACT] ⚠️ PyPDF2 not installed, trying pdfplumber...")
+                
+                # Fallback to pdfplumber
+                import pdfplumber
+                
+                pdf_file = io.BytesIO(file_data)
+                text = ""
+                
+                with pdfplumber.open(pdf_file) as pdf:
+                    page_count = len(pdf.pages)
+                    print(f"[LOCAL EXTRACT] Processing {page_count} pages from {filename}")
+                    
+                    for page_num, page in enumerate(pdf.pages, 1):
+                        try:
+                            page_text = page.extract_text()
+                            if page_text:
+                                text += f"\n--- Page {page_num} ---\n{page_text}"
+                        except Exception as e:
+                            print(f"[LOCAL EXTRACT] ⚠️ Failed to extract page {page_num}: {e}")
+                
+                if text.strip():
+                    print(f"[LOCAL EXTRACT] ✅ Successfully extracted {len(text)} chars using pdfplumber")
+                    return {
+                        'success': True,
+                        'text_content': text,
+                        'method': 'pdfplumber',
+                        'page_count': page_count
+                    }
+                else:
+                    raise Exception("No text extracted from PDF")
+                    
+        except ImportError as e:
+            error_msg = f"PDF extraction libraries not installed: {e}. Install with: pip install PyPDF2 pdfplumber"
+            print(f"[LOCAL EXTRACT] ❌ {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'text_content': ''
+            }
+        except Exception as e:
+            error_msg = f"Local PDF extraction failed: {str(e)}"
+            print(f"[LOCAL EXTRACT] ❌ {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'text_content': ''
+            }
 
     def process_attachment_with_docling(self, file_data: bytes = None, file_path: str = None, filename: str = "document.pdf") -> Dict:
         """

@@ -35,6 +35,10 @@ xlsxwriter==3.1.9
 # Document Processing
 python-docx==0.8.11
 
+# PDF Processing (for local extraction fallback when Docling API fails)
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+
 # Image Processing - Updated for CVE security fix
 Pillow>=10.3.0
 
