@@ -202,6 +202,17 @@ class IntelligenceAI:
         # Create comprehensive analysis prompt
         prompt = self._create_comprehensive_analysis_prompt(email_data, attachment_content)
         
+        # ✅ DEBUG: Log what we're sending to AI to verify email-attachment alignment
+        print(f"[AI COMPREHENSIVE] 📋 SENDING TO AI FOR ANALYSIS:")
+        print(f"[AI COMPREHENSIVE]    Email ID: {email_id}")
+        print(f"[AI COMPREHENSIVE]    Email Subject: {email_data.get('subject', 'N/A')[:80]}")
+        print(f"[AI COMPREHENSIVE]    Email Body Length: {len(email_data.get('body', ''))} chars")
+        print(f"[AI COMPREHENSIVE]    Attachment Content Length: {len(attachment_content)} chars")
+        if attachment_content:
+            # Show first 300 chars of attachment to verify it matches this email
+            first_chars = attachment_content[:300].replace('\n', ' ')
+            print(f"[AI COMPREHENSIVE]    Attachment Preview: {first_chars}...")
+        
         try:
             # Call LLM for comprehensive analysis
             response = self.session.post(
@@ -240,6 +251,10 @@ class IntelligenceAI:
         print(f"[PROMPT DEBUG] Attachment content included in prompt: {len(attachment_preview)} chars")
         if attachment_content:
             print(f"[PROMPT DEBUG] First 200 chars of attachment: {attachment_content[:200]}...")
+        
+        # ✅ DEBUG: Show email body preview to verify alignment
+        email_body_preview = (email_data.get('body', '')[:300] if email_data.get('body') else 'NO BODY')
+        print(f"[PROMPT DEBUG] Email body preview: {email_body_preview}...")
         
         # ✅ Add email context for validation
         validation_info = email_data.get('validation_info', {})
