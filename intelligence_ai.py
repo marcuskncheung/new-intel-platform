@@ -150,8 +150,6 @@ class IntelligenceAI:
                         
                         # For small PDFs or if local extraction succeeded, use appropriate method
                         if not extracted_text:
-                        # For small PDFs or if local extraction succeeded, use appropriate method
-                        if not extracted_text:
                             print(f"[AI COMPREHENSIVE] Calling Docling for PDF: {filename} (Email {email_id}, Attachment {att_id})")
                             doc_result = self.process_attachment_with_docling(
                                 file_data=file_data,  # ✅ Pass binary data directly
