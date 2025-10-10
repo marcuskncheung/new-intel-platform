@@ -84,7 +84,7 @@ class IntelligenceAI:
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
+                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
                     "prompt": prompt,
                     "max_tokens": 3000,  # Increased to handle complex cases with multiple persons
                     "temperature": 0.3,  # Balanced for analytical tasks
@@ -442,7 +442,7 @@ Analysis:"""
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
+                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
                     "prompt": prompt,
                     "max_tokens": 1500,  # Increased for comprehensive summaries
                     "temperature": 0.3,  # Balanced for analysis
@@ -554,7 +554,7 @@ Analysis:"""
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",
+                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
                     "prompt": prompt,
                     "max_tokens": 6000,  # Large enough for grouping many emails
                     "temperature": 0.15,  # Lower for factual extraction tasks
@@ -932,4 +932,5 @@ EMAILS TO GROUP:
 
 # Global AI instance
 intelligence_ai = IntelligenceAI()
+
 
