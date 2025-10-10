@@ -38,6 +38,7 @@ python-docx==0.8.11
 # PDF Processing (for local extraction fallback when Docling API fails)
 PyPDF2==3.0.1
 pdfplumber==0.10.3
+pdf2image==1.16.3  # Convert PDF pages to images for VLM OCR
 
 # Image Processing - Updated for CVE security fix
 Pillow>=10.3.0

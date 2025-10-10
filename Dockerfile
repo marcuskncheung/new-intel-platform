@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     libpq-dev \
     postgresql-client \
+    poppler-utils \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

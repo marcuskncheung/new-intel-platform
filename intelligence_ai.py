@@ -138,15 +138,27 @@ class IntelligenceAI:
                                 extraction_method = 'LOCAL'
                                 print(f"[AI COMPREHENSIVE] ✅ Local extraction successful: {len(extracted_text)} chars from {filename}")
                             else:
-                                # Local extraction failed - likely a scanned PDF (needs OCR)
                                 print(f"[AI COMPREHENSIVE] ⚠️ Local extraction failed (likely scanned PDF)")
-                                print(f"[AI COMPREHENSIVE] ⚠️ This PDF needs OCR but is too large for Docling API ({file_size_mb:.1f} MB > {MAX_DOCLING_SIZE_MB} MB)")
-                                print(f"[AI COMPREHENSIVE] ❌ Cannot process this scanned PDF - manual review required")
-                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                                attachment_content += f"[SCANNED PDF TOO LARGE FOR PROCESSING]\n"
-                                attachment_content += f"This is a {file_size_mb:.1f} MB scanned PDF that requires OCR.\n"
-                                attachment_content += f"File exceeds API size limit ({MAX_DOCLING_SIZE_MB} MB). Please review manually.\n"
-                                continue
+                                print(f"[AI COMPREHENSIVE] 🔄 Trying VLM OCR (extract images + AI vision)...")
+                                
+                                # ✅ Try VLM OCR for scanned PDFs (process first 5 pages only)
+                                vlm_result = self.extract_pdf_images_to_vlm(file_data, filename, max_pages=5)
+                                
+                                if vlm_result.get('success'):
+                                    extracted_text = vlm_result.get('text_content', '')
+                                    extraction_method = 'VLM_OCR'
+                                    pages_success = vlm_result.get('pages_success', 0)
+                                    pages_total = vlm_result.get('pages_processed', 0)
+                                    print(f"[AI COMPREHENSIVE] ✅ VLM OCR successful: {len(extracted_text)} chars from {pages_success}/{pages_total} pages")
+                                else:
+                                    # All methods failed
+                                    print(f"[AI COMPREHENSIVE] ❌ All extraction methods failed for {filename}")
+                                    print(f"[AI COMPREHENSIVE] ❌ Cannot process this scanned PDF - manual review required")
+                                    attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
+                                    attachment_content += f"[SCANNED PDF - ALL EXTRACTION METHODS FAILED]\n"
+                                    attachment_content += f"This is a {file_size_mb:.1f} MB scanned PDF.\n"
+                                    attachment_content += f"Tried: Local extraction → VLM OCR. All failed. Please review manually.\n"
+                                    continue
                         
                         # For small PDFs or if local extraction succeeded, use appropriate method
                         if not extracted_text:
@@ -924,6 +936,161 @@ EMAILS TO GROUP:
             'fallback_method': 'ultra_strict_title_matching'
         }
 
+    def extract_pdf_images_to_vlm(self, file_data: bytes, filename: str, max_pages: int = 5) -> Dict:
+        """
+        Extract PDF pages as images and send to VLM for OCR and text extraction
+        
+        This method is for large scanned PDFs that:
+        1. Cannot use Docling (>10MB size limit)
+        2. Have no text layer (PyPDF2 extraction fails)
+        
+        Uses pdf2image to convert pages to images, then VLM (Qwen3-VL) reads them with OCR.
+        
+        Args:
+            file_data: Binary PDF data from database
+            filename: Original filename for logging
+            max_pages: Maximum pages to process (default 5 to avoid timeout)
+            
+        Returns:
+            Dict with 'success', 'text_content', 'method', 'error'
+        """
+        import io
+        import base64
+        
+        try:
+            from pdf2image import convert_from_bytes
+            
+            print(f"[VLM OCR] Converting PDF to images: {filename} (max {max_pages} pages)")
+            print(f"[VLM OCR] ⚠️ Warning: Processing {max_pages} pages may take several minutes...")
+            
+            # Convert PDF to images (limit to first N pages to avoid timeout)
+            # Use lower DPI to reduce memory usage
+            images = convert_from_bytes(
+                file_data, 
+                first_page=1, 
+                last_page=max_pages, 
+                dpi=120,  # Lower DPI to reduce memory/processing time
+                fmt='jpeg',
+                jpegopt={'quality': 75}
+            )
+            
+            if not images:
+                raise Exception("No images extracted from PDF")
+            
+            print(f"[VLM OCR] Extracted {len(images)} images from {filename}")
+            
+            # Process each page with VLM
+            extracted_text = ""
+            success_count = 0
+            
+            for page_num, image in enumerate(images, 1):
+                print(f"[VLM OCR] Processing page {page_num}/{len(images)}...")
+                
+                try:
+                    # Convert image to base64
+                    img_buffer = io.BytesIO()
+                    image.save(img_buffer, format='JPEG', quality=75)
+                    img_base64 = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+                    
+                    # Check image size (skip if >5MB base64)
+                    if len(img_base64) > 5 * 1024 * 1024:
+                        print(f"[VLM OCR] ⚠️ Page {page_num} image too large, skipping...")
+                        extracted_text += f"\n--- Page {page_num} [IMAGE TOO LARGE] ---\n"
+                        continue
+                    
+                    # Send to VLM for OCR
+                    page_text = self._ocr_image_with_vlm(img_base64, filename, page_num)
+                    
+                    if page_text:
+                        extracted_text += f"\n--- Page {page_num} ---\n{page_text}\n"
+                        success_count += 1
+                    else:
+                        extracted_text += f"\n--- Page {page_num} [OCR FAILED] ---\n"
+                        
+                except Exception as page_error:
+                    print(f"[VLM OCR] ❌ Page {page_num} processing error: {page_error}")
+                    extracted_text += f"\n--- Page {page_num} [ERROR: {str(page_error)}] ---\n"
+            
+            if extracted_text.strip() and success_count > 0:
+                print(f"[VLM OCR] ✅ Successfully extracted text from {success_count}/{len(images)} pages")
+                return {
+                    'success': True,
+                    'text_content': extracted_text,
+                    'method': 'VLM_OCR',
+                    'pages_processed': len(images),
+                    'pages_success': success_count
+                }
+            else:
+                raise Exception(f"No text extracted from any page (0/{len(images)} successful)")
+                
+        except ImportError:
+            error_msg = "pdf2image not installed. Install with: pip install pdf2image && apt-get install poppler-utils"
+            print(f"[VLM OCR] ❌ {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'text_content': ''
+            }
+        except Exception as e:
+            error_msg = f"VLM OCR extraction failed: {str(e)}"
+            print(f"[VLM OCR] ❌ {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'text_content': ''
+            }
+    
+    def _ocr_image_with_vlm(self, image_base64: str, filename: str, page_num: int) -> str:
+        """
+        Use VLM (Qwen3-VL) to perform OCR on a single PDF page image
+        
+        NOTE: This assumes the VLM API supports vision/image input.
+        If the API doesn't support images parameter, this will fail gracefully.
+        You may need to adjust the API format based on your VLM deployment.
+        
+        Args:
+            image_base64: Base64 encoded JPEG image
+            filename: PDF filename for logging
+            page_num: Page number for logging
+            
+        Returns:
+            Extracted text from the image
+        """
+        try:
+            prompt = """Extract all text from this document image. 
+Return ONLY the extracted text, exactly as it appears in the image.
+Preserve the original formatting, line breaks, and structure.
+Do not add any explanations or comments."""
+            
+            # VLM API call with image
+            # NOTE: Adjust this format if your VLM API uses different parameter names
+            response = self.session.post(
+                f"{self.llm_api}/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
+                    "prompt": prompt,
+                    "images": [f"data:image/jpeg;base64,{image_base64}"],  # May need adjustment based on API
+                    "max_tokens": 4000,
+                    "temperature": 0.1
+                },
+                timeout=120
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                text = result.get('choices', [{}])[0].get('text', '').strip()
+                print(f"[VLM OCR] Page {page_num}: Extracted {len(text)} chars")
+                return text
+            else:
+                error_detail = response.text[:200] if response.text else 'No details'
+                print(f"[VLM OCR] ❌ Page {page_num} failed: Status {response.status_code} - {error_detail}")
+                return ""
+                
+        except Exception as e:
+            print(f"[VLM OCR] ❌ Page {page_num} error: {e}")
+            return ""
+    
     def extract_pdf_locally(self, file_data: bytes, filename: str) -> Dict:
         """
         Extract text from PDF using local Python library (for large files that exceed Docling API limits)
