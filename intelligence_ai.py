@@ -15,7 +15,7 @@ class IntelligenceAI:
     def __init__(self):
         self.llm_api = "https://ai-poc.corp.ia/vllm/v1"
         self.embedding_api = "https://ai-poc.corp.ia/embedding/v1"
-        self.docling_api = "https://ai-poc.corp.ia/docling"
+        self.docling_api = "https://ai-poc.corp.ia/docling/docs"
         
         # Configure session for internal corporate network
         self.session = requests.Session()
@@ -932,3 +932,4 @@ EMAILS TO GROUP:
 
 # Global AI instance
 intelligence_ai = IntelligenceAI()
+
