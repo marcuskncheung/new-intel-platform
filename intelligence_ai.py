@@ -112,10 +112,23 @@ class IntelligenceAI:
                         continue
                     
                     file_size_kb = len(file_data) / 1024
+                    file_size_mb = len(file_data) / (1024 * 1024)
                     print(f"[AI COMPREHENSIVE] Processing binary attachment: {filename} ({file_size_kb:.1f} KB) for email {email_id}")
                     
                     # Process PDF binary data with Docling
                     if filename.lower().endswith('.pdf'):
+                        # ✅ Check Docling API size limit (nginx usually limits to 10MB)
+                        MAX_DOCLING_SIZE_MB = 10
+                        if file_size_mb > MAX_DOCLING_SIZE_MB:
+                            print(f"[AI COMPREHENSIVE] ⚠️ PDF too large for Docling API: {filename} ({file_size_mb:.1f} MB > {MAX_DOCLING_SIZE_MB} MB)")
+                            print(f"[AI COMPREHENSIVE]    Docling API has nginx limit - will analyze email body only")
+                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
+                            attachment_content += f"[PDF TOO LARGE FOR AUTOMATIC EXTRACTION: {file_size_mb:.1f} MB]\n"
+                            attachment_content += "This PDF exceeds the Docling API size limit. Please review manually.\n"
+                            attachment_content += f"Filename: {filename}\n"
+                            attachment_content += "Note: AI analysis will be based on email content only.\n"
+                            continue
+                        
                         print(f"[AI COMPREHENSIVE] Calling Docling for PDF: {filename} (Email {email_id}, Attachment {att_id})")
                         doc_result = self.process_attachment_with_docling(
                             file_data=file_data,  # ✅ Pass binary data directly
@@ -932,8 +945,9 @@ EMAILS TO GROUP:
                 }
             }
             
-            # Use the correct Docling v1alpha endpoint
-            endpoint = f"{self.docling_api}/v1alpha/convert/source"
+            # ✅ Use correct Docling API endpoint (as specified by IT)
+            # IT confirmed: https://ai-poc.corp.ia/docling/docs (no additional path)
+            endpoint = self.docling_api  # Already set to "https://ai-poc.corp.ia/docling/docs"
             
             print(f"[DOCLING] Calling API: {endpoint}")
             print(f"[DOCLING] Payload size: {len(json.dumps(request_data))} bytes")
