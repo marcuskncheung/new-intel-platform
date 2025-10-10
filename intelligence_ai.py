@@ -1057,10 +1057,16 @@ EMAILS TO GROUP:
             Extracted text from the image
         """
         try:
-            prompt = """Extract all text from this document image. 
-Return ONLY the extracted text, exactly as it appears in the image.
-Preserve the original formatting, line breaks, and structure.
-Do not add any explanations or comments."""
+            prompt = """You are an OCR system. Read the document image and extract all text exactly as shown.
+
+CRITICAL RULES:
+1. Output ONLY the text from the document - no thinking, no explanations
+2. Do NOT say "I cannot see" or "based on the image"
+3. Do NOT add any commentary or analysis
+4. Copy the text character-by-character from the image
+5. Preserve original formatting, line breaks, and structure
+
+START EXTRACTING NOW:"""
             
             # VLM API call with image
             # NOTE: Adjust this format if your VLM API uses different parameter names
@@ -1072,7 +1078,9 @@ Do not add any explanations or comments."""
                     "prompt": prompt,
                     "images": [f"data:image/jpeg;base64,{image_base64}"],  # May need adjustment based on API
                     "max_tokens": 4000,
-                    "temperature": 0.1
+                    "temperature": 0.0,  # Zero temperature for pure OCR extraction
+                    "top_p": 0.9,
+                    "stop": ["CRITICAL RULES", "You are an OCR", "I cannot see", "Based on"]  # Stop if model starts meta-commentary
                 },
                 timeout=120
             )
@@ -1080,6 +1088,42 @@ Do not add any explanations or comments."""
             if response.status_code == 200:
                 result = response.json()
                 text = result.get('choices', [{}])[0].get('text', '').strip()
+                
+                # ✅ CRITICAL: Clean up VLM "thinking" text if present
+                # Remove common VLM meta-commentary patterns
+                thinking_patterns = [
+                    "We are given an image",
+                    "I cannot see the image",
+                    "Based on the image",
+                    "Since I cannot see",
+                    "Let me extract",
+                    "I must rely on",
+                    "The image shows",
+                    "Do not omit any text"
+                ]
+                
+                # If text starts with thinking pattern, try to extract just the OCR content
+                for pattern in thinking_patterns:
+                    if pattern.lower() in text.lower()[:200]:  # Check first 200 chars
+                        print(f"[VLM OCR] ⚠️ Page {page_num}: Detected thinking text, cleaning...")
+                        # Try to find where actual content starts (usually after first paragraph)
+                        lines = text.split('\n')
+                        clean_lines = []
+                        found_content = False
+                        for line in lines:
+                            # Skip lines with thinking patterns
+                            if any(p.lower() in line.lower() for p in thinking_patterns):
+                                continue
+                            # Start collecting after we see actual content indicators
+                            if line.strip() and (len(line) > 20 or found_content):
+                                found_content = True
+                                clean_lines.append(line)
+                        
+                        if clean_lines:
+                            text = '\n'.join(clean_lines)
+                            print(f"[VLM OCR] ✅ Cleaned thinking text, extracted {len(text)} chars")
+                        break
+                
                 print(f"[VLM OCR] Page {page_num}: Extracted {len(text)} chars")
                 return text
             else:

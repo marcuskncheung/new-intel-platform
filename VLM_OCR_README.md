@@ -1,24 +1,37 @@
-# VLM OCR Feature - Important Notes
+# VLM OCR Feature for Large Scanned PDFs
 
-## ✅ What This Feature Does
+## Overview
+This feature uses Qwen3-VL vision model to perform OCR on large scanned PDFs (>10MB) that cannot be processed by Docling API due to nginx size limits.
 
-For large scanned PDFs (>10MB) that cannot use Docling API:
-1. Extracts PDF pages as images using pdf2image
-2. Sends images to VLM (Qwen3-VL) for OCR text extraction
-3. Processes up to 5 pages (configurable) to avoid timeout
+## How It Works
+1. Convert PDF pages to JPEG images using `pdf2image`
+2. Send images (base64-encoded) to VLM API with OCR prompt
+3. Extract text from VLM's vision analysis
+4. Process up to 5 pages (configurable) to avoid timeout
 
-## ⚠️ Important Limitations
+## Known Issues & Fixes
 
-### 1. **VLM API Format May Need Adjustment**
-The code assumes VLM API accepts `images` parameter like this:
-```json
-{
-  "prompt": "Extract text...",
-  "images": ["data:image/jpeg;base64,ABC..."]
-}
-```
+### CRITICAL: VLM "Thinking Text" Problem (FIXED)
+**Problem**: Qwen3-VL-30B-A3B-Thinking model returns its own reasoning ("We are given an image... I cannot see...") instead of actual PDF text.
 
-**If your VLM API uses a different format, you need to modify `_ocr_image_with_vlm()` function.**
+**Solution**: 
+- Updated prompt to be more directive: "You are an OCR system. Read and extract ONLY."
+- Set temperature to 0.0 for deterministic extraction
+- Added stop sequences to prevent meta-commentary
+- Added post-processing to clean up thinking patterns if they slip through
+
+**Patterns that are automatically cleaned**:
+- "We are given an image"
+- "I cannot see the image"  
+- "Based on the image"
+- "Since I cannot see"
+- "Let me extract"
+- "I must rely on"
+- "The image shows"
+
+If you still see these patterns in extracted text, the cleaning logic needs adjustment.
+
+### VLM API Format (May Need Adjustment)
 
 ### 2. **Performance Considerations**
 - **Processing Time**: Each page takes ~30-60 seconds (5 pages = 2.5-5 minutes)
