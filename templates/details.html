@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-outline-secondary">&larr; Back</a>
+</div>
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-primary text-white d-flex justify-content-between">
+    <div>
+      {{ row['alleged_subject_cn'] or row['alleged_subject_en'] }}
+      {% if row['alleged_subject_cn'] and row['alleged_subject_en'] %}<small>({{ row['alleged_subject_en'] }})</small>{% endif %}
+    </div>
+    <button id="edit-btn" class="btn btn-sm btn-outline-light">Edit Info</button>
+  </div>
+  <div class="card-body">
+    <ul class="nav nav-tabs mb-3">
+      {% for name, target in [("Info","#tab-info"),("Associations","#tab-assoc"),("Emails","#tab-emails"),("Files","#tab-files"),("Attachments","#tab-attach")] %}
+      <li class="nav-item">
+        <button class="nav-link {% if loop.first %}active{% endif %}" data-bs-toggle="tab" data-bs-target="{{ target }}">
+          {{ name }}
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="tab-content">
+
+      <div class="tab-pane fade show active" id="tab-info">
+        <form id="info-form" method="post">
+          <div class="mb-3 text-end">
+            <button id="save-btn" name="save" class="btn btn-success btn-sm">Save</button>
+            <button id="cancel-btn" type="button" class="btn btn-secondary btn-sm">Cancel</button>
+          </div>
+          {% for col in cols if col!="__idx__" %}
+          <div class="row mb-3">
+            <label class="col-sm-3 text-end">{{ col }}</label>
+            <div class="col-sm-9">
+              {% if col == "Date of Receipt" %}
+                <input name="{{ col }}" type="datetime-local" class="form-control form-control-sm editable-field"
+                  value="{{ row['Date of Receipt__input'] }}" required>
+              {% elif col == "Source Type" %}
+                <select name="{{ col }}" class="form-select form-select-sm editable-field" required>
+                  <option value="">Select Source Type...</option>
+                  <option value="Email" {% if row[col]=="Email" %}selected{% endif %}>Email</option>
+                  <option value="WhatsApp" {% if row[col]=="WhatsApp" %}selected{% endif %}>WhatsApp</option>
+                  <option value="Online Patrol" {% if row[col]=="Online Patrol" %}selected{% endif %}>Online Patrol</option>
+                  <option value="Surveillance" {% if row[col]=="Surveillance" %}selected{% endif %}>Surveillance</option>
+                  <option value="Other" {% if row[col]=="Other" %}selected{% endif %}>Other</option>
+                </select>
+              {% else %}
+                <input name="{{ col }}" value="{{ row[col] }}"
+                       class="form-control form-control-sm editable-field">
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </form>
+      </div>
+
+      <div class="tab-pane fade" id="tab-assoc">
+        {% if subjects %}
+        <ul class="list-group">
+          {% for en,cn,aidx in subjects %}
+          <li class="list-group-item">
+            <a href="{{ url_for('details', idx=aidx) }}">
+              {{ cn or en }}{% if cn and en %} <small>({{ en }})</small>{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No associations.</p>
+        {% endif %}
+      </div>
+
+      <div class="tab-pane fade" id="tab-emails">
+        {% if emails %}
+        <div class="list-group">
+          {% for m in emails %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between">
+              <strong>{{ m.Subject }}</strong>
+              <small class="text-muted">{{ m.ReceivedTime }}</small>
+            </div>
+            <p class="mb-1">{{ m.Body|truncate(150) }}</p>
+            <small class="text-muted">From {{ m.SenderName }}</small>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No emails.</p>
+        {% endif %}
+      </div>
+
+      <div class="tab-pane fade" id="tab-files">
+        {% if email_files %}
+        <ul class="list-group">
+          {% for ef in email_files %}
+          <li class="list-group-item d-flex justify-content-between">
+            {{ ef.name }}
+            <a href="{{ ef.url | e }}" class="btn btn-sm btn-outline-primary">Download</a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No files.</p>
+        {% endif %}
+      </div>
+
+      <div class="tab-pane fade" id="tab-attach">
+        <form method="post" enctype="multipart/form-data" class="mb-3">
+          <div class="input-group">
+            <input type="file" name="attachment" class="form-control">
+            <button class="btn btn-primary">Upload</button>
+          </div>
+        </form>
+        {% if attachments %}
+        <ul class="list-group">
+          {% for a in attachments %}
+          <li class="list-group-item d-flex justify-content-between">
+            {{ a.name }}
+            <a href="{{ a.url | e }}" class="btn btn-sm btn-outline-primary">Download</a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No attachments.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", ()=>{
+  const fields = document.querySelectorAll(".editable-field");
+  const editBtn = document.getElementById("edit-btn");
+  const saveBtn = document.getElementById("save-btn");
+  const cancelBtn = document.getElementById("cancel-btn");
+
+  fields.forEach(f => f.disabled=true);
+  saveBtn.style.display="none"; cancelBtn.style.display="none";
+
+  editBtn.onclick = ()=>{
+    fields.forEach(f => f.disabled=false);
+    editBtn.style.display="none"; saveBtn.style.display="inline-block"; cancelBtn.style.display="inline-block";
+  };
+  cancelBtn.onclick = ()=> location.reload();
+});
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="card shadow-sm rounded">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background: #1669d2; color: #fff;">
+      <div>
+        <h5 class="mb-0">
+          <i class="bi bi-paperclip me-2"></i>{{ attachment.filename }}
+        </h5>
+        <small>Size: {{ "%.2f"|format(file_size / 1024) }} KB | Type: {{ mimetype }}</small>
+      </div>
+      <div>
+        <button onclick="downloadFile()" class="btn btn-outline-light btn-sm me-2">
+          <i class="bi bi-download"></i> Download
+        </button>
+        <button onclick="window.history.back()" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-left"></i> Back
+        </button>
+      </div>
+    </div>
+    
+    <div class="card-body">
+      {% if file_extension in ['.pdf'] %}
+        <!-- SIMPLE UNIVERSAL PDF VIEWER -->
+        <div class="universal-pdf-viewer">
+          <div class="alert alert-success mb-3">
+            <i class="bi bi-file-earmark-pdf"></i>
+            <strong>Universal PDF Viewer</strong> - Works with all PDF versions (old and new)
+            <small class="d-block mt-1">If PDF doesn't display, use the Download button above.</small>
+          </div>
+          
+          <!-- Primary PDF Display -->
+          <div id="pdf-display-container" style="width: 100%; height: 700px; border: 2px solid #dee2e6; border-radius: 8px; position: relative; background: #f8f9fa;">
+            
+            {% if file_base64 and file_size < 52428800 %}
+            <!-- WORKING PDF VIEWER - Multiple methods that actually display PDFs -->
+            <div id="pdf-viewer-main" style="width: 100%; height: 100%; position: relative;">
+              
+              <!-- Method 1: Direct Embed (Primary - most compatible) -->
+              <embed id="pdf-embed-primary" 
+                     src="data:application/pdf;base64,{{ file_base64 }}" 
+                     type="application/pdf" 
+                     width="100%" 
+                     height="100%" 
+                     style="border: none; border-radius: 6px; background: white;"
+                     pluginspage="http://www.adobe.com/products/acrobat/readstep2.html">
+              
+              <!-- Method 2: Object (Shows if embed fails) -->
+              <object id="pdf-object-backup"
+                      data="data:application/pdf;base64,{{ file_base64 }}" 
+                      type="application/pdf" 
+                      width="100%" 
+                      height="100%" 
+                      style="display: none; border: none; border-radius: 6px; background: white;">
+                
+                <!-- Built-in fallback for object -->
+                <p style="padding: 50px; text-align: center; background: white; margin: 0;">
+                  <i class="bi bi-file-earmark-pdf" style="font-size: 3rem; color: #dc3545;"></i><br><br>
+                  <strong>PDF Viewer Loading...</strong><br>
+                  <small>If PDF doesn't appear, click Download button above.</small><br><br>
+                  <button onclick="downloadFile()" class="btn btn-primary">
+                    <i class="bi bi-download"></i> Download PDF
+                  </button>
+                </p>
+              </object>
+              
+              <!-- Method 3: Iframe (Independent fallback) -->
+              <iframe id="pdf-iframe-backup"
+                      src="data:application/pdf;base64,{{ file_base64 }}" 
+                      width="100%" 
+                      height="100%" 
+                      style="display: none; border: none; border-radius: 6px; background: white;"
+                      title="PDF Viewer">
+              </iframe>
+              
+              <!-- Fallback message if all methods fail -->
+              <div id="pdf-fallback-message" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 100;">
+                <div class="d-flex align-items-center justify-content-center h-100">
+                  <div class="text-center">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #ffc107;"></i>
+                    <h4 class="mt-3">PDF Display Issue</h4>
+                    <p class="text-muted">Your browser may not support inline PDF viewing.</p>
+                    <button onclick="downloadFile()" class="btn btn-primary btn-lg">
+                      <i class="bi bi-download"></i> Download to View
+                    </button>
+                    <p class="mt-3"><small class="text-muted">
+                      The PDF will open in your system's default PDF reader.
+                    </small></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {% else %}
+            <!-- Large file - Download only -->
+            <div class="d-flex align-items-center justify-content-center h-100">
+              <div class="text-center">
+                <i class="bi bi-file-earmark-pdf" style="font-size: 4rem; color: #dc3545;"></i>
+                <h4 class="mt-3">Large PDF File</h4>
+                <p class="text-muted">This file ({{ "%.2f"|format(file_size / 1024 / 1024) }} MB) is too large for online viewing.</p>
+                <button onclick="downloadFile()" class="btn btn-primary btn-lg">
+                  <i class="bi bi-download"></i> Download to View
+                </button>
+              </div>
+            </div>
+            {% endif %}
+            
+            <!-- Loading indicator -->
+            <div id="pdf-loading" class="d-flex align-items-center justify-content-center h-100" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 10;">
+              <div class="text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                  <span class="visually-hidden">Loading PDF...</span>
+                </div>
+                <h5>Loading PDF...</h5>
+                <p class="text-muted">Please wait while the PDF is being loaded...</p>
+              </div>
+            </div>
+            
+            <!-- Error fallback -->
+            <div id="pdf-error" class="d-flex align-items-center justify-content-center h-100" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #f8f9fa; z-index: 20;">
+              <div class="text-center">
+                <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #ffc107;"></i>
+                <h4 class="mt-3">PDF Cannot Be Displayed</h4>
+                <p class="text-muted">This PDF may have compatibility issues with online viewing.</p>
+                <button onclick="downloadFile()" class="btn btn-primary btn-lg">
+                  <i class="bi bi-download"></i> Download to View
+                </button>
+                <p class="mt-3"><small class="text-muted">
+                  Recommended PDF readers: Adobe Acrobat Reader, Foxit Reader, or your browser's built-in PDF viewer.
+                </small></p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Simple status -->
+          <div class="mt-3 text-center">
+            <small class="text-muted">
+              <span id="pdf-status">Loading universal PDF viewer...</span>
+            </small>
+          </div>
+        </div>
+        
+      {% elif file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.bmp'] %}
+        <!-- Image Viewer -->
+        <div class="text-center">
+          {% if file_base64 %}
+          <img src="data:{{ mimetype }};base64,{{ file_base64 }}" 
+               class="img-fluid" 
+               style="max-height: 70vh; border: 1px solid #dee2e6; border-radius: 8px;"
+               alt="{{ attachment.filename }}">
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            Image file too large to display inline.
+            <br>
+            <button onclick="downloadFile()" class="btn btn-primary mt-2">
+              <i class="bi bi-download"></i> Download to View
+            </button>
+          </div>
+          {% endif %}
+        </div>
+        
+      {% elif file_extension in ['.txt', '.log'] %}
+        <!-- Text File Viewer -->
+        {% if file_base64 and file_size < 1048576 %}
+        <div class="card">
+          <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0"><i class="bi bi-file-earmark-text"></i> Text Content</h6>
+          </div>
+          <div class="card-body">
+            <pre style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-size: 12px;">{{ file_base64 | b64decode }}</pre>
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+          <i class="bi bi-file-earmark-text"></i>
+          <h5>Text File</h5>
+          <p>File too large to display inline or content not available.</p>
+          <button onclick="downloadFile()" class="btn btn-primary">
+            <i class="bi bi-download"></i> Download to View
+          </button>
+        </div>
+        {% endif %}
+        
+      {% else %}
+        <!-- Generic File Viewer -->
+        <div class="alert alert-info text-center">
+          <i class="bi bi-file-earmark"></i>
+          <h5>{{ attachment.filename }}</h5>
+          <p>File type: {{ mimetype }}</p>
+          <p>This file type cannot be previewed online.</p>
+          <button onclick="downloadFile()" class="btn btn-primary btn-lg">
+            <i class="bi bi-download"></i> Download File
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// ROBUST PDF VIEWER - Actually displays PDFs
+let pdfDisplayed = false;
+let checkAttempts = 0;
+const maxCheckAttempts = 10;
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('PDF Viewer: Starting display check...');
+  
+  // Hide loading indicator
+  setTimeout(function() {
+    const loading = document.getElementById('pdf-loading');
+    if (loading) loading.style.display = 'none';
+    
+    // Start checking if PDF is displayed
+    checkPdfDisplay();
+  }, 1000);
+});
+
+function checkPdfDisplay() {
+  checkAttempts++;
+  console.log('PDF Viewer: Check attempt', checkAttempts);
+  
+  const embed = document.getElementById('pdf-embed-primary');
+  const status = document.getElementById('pdf-status');
+  
+  // Check if embed is working
+  if (embed) {
+    // For desktop apps, embed usually works immediately
+    if (embed.offsetHeight > 0 && embed.offsetWidth > 0) {
+      console.log('PDF Viewer: Embed method working');
+      pdfDisplayed = true;
+      if (status) status.textContent = 'PDF displayed successfully';
+      return;
+    }
+  }
+  
+  // If embed not working after 3 seconds, try object method
+  if (checkAttempts === 3 && !pdfDisplayed) {
+    console.log('PDF Viewer: Trying object method');
+    tryObjectMethod();
+  }
+  
+  // If still not working after 6 seconds, try iframe method
+  if (checkAttempts === 6 && !pdfDisplayed) {
+    console.log('PDF Viewer: Trying iframe method');
+    tryIframeMethod();
+  }
+  
+  // If still not working after 10 attempts, show fallback
+  if (checkAttempts >= maxCheckAttempts && !pdfDisplayed) {
+    console.log('PDF Viewer: All methods failed, showing fallback');
+    showFallbackMessage();
+    return;
+  }
+  
+  // Continue checking if PDF not displayed yet
+  if (!pdfDisplayed && checkAttempts < maxCheckAttempts) {
+    setTimeout(checkPdfDisplay, 1000);
+  }
+}
+
+function tryObjectMethod() {
+  const embed = document.getElementById('pdf-embed-primary');
+  const object = document.getElementById('pdf-object-backup');
+  const status = document.getElementById('pdf-status');
+  
+  if (embed) embed.style.display = 'none';
+  if (object) {
+    object.style.display = 'block';
+    if (status) status.textContent = 'Trying object viewer...';
+    
+    // Check if object method works
+    setTimeout(function() {
+      if (object.offsetHeight > 0 && object.offsetWidth > 0) {
+        console.log('PDF Viewer: Object method working');
+        pdfDisplayed = true;
+        if (status) status.textContent = 'PDF displayed with object viewer';
+      }
+    }, 2000);
+  }
+}
+
+function tryIframeMethod() {
+  const object = document.getElementById('pdf-object-backup');
+  const iframe = document.getElementById('pdf-iframe-backup');
+  const status = document.getElementById('pdf-status');
+  
+  if (object) object.style.display = 'none';
+  if (iframe) {
+    iframe.style.display = 'block';
+    if (status) status.textContent = 'Trying iframe viewer...';
+    
+    // Check if iframe method works
+    setTimeout(function() {
+      if (iframe.offsetHeight > 0 && iframe.offsetWidth > 0) {
+        console.log('PDF Viewer: Iframe method working');
+        pdfDisplayed = true;
+        if (status) status.textContent = 'PDF displayed with iframe viewer';
+      }
+    }, 2000);
+  }
+}
+
+function showFallbackMessage() {
+  const fallback = document.getElementById('pdf-fallback-message');
+  const status = document.getElementById('pdf-status');
+  
+  if (fallback) {
+    fallback.style.display = 'flex';
+    console.log('PDF Viewer: Showing fallback download option');
+  }
+  
+  if (status) status.textContent = 'PDF viewing not supported - download available';
+}
+
+function downloadFile() {
+  console.log('PDF Viewer: Downloading file...');
+  // Create download link
+  const link = document.createElement('a');
+  link.href = "{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}";
+  link.download = "{{ attachment.filename }}";
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Force PDF display on any user interaction
+document.addEventListener('click', function() {
+  if (!pdfDisplayed) {
+    console.log('PDF Viewer: User clicked, forcing display check...');
+    const embed = document.getElementById('pdf-embed-primary');
+    if (embed && embed.style.display !== 'none') {
+      // Force refresh the embed
+      const src = embed.src;
+      embed.src = '';
+      setTimeout(function() {
+        embed.src = src;
+      }, 100);
+    }
+  }
+});
+</script>
+
+{% endblock %}

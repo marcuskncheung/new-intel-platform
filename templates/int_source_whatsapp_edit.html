@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+/* WhatsApp Add/Edit Pro Styling */
+.whatsapp-form-pro {
+  background: #fafdff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(46,139,250,0.08);
+  padding: 2.2rem 2.5rem 1.5rem 2.5rem;
+  max-width: 600px;
+  margin: 2rem auto 0 auto;
+}
+.whatsapp-form-pro h3 {
+  font-weight: 700;
+  color: #1669d2;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.01em;
+}
+.whatsapp-form-pro .form-label {
+  font-weight: 600;
+  color: #0a2540;
+}
+.whatsapp-form-pro .form-control,
+.whatsapp-form-pro .form-select {
+  border-radius: 0.5rem;
+  border: 1.5px solid #e3eefd;
+  font-size: 1.05em;
+}
+.whatsapp-form-pro .form-control:focus,
+.whatsapp-form-pro .form-select:focus {
+  border-color: #2e8bfa;
+  box-shadow: 0 0 0 0.1rem #2e8bfa33;
+}
+.whatsapp-form-pro .btn-success {
+  background: linear-gradient(90deg, #2e8bfa 0%, #0a2540 100%);
+  border: none;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  font-size: 1.1em;
+  letter-spacing: 0.01em;
+}
+.whatsapp-form-pro .btn-success:hover {
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+}
+.whatsapp-form-pro .input-group input[type="file"] {
+  background: #f7fafd;
+}
+.whatsapp-form-pro .section-title {
+  font-size: 1.1em;
+  color: #2e8bfa;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.7rem;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 700px) {
+  .whatsapp-form-pro { padding: 1.2rem 0.7rem; }
+}
+</style>
+<div class="whatsapp-form-pro">
+  <h3>{{ entry and "Edit" or "Add" }} WhatsApp Entry</h3>
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    <div class="mb-3">
+      <label class="form-label">Received Time</label>
+      <input name="received_time" type="datetime-local" class="form-control"
+             value="{% if entry and entry.received_time %}{{ entry.received_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Complaint Name</label>
+      <input name="complaint_name" class="form-control" value="{{ entry.complaint_name if entry else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Phone Number</label>
+      <input name="phone_number" class="form-control" value="{{ entry.phone_number if entry else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Alleged Person(s)</label>
+      <div id="alleged-persons">
+        {% if entry and entry.alleged_person %}
+          {% for alleged_person in entry.alleged_person.split(',') %}
+            <div class="input-group mb-2">
+              <input type="text" name="alleged_person[]" class="form-control" value="{{ alleged_person.strip() }}">
+              <button class="btn btn-sm btn-danger" type="button" onclick="removeAllegedPerson(this)">-</button>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="input-group mb-2">
+            <input type="text" name="alleged_person[]" class="form-control">
+            <button class="btn btn-sm btn-danger d-none" type="button" onclick="removeAllegedPerson(this)">-</button>
+          </div>
+        {% endif %}
+      </div>
+      <button class="btn btn-sm btn-success" type="button" onclick="addAllegedPerson()">+ Add Person</button>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Alleged Type</label>
+      <input name="alleged_type" class="form-control" value="{{ entry.alleged_type if entry and entry.alleged_type else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Details</label>
+      <textarea name="details" class="form-control" rows="3">{{ entry.details if entry else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Upload Image</label>
+      <div class="input-group">
+        <input type="file" name="upload_image" accept="image/*" class="form-control" multiple>
+      </div>
+    </div>
+    <div class="section-title">Assessment</div>
+    <div class="mb-3">
+      <label class="form-label">Preparer</label>
+      <select name="preparer" class="form-select" required>
+        <option value="">Select Preparer...</option>
+        <option value="Nicola" {% if entry and entry.preparer == 'Nicola' %}selected{% endif %}>Nicola</option>
+        <option value="Erney" {% if entry and entry.preparer == 'Erney' %}selected{% endif %}>Erney</option>
+        <option value="Alex" {% if entry and entry.preparer == 'Alex' %}selected{% endif %}>Alex</option>
+        <option value="Queenie" {% if entry and entry.preparer == 'Queenie' %}selected{% endif %}>Queenie</option>
+        <option value="Charlie" {% if entry and entry.preparer == 'Charlie' %}selected{% endif %}>Charlie</option>
+        <option value="Eunice" {% if entry and entry.preparer == 'Eunice' %}selected{% endif %}>Eunice</option>
+        <option value="Marcus" {% if entry and entry.preparer == 'Marcus' %}selected{% endif %}>Marcus</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Source Reliability</label>
+      <select name="source_reliability" class="form-select" required>
+        <option value="">Select...</option>
+        <option value="5" {% if entry and entry.source_reliability == 5 %}selected{% endif %}>5 - Completely Reliable</option>
+        <option value="4" {% if entry and entry.source_reliability == 4 %}selected{% endif %}>4 - Usually Reliable</option>
+        <option value="3" {% if entry and entry.source_reliability == 3 %}selected{% endif %}>3 - Fairly Reliable</option>
+        <option value="2" {% if entry and entry.source_reliability == 2 %}selected{% endif %}>2 - Not Usually Reliable</option>
+        <option value="1" {% if entry and entry.source_reliability == 1 %}selected{% endif %}>1 - Unreliable</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Content Validity</label>
+      <select name="content_validity" class="form-select" required>
+        <option value="">Select...</option>
+        <option value="5" {% if entry and entry.content_validity == 5 %}selected{% endif %}>5 - Confirmed True</option>
+        <option value="4" {% if entry and entry.content_validity == 4 %}selected{% endif %}>4 - Probably True</option>
+        <option value="3" {% if entry and entry.content_validity == 3 %}selected{% endif %}>3 - Doubtfully True</option>
+        <option value="2" {% if entry and entry.content_validity == 2 %}selected{% endif %}>2 - Probably False</option>
+        <option value="1" {% if entry and entry.content_validity == 1 %}selected{% endif %}>1 - Confirmed False</option>
+      </select>
+    </div>
+    {% if entry %}
+    <div class="mb-3">
+      <label class="form-label">Reviewer Name</label>
+      <select name="reviewer_name" class="form-select" required>
+        <option value="">Select Reviewer...</option>
+        <option value="Nicola" {% if entry and entry.reviewer_name == 'Nicola' %}selected{% endif %}>Nicola</option>
+        <option value="Alex" {% if entry and entry.reviewer_name == 'Alex' %}selected{% endif %}>Alex</option>
+        <option value="Earney" {% if entry and entry.reviewer_name == 'Earney' %}selected{% endif %}>Earney</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reviewer Comment</label>
+      <textarea name="reviewer_comment" class="form-control" rows="2" placeholder="Enter reviewer comment">{{ entry.reviewer_comment or '' }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reviewer Decision</label><br>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="reviewer_decision" id="agreeRadio" value="agree" {% if entry and entry.reviewer_decision == 'agree' %}checked{% endif %}>
+        <label class="form-check-label" for="agreeRadio">Agree</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="reviewer_decision" id="disagreeRadio" value="disagree" {% if entry and entry.reviewer_decision == 'disagree' %}checked{% endif %}>
+        <label class="form-check-label" for="disagreeRadio">Disagree</label>
+      </div>
+    </div>
+    {% if entry.si_int_no %}
+    <div class="mb-3">
+      <label class="form-label">Intelligence Case Assessment Number</label>
+      <input type="text" class="form-control" value="{{ entry.si_int_no }}" readonly>
+    </div>
+    {% endif %}
+    {% endif %}
+    <button class="btn btn-success w-100" type="submit">{{ entry and "Update" or "Save" }}</button>
+  </form>
+  {% if entry %}
+    {% set reviewer_name = (entry.reviewer_name or '').strip() %}
+    {% set reviewer_comment = (entry.reviewer_comment or '').strip() %}
+    {% set combined_score = (entry.source_reliability or 0) + (entry.content_validity or 0) %}
+    <div class="mb-2">
+      <b>Status:</b>
+      {% if entry.source_reliability is none or entry.content_validity is none or not reviewer_name or not reviewer_comment %}
+        <span class="badge bg-light text-muted ms-2">Pending</span>
+      {% elif combined_score >= 8 %}
+        <span class="badge bg-success ms-2">Case Opened</span>
+      {% else %}
+        <span class="badge bg-secondary ms-2">Unsubstantial</span>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if entry and images %}
+  <hr>
+  <div class="section-title">Uploaded Images</div>
+  <div class="row">
+    {% for img in images %}
+    <div class="col-md-3 mb-3">
+      <div class="card">
+        <a href="#" data-bs-toggle="modal" data-bs-target="#imgModal{{ img.id }}">
+          <img src="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="card-img-top" style="object-fit:cover;max-height:180px;">
+        </a>
+        <div class="card-body p-2 text-center">
+          <form method="post" action="{{ url_for('delete_whatsapp_image', image_id=img.id) }}" style="display:inline;">
+            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this image?')">Delete</button>
+          </form>
+          <a href="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="btn btn-sm btn-outline-secondary ms-2" target="_blank" download>Download</a>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="imgModal{{ img.id }}" tabindex="-1" aria-labelledby="imgModalLabel{{ img.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark">
+          <div class="modal-header border-0">
+            <h6 class="modal-title text-white" id="imgModalLabel{{ img.id }}">{{ img.filename }}</h6>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img src="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="img-fluid rounded shadow" style="max-height:70vh;">
+          </div>
+          <div class="modal-footer border-0">
+            <a href="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="btn btn-outline-light" download>Download</a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<script>
+  function addAllegedPerson() {
+    var allegedPersonContainer = document.getElementById('alleged-persons');
+    var newAllegedPerson = document.createElement('div');
+    newAllegedPerson.className = 'input-group mb-2';
+    newAllegedPerson.innerHTML = '<input type="text" name="alleged_person[]" class="form-control"><button class="btn btn-sm btn-danger" type="button" onclick="removeAllegedPerson(this)">-</button>';
+    allegedPersonContainer.appendChild(newAllegedPerson);
+    var removeButtons = allegedPersonContainer.querySelectorAll('.btn-danger');
+    if (removeButtons.length > 1) {
+      removeButtons.forEach(button => button.classList.remove('d-none'));
+    }
+  }
+
+  function removeAllegedPerson(button) {
+    var allegedPersonContainer = document.getElementById('alleged-persons');
+    allegedPersonContainer.removeChild(button.parentNode);
+    var removeButtons = allegedPersonContainer.querySelectorAll('.btn-danger');
+    if (removeButtons.length <= 1) {
+      removeButtons.forEach(button => button.classList.add('d-none'));
+    }
+  }
+</script>
+{% endblock %}

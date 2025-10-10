@@ -1,0 +1,60 @@
+# GitLeaks Configuration for Secret Detection
+# Customized for Intelligence Platform security scanning
+
+title = "Intelligence Platform Secret Detection"
+description = "Configuration for detecting secrets, keys, and credentials"
+
+# Global settings
+[extend]
+useDefault = true
+path = "https://raw.githubusercontent.com/gitleaks/gitleaks/master/config/gitleaks.toml"
+
+# Custom rules for Intelligence Platform
+[[rules]]
+id = "flask-secret-key"
+description = "Flask Secret Key"
+regex = '''SECRET_KEY\s*=\s*['"][^'"]{20,}['"]'''
+path = '''\.py$'''
+tags = ["key", "flask"]
+
+[[rules]]
+id = "db-encryption-key"
+description = "Database Encryption Key"
+regex = '''DB_ENCRYPTION_KEY\s*=\s*['"][^'"]{20,}['"]'''
+path = '''\.py$|\.env$'''
+tags = ["key", "database"]
+
+[[rules]]
+id = "fernet-key"
+description = "Fernet Encryption Key"
+regex = '''[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]='''
+tags = ["key", "encryption"]
+
+[[rules]]
+id = "email-password"
+description = "Email Password"
+regex = '''EMAIL_PASSWORD\s*=\s*['"][^'"]+['"]'''
+path = '''\.py$|\.env$'''
+tags = ["password", "email"]
+
+# Allowlist for known safe patterns
+[[allowlist]]
+description = "Ignore test keys"
+regex = '''test_key|dummy_key|example_key'''
+
+[[allowlist]]
+description = "Ignore comments"
+regex = '''#.*'''
+
+[[allowlist]]
+description = "Ignore template placeholders"
+regex = '''\{\{.*\}\}|\{%.*%\}'''
+
+# File path allowlists
+[[allowlist]]
+path = '''(test|spec|example).*\.(py|js|yml|yaml)$'''
+description = "Ignore test files"
+
+[[allowlist]]
+path = '''README\.md$|\.md$'''
+description = "Ignore documentation files"

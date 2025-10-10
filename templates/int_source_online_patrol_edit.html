@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.patrol-form-pro {
+  background: #fafdff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(46,139,250,0.08);
+  padding: 2.2rem 2.5rem 1.5rem 2.5rem;
+  max-width: 600px;
+  margin: 2rem auto 0 auto;
+}
+.patrol-form-pro h3 {
+  font-weight: 700;
+  color: #1669d2;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.01em;
+}
+.patrol-form-pro .form-label {
+  font-weight: 600;
+  color: #0a2540;
+}
+.patrol-form-pro .form-control,
+.patrol-form-pro .form-select {
+  border-radius: 0.5rem;
+  border: 1.5px solid #e3eefd;
+  font-size: 1.05em;
+}
+.patrol-form-pro .form-control:focus,
+.patrol-form-pro .form-select:focus {
+  border-color: #2e8bfa;
+  box-shadow: 0 0 0 0.1rem #2e8bfa33;
+}
+.patrol-form-pro .btn-success {
+  background: linear-gradient(90deg, #2e8bfa 0%, #0a2540 100%);
+  border: none;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  font-size: 1.1em;
+  letter-spacing: 0.01em;
+}
+.patrol-form-pro .btn-success:hover {
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+}
+.patrol-form-pro .section-title {
+  font-size: 1.1em;
+  color: #2e8bfa;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.7rem;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 700px) {
+  .patrol-form-pro { padding: 1.2rem 0.7rem; }
+}
+</style>
+<div class="patrol-form-pro">
+  <h3>{{ entry and "Edit" or "Add" }} Online Patrol Entry</h3>
+  <form method="post" class="mb-4">
+    <div class="mb-3">
+      <label class="form-label">Sender</label>
+      <input name="sender" class="form-control" value="{{ entry.sender if entry else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Complaint Time</label>
+      <input name="complaint_time" type="datetime-local" class="form-control"
+             value="{% if entry and entry.complaint_time %}{{ entry.complaint_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Source</label>
+      <input name="source" class="form-control" value="{{ entry.source if entry else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Status</label>
+      <input name="status" class="form-control" value="{{ entry.status if entry else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Details</label>
+      <textarea name="details" class="form-control" rows="3">{{ entry.details if entry else '' }}</textarea>
+    </div>
+    <div class="section-title">Assessment</div>
+    <div class="mb-3">
+      <label class="form-label">Source Reliability</label>
+      <select name="source_reliability" class="form-select" required>
+        <option value="">Select...</option>
+        <option value="5" {% if entry and entry.source_reliability == 5 %}selected{% endif %}>5 - Completely Reliable</option>
+        <option value="4" {% if entry and entry.source_reliability == 4 %}selected{% endif %}>4 - Usually Reliable</option>
+        <option value="3" {% if entry and entry.source_reliability == 3 %}selected{% endif %}>3 - Fairly Reliable</option>
+        <option value="2" {% if entry and entry.source_reliability == 2 %}selected{% endif %}>2 - Not Usually Reliable</option>
+        <option value="1" {% if entry and entry.source_reliability == 1 %}selected{% endif %}>1 - Unreliable</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Content Validity</label>
+      <select name="content_validity" class="form-select" required>
+        <option value="">Select...</option>
+        <option value="5" {% if entry and entry.content_validity == 5 %}selected{% endif %}>5 - Confirmed True</option>
+        <option value="4" {% if entry and entry.content_validity == 4 %}selected{% endif %}>4 - Probably True</option>
+        <option value="3" {% if entry and entry.content_validity == 3 %}selected{% endif %}>3 - Doubtfully True</option>
+        <option value="2" {% if entry and entry.content_validity == 2 %}selected{% endif %}>2 - Probably False</option>
+        <option value="1" {% if entry and entry.content_validity == 1 %}selected{% endif %}>1 - Confirmed False</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reviewer Name</label>
+      <input type="text" name="reviewer_name" value="{{ entry.reviewer_name or '' }}" class="form-control" placeholder="Enter reviewer name">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reviewer Comment</label>
+      <textarea name="reviewer_comment" class="form-control" rows="2" placeholder="Enter reviewer comment">{{ entry.reviewer_comment or '' }}</textarea>
+    </div>
+    <button class="btn btn-success w-100" type="submit">{{ entry and "Update" or "Save" }}</button>
+    {% if entry %}
+      {% set reviewer_name = (entry.reviewer_name or '').strip() %}
+      {% set reviewer_comment = (entry.reviewer_comment or '').strip() %}
+      {% set combined_score = (entry.source_reliability or 0) + (entry.content_validity or 0) %}
+      <div class="mb-2">
+        <b>Status:</b>
+        {% if entry.source_reliability is none or entry.content_validity is none or not reviewer_name or not reviewer_comment %}
+          <span class="badge bg-light text-muted ms-2">Pending</span>
+        {% elif combined_score >= 8 %}
+          <span class="badge bg-success ms-2">Case Opened</span>
+        {% else %}
+          <span class="badge bg-secondary ms-2">Unsubstantial</span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}
