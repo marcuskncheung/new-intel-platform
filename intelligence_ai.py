@@ -15,7 +15,7 @@ class IntelligenceAI:
     def __init__(self):
         self.llm_api = "https://ai-poc.corp.ia/vllm/v1"
         self.embedding_api = "https://ai-poc.corp.ia/embedding/v1"
-        self.docling_api = "https://ai-poc.corp.ia/docling"
+        self.docling_api = "https://ai-poc.corp.ia/docling/v1alpha/convert/source"
         
         # Configure session for internal corporate network
         self.session = requests.Session()
@@ -1052,10 +1052,9 @@ EMAILS TO GROUP:
                 }
             }
             
-            # ✅ Use correct Docling API endpoint
-            # Docling API base: https://ai-poc.corp.ia/docling
-            # Common endpoints: /convert or / (root) - will try standard conversion endpoint
-            endpoint = f"{self.docling_api}/convert"
+            # ✅ Correct Docling API endpoint from OpenAPI spec
+            # API: POST https://ai-poc.corp.ia/docling/v1alpha/convert/source
+            endpoint = self.docling_api
             
             print(f"[DOCLING] Calling API: {endpoint}")
             print(f"[DOCLING] Payload size: {len(json.dumps(request_data))} bytes")
