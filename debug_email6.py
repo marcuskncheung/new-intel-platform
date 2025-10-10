@@ -2,7 +2,7 @@
 """
 Debug script to check Email 6 and its attachments
 """
-from app1_production import db, Email, Attachment, AllegedSubjectProfile
+from app1_production import db, Email, Attachment, CaseProfile
 
 print("=" * 80)
 print("DEBUGGING EMAIL 6 AND ATTACHMENTS")
@@ -53,27 +53,34 @@ emails_with_leung = Email.query.filter(
     (Email.body.like('%LEUNG%'))
 ).all()
 
-for e in emails_with_leung:
-    print(f"   - Email {e.id}: {e.subject[:50]}")
-    print(f"     Alleged: {e.alleged_subject}")
-    print(f"     Sender: {e.sender}")
-
-# Check alleged persons profiles
-print(f"\n👤 ALLEGED PERSONS IN DATABASE:")
-profiles = AllegedSubjectProfile.query.all()
-for p in profiles:
-    print(f"   - Email {p.email_id}: {p.name_english} {p.name_chinese}")
-    if 'LEUNG' in p.name_english.upper():
-        print(f"     ⚠️ THIS IS THE LEUNG PROFILE - Email {p.email_id}")
-
-# Check if Email 6 has any alleged persons
-print(f"\n👤 ALLEGED PERSONS FOR EMAIL 6:")
-email6_profiles = AllegedSubjectProfile.query.filter_by(email_id=6).all()
-if email6_profiles:
-    for p in email6_profiles:
-        print(f"   - {p.name_english} {p.name_chinese}")
+if emails_with_leung:
+    for e in emails_with_leung:
+        print(f"   - Email {e.id}: {e.subject[:50] if e.subject else 'No subject'}")
+        print(f"     Alleged: {e.alleged_subject}")
+        print(f"     Sender: {e.sender}")
 else:
-    print("   NO PROFILES YET (Analysis not saved or failed)")
+    print("   NO EMAILS FOUND WITH 'LEUNG' IN EMAIL TABLE")
+
+# Check case profiles (alleged persons database)
+print(f"\n👤 CASE PROFILES IN DATABASE (ALLEGED PERSONS):")
+profiles = CaseProfile.query.all()
+if profiles:
+    for p in profiles:
+        # CaseProfile doesn't have email_id, check by subject names
+        print(f"   - ID {p.id}: {p.alleged_subject_en} {p.alleged_subject_cn}")
+        print(f"     Company: {p.agent_company_broker}")
+        print(f"     Case: {p.case_number}")
+        if p.alleged_subject_en and 'LEUNG' in p.alleged_subject_en.upper():
+            print(f"     ⚠️ THIS IS THE LEUNG PROFILE!")
+else:
+    print("   NO CASE PROFILES YET")
+
+# Check if there are any attachments with similar filenames
+print(f"\n� ALL ATTACHMENTS IN DATABASE:")
+all_attachments = Attachment.query.all()
+for att in all_attachments:
+    size_mb = len(att.file_data) / (1024*1024) if att.file_data else 0
+    print(f"   - ID {att.id}: {att.filename} (Email {att.email_id}, {size_mb:.1f} MB)")
 
 print("\n" + "=" * 80)
 print("SUMMARY:")
@@ -81,4 +88,6 @@ print("=" * 80)
 print(f"Email 6 has {len(attachments)} attachment(s)")
 print(f"Attachment 19 belongs to Email {att19.email_id if att19 else 'NOT FOUND'}")
 print(f"'LEUNG' appears in {len(emails_with_leung)} email(s)")
+print(f"Total case profiles: {len(profiles) if profiles else 0}")
+print(f"Total attachments: {len(all_attachments)}")
 print("=" * 80)
