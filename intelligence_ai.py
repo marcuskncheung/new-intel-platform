@@ -117,51 +117,72 @@ class IntelligenceAI:
                     
                     # Process PDF binary data with Docling
                     if filename.lower().endswith('.pdf'):
-                        # ✅ Check Docling API size limit (nginx usually limits to 10MB)
+                        # ✅ Smart PDF extraction strategy:
+                        # 1. Try local extraction first for large PDFs (faster, no API limit)
+                        # 2. If local extraction fails (scanned PDF), fallback to Docling (has OCR)
+                        # 3. If Docling also fails (size limit), report error
+                        
                         MAX_DOCLING_SIZE_MB = 10
+                        extracted_text = None
+                        extraction_method = None
+                        
                         if file_size_mb > MAX_DOCLING_SIZE_MB:
-                            print(f"[AI COMPREHENSIVE] ⚠️ PDF too large for Docling API: {filename} ({file_size_mb:.1f} MB > {MAX_DOCLING_SIZE_MB} MB)")
-                            print(f"[AI COMPREHENSIVE]    Using local PDF extraction instead (bypasses API size limit)")
+                            print(f"[AI COMPREHENSIVE] ⚠️ Large PDF detected: {filename} ({file_size_mb:.1f} MB)")
+                            print(f"[AI COMPREHENSIVE]    Trying local extraction first...")
                             
-                            # ✅ Extract text locally for large PDFs
+                            # ✅ Try local extraction for large PDFs
                             local_result = self.extract_pdf_locally(file_data, filename)
                             
                             if local_result.get('success'):
                                 extracted_text = local_result.get('text_content', '')
+                                extraction_method = 'LOCAL'
                                 print(f"[AI COMPREHENSIVE] ✅ Local extraction successful: {len(extracted_text)} chars from {filename}")
-                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) [LOCAL EXTRACTION] ---\n"
-                                attachment_content += extracted_text
                             else:
-                                error_msg = local_result.get('error', 'Unknown error')
-                                print(f"[AI COMPREHENSIVE] ❌ Local extraction failed for {filename}: {error_msg}")
+                                # Local extraction failed - likely a scanned PDF (needs OCR)
+                                print(f"[AI COMPREHENSIVE] ⚠️ Local extraction failed (likely scanned PDF)")
+                                print(f"[AI COMPREHENSIVE] ⚠️ This PDF needs OCR but is too large for Docling API ({file_size_mb:.1f} MB > {MAX_DOCLING_SIZE_MB} MB)")
+                                print(f"[AI COMPREHENSIVE] ❌ Cannot process this scanned PDF - manual review required")
                                 attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                                attachment_content += f"[PDF EXTRACTION FAILED: {error_msg}]\n"
-                                attachment_content += "Please review this PDF manually.\n"
-                            continue
+                                attachment_content += f"[SCANNED PDF TOO LARGE FOR PROCESSING]\n"
+                                attachment_content += f"This is a {file_size_mb:.1f} MB scanned PDF that requires OCR.\n"
+                                attachment_content += f"File exceeds API size limit ({MAX_DOCLING_SIZE_MB} MB). Please review manually.\n"
+                                continue
                         
-                        print(f"[AI COMPREHENSIVE] Calling Docling for PDF: {filename} (Email {email_id}, Attachment {att_id})")
-                        doc_result = self.process_attachment_with_docling(
-                            file_data=file_data,  # ✅ Pass binary data directly
-                            file_path=None,       # ✅ No filepath - binary only
-                            filename=filename
-                        )
-                        if doc_result.get('success'):
-                            extracted_text = doc_result.get('text_content', '')
-                            
-                            # Clean up the extracted text - remove base64 image data
-                            import re
-                            # Remove base64 image data that's not useful for analysis
-                            clean_text = re.sub(r'!\[Image\]\(data:image/[^)]+\)', '[IMAGE]', extracted_text)
-                            # Remove long base64 strings
-                            clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
-                            
-                            print(f"[AI COMPREHENSIVE] ✅ Successfully extracted {len(extracted_text)} chars from {filename} (cleaned: {len(clean_text)} chars) for email {email_id}")
-                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                            attachment_content += clean_text
-                        else:
-                            error_msg = doc_result.get('error', 'Unknown error')
-                            print(f"[AI COMPREHENSIVE] ❌ Docling failed for {filename}: {error_msg}")
-                            attachment_content += f"\n\n--- {filename} (EXTRACTION FAILED: {error_msg}) ---\n"
+                        # For small PDFs or if local extraction succeeded, use appropriate method
+                        if not extracted_text:
+                        # For small PDFs or if local extraction succeeded, use appropriate method
+                        if not extracted_text:
+                            print(f"[AI COMPREHENSIVE] Calling Docling for PDF: {filename} (Email {email_id}, Attachment {att_id})")
+                            doc_result = self.process_attachment_with_docling(
+                                file_data=file_data,  # ✅ Pass binary data directly
+                                file_path=None,       # ✅ No filepath - binary only
+                                filename=filename
+                            )
+                            if doc_result.get('success'):
+                                extracted_text = doc_result.get('text_content', '')
+                                extraction_method = 'DOCLING'
+                                
+                                # Clean up the extracted text - remove base64 image data
+                                import re
+                                # Remove base64 image data that's not useful for analysis
+                                clean_text = re.sub(r'!\[Image\]\(data:image/[^)]+\)', '[IMAGE]', extracted_text)
+                                # Remove long base64 strings
+                                clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
+                                extracted_text = clean_text
+                                
+                                print(f"[AI COMPREHENSIVE] ✅ Docling extracted {len(extracted_text)} chars from {filename} for email {email_id}")
+                            else:
+                                error_msg = doc_result.get('error', 'Unknown error')
+                                print(f"[AI COMPREHENSIVE] ❌ Docling failed for {filename}: {error_msg}")
+                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
+                                attachment_content += f"[EXTRACTION FAILED: {error_msg}]\n"
+                                continue
+                        
+                        # Add extracted text to attachment content
+                        if extracted_text:
+                            method_label = f"[{extraction_method}]" if extraction_method else ""
+                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) {method_label} ---\n"
+                            attachment_content += extracted_text
                     else:
                         print(f"[AI COMPREHENSIVE] ⚠️ Skipping non-PDF file: {filename} (AI can only process PDFs)")
                         attachment_content += f"\n\n--- {filename} (Non-PDF - skipped) ---\n"
