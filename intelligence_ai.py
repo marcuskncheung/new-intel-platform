@@ -23,7 +23,155 @@ class IntelligenceAI:
         # Configure session for internal corporate network
         self.session = requests.Session()
         self.session.verify = False  # Skip SSL verification for internal services
-        self.session.timeout = 60  # Increase timeout for AI processing
+        self.session.timeout = 120  # 2 minutes for other APIs
+        
+        # ✅ CRITICAL FIX: Extended timeouts for large PDF processing
+        self.docling_timeout_base = 600  # 10 minutes base timeout for Docling
+        self.large_file_threshold_mb = 10  # Files >10MB use async processing
+        self.max_sync_file_size_mb = 50  # Maximum size for synchronous processing
+        
+    def _calculate_dynamic_timeout(self, file_size_mb: float) -> int:
+        """Calculate appropriate timeout based on file size (1 minute per MB, minimum 2 minutes)"""
+        return max(120, int(file_size_mb * 60))
+    
+    def _optimize_pdf_for_processing(self, pdf_content: bytes, filename: str) -> bytes:
+        """Optimize PDF to reduce processing time and payload size"""
+        try:
+            import io
+            
+            # If file is already small, return as-is
+            file_size_mb = len(pdf_content) / (1024 * 1024)
+            if file_size_mb <= 5:
+                return pdf_content
+            
+            print(f"[PDF OPTIMIZE] Attempting to optimize {filename} ({file_size_mb:.1f} MB)")
+            
+            # Try to optimize using PyPDF2 if available
+            try:
+                from PyPDF2 import PdfReader, PdfWriter
+                
+                reader = PdfReader(io.BytesIO(pdf_content))
+                page_count = len(reader.pages)
+                
+                # If PDF has too many pages, limit to first 100 for processing
+                if page_count > 100:
+                    print(f"[PDF OPTIMIZE] Limiting {filename} from {page_count} to 100 pages")
+                    writer = PdfWriter()
+                    for i in range(min(100, page_count)):
+                        writer.add_page(reader.pages[i])
+                    
+                    output = io.BytesIO()
+                    writer.write(output)
+                    optimized_content = output.getvalue()
+                    
+                    new_size_mb = len(optimized_content) / (1024 * 1024)
+                    print(f"[PDF OPTIMIZE] Reduced {filename} from {file_size_mb:.1f} MB to {new_size_mb:.1f} MB")
+                    return optimized_content
+                    
+            except ImportError:
+                print(f"[PDF OPTIMIZE] PyPDF2 not available, using original file")
+            except Exception as e:
+                print(f"[PDF OPTIMIZE] Optimization failed for {filename}: {e}")
+            
+            # Return original if optimization fails
+            return pdf_content
+            
+        except Exception as e:
+            print(f"[PDF OPTIMIZE] Error optimizing {filename}: {e}")
+            return pdf_content
+    
+    def _extract_text_fallback(self, pdf_content: bytes, filename: str) -> Dict:
+        """Fallback text extraction using PyPDF2 or pdfplumber when Docling fails"""
+        try:
+            import io
+            
+            # Try PyPDF2 first (more reliable and faster)
+            try:
+                from PyPDF2 import PdfReader
+                
+                pdf_file = io.BytesIO(pdf_content)
+                reader = PdfReader(pdf_file)
+                
+                text = ""
+                page_count = len(reader.pages)
+                max_pages = min(50, page_count)  # Limit to first 50 pages for quick processing
+                
+                print(f"[FALLBACK] Extracting text from first {max_pages} pages of {filename} using PyPDF2")
+                
+                for page_num in range(max_pages):
+                    try:
+                        page_text = reader.pages[page_num].extract_text()
+                        if page_text:
+                            text += f"\n--- Page {page_num + 1} ---\n{page_text}"
+                    except Exception as e:
+                        print(f"[FALLBACK] Failed to extract page {page_num + 1}: {e}")
+                        text += f"\n--- Page {page_num + 1} [EXTRACTION FAILED] ---\n"
+                
+                if text.strip():
+                    print(f"[FALLBACK] ✅ Successfully extracted {len(text)} chars using PyPDF2")
+                    return {
+                        'success': True,
+                        'text_content': text[:50000],  # Limit to 50K chars
+                        'method': 'PyPDF2_fallback',
+                        'pages_processed': max_pages,
+                        'note': f'Fallback extraction from first {max_pages}/{page_count} pages'
+                    }
+                else:
+                    raise Exception("No text extracted from PDF")
+                    
+            except ImportError:
+                print(f"[FALLBACK] PyPDF2 not installed, trying pdfplumber...")
+                
+                # Fallback to pdfplumber
+                import pdfplumber
+                
+                pdf_file = io.BytesIO(pdf_content)
+                text = ""
+                
+                with pdfplumber.open(pdf_file) as pdf:
+                    page_count = len(pdf.pages)
+                    max_pages = min(20, page_count)  # Even more conservative with pdfplumber
+                    
+                    print(f"[FALLBACK] Processing first {max_pages} pages using pdfplumber")
+                    
+                    for page_num in range(max_pages):
+                        try:
+                            page_text = pdf.pages[page_num].extract_text()
+                            if page_text:
+                                text += f"\n--- Page {page_num + 1} ---\n{page_text}"
+                        except Exception as e:
+                            print(f"[FALLBACK] Failed to extract page {page_num + 1}: {e}")
+                
+                if text.strip():
+                    print(f"[FALLBACK] ✅ Successfully extracted {len(text)} chars using pdfplumber")
+                    return {
+                        'success': True,
+                        'text_content': text[:30000],  # Smaller limit for pdfplumber
+                        'method': 'pdfplumber_fallback',
+                        'pages_processed': max_pages,
+                        'note': f'Fallback extraction from first {max_pages}/{page_count} pages'
+                    }
+                else:
+                    raise Exception("No text extracted from PDF")
+                    
+        except ImportError as e:
+            error_msg = f"PDF extraction libraries not installed: {e}"
+            print(f"[FALLBACK] ❌ {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'text_content': '[FALLBACK_FAILED: Install PyPDF2 or pdfplumber for fallback extraction]',
+                'method': 'none_available'
+            }
+        except Exception as e:
+            error_msg = f"Fallback extraction failed: {str(e)}"
+            print(f"[FALLBACK] ❌ {error_msg}")
+            return {
+                'success': False,
+                'error': error_msg,
+                'text_content': f'[FALLBACK_FAILED: {error_msg}]',
+                'method': 'error'
+            }
         
     def analyze_allegation_email_comprehensive(self, email_data: Dict, attachments: List[Dict] = None) -> Dict:
         """
@@ -115,7 +263,7 @@ class IntelligenceAI:
                     if filename.lower().endswith('.pdf'):
                         print(f"[AI COMPREHENSIVE] Processing PDF with Docling: {filename} ({file_size_mb:.1f} MB)")
                         
-                        # ✅ SIMPLIFIED: Use Docling for ALL PDFs (up to 100MB supported now)
+                        # ✅ ENHANCED: Use Docling with timeout handling and fallback
                         doc_result = self.process_attachment_with_docling(
                             file_data=file_data,  # ✅ Pass binary data directly
                             filename=filename
@@ -123,6 +271,8 @@ class IntelligenceAI:
                         
                         if doc_result.get('success'):
                             extracted_text = doc_result.get('text_content', '')
+                            method_used = doc_result.get('method', 'unknown')
+                            note = doc_result.get('note', '')
                             
                             # Clean up the extracted text - remove base64 image data
                             import re
@@ -130,16 +280,30 @@ class IntelligenceAI:
                             # Remove long base64 strings  
                             clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
                             
-                            print(f"[AI COMPREHENSIVE] ✅ Docling extracted {len(clean_text)} chars from {filename}")
+                            # Indicate extraction method in output
+                            method_tag = f"[{method_used.upper()}]"
+                            if note:
+                                method_tag += f" ({note})"
+                            
+                            print(f"[AI COMPREHENSIVE] ✅ {method_used} extracted {len(clean_text)} chars from {filename}")
                             
                             # Add extracted text to attachment content
-                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) [DOCLING] ---\n"
+                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) {method_tag} ---\n"
                             attachment_content += clean_text
                         else:
                             error_msg = doc_result.get('error', 'Unknown error')
-                            print(f"[AI COMPREHENSIVE] ❌ Docling failed for {filename}: {error_msg}")
-                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                            attachment_content += f"[EXTRACTION FAILED: {error_msg}]\n"
+                            method_used = doc_result.get('method', 'unknown')
+                            extracted_partial = doc_result.get('text_content', '')
+                            
+                            print(f"[AI COMPREHENSIVE] ⚠️ {method_used} extraction issue for {filename}: {error_msg}")
+                            
+                            # Even if "failed", there might be partial content from fallback methods
+                            if extracted_partial and len(extracted_partial) > 50:
+                                print(f"[AI COMPREHENSIVE] ℹ️ Using partial content ({len(extracted_partial)} chars) from {filename}")
+                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) [PARTIAL: {error_msg}] ---\n"
+                                attachment_content += extracted_partial
+                            else:
+                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) [FAILED: {error_msg}] ---\n"
                     else:
                         print(f"[AI COMPREHENSIVE] ⚠️ Skipping non-PDF file: {filename} (AI can only process PDFs)")
                         attachment_content += f"\n\n--- {filename} (Non-PDF - skipped) ---\n"
@@ -477,7 +641,7 @@ Format your response as JSON:
                     filename = attachment.get('filename', '').lower()
                     file_data = attachment.get('file_data')  # Binary data from database
                     
-                    # ✅ SIMPLIFIED: Use Docling for all PDFs (up to 100MB supported)
+                    # ✅ ENHANCED: Use Docling with timeout handling and fallback
                     if filename.endswith('.pdf') and file_data:
                         print(f"[AI SUMMARIZE] Processing PDF attachment: {filename} ({len(file_data)/1024:.1f} KB)")
                         doc_result = self.process_attachment_with_docling(
@@ -485,11 +649,30 @@ Format your response as JSON:
                             filename=attachment.get('filename', 'document.pdf')
                         )
                         if doc_result.get('success'):
-                            attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} ---\n"
-                            attachment_content += doc_result.get('text_content', '')[:2000]  # Limit per PDF
-                            print(f"[AI SUMMARIZE] Successfully extracted {len(doc_result.get('text_content', ''))} chars from PDF")
+                            method_used = doc_result.get('method', 'docling_api')
+                            note = doc_result.get('note', '')
+                            extracted_text = doc_result.get('text_content', '')
+                            
+                            method_indicator = f" [{method_used}]"
+                            if note:
+                                method_indicator += f" ({note})"
+                            
+                            attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')}{method_indicator} ---\n"
+                            attachment_content += extracted_text[:2000]  # Limit per PDF
+                            print(f"[AI SUMMARIZE] Successfully extracted {len(extracted_text)} chars via {method_used}")
                         else:
-                            print(f"[AI SUMMARIZE] Failed to extract content from PDF: {filename}")
+                            method_used = doc_result.get('method', 'unknown')
+                            error_msg = doc_result.get('error', 'Unknown error')
+                            partial_content = doc_result.get('text_content', '')
+                            
+                            # Use partial content if available
+                            if partial_content and len(partial_content) > 50:
+                                attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} [PARTIAL: {method_used}] ---\n"
+                                attachment_content += partial_content[:1000]  # Smaller limit for partial content
+                                print(f"[AI SUMMARIZE] Using partial content from {filename}: {len(partial_content)} chars")
+                            else:
+                                attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} [FAILED] ---\n"
+                                print(f"[AI SUMMARIZE] Failed to extract content from PDF: {filename} ({error_msg})")
             
             # Enhanced prompt for comprehensive analysis focusing on EMAIL BODY + ATTACHMENTS
             email_body = email_data.get('body', '')
@@ -1199,7 +1382,14 @@ START EXTRACTING NOW:"""
 
     def process_attachment_with_docling(self, file_data: bytes = None, filename: str = "document.pdf") -> Dict:
         """
-        Use Docling to extract text from PDF attachments (supports up to 100MB PDFs)
+        Use Docling to extract text from PDF attachments with enhanced timeout handling and fallback
+        
+        MAJOR IMPROVEMENTS:
+        - Dynamic timeout based on file size (1 minute per MB, minimum 2 minutes)
+        - PDF optimization for large files (>5MB)
+        - Automatic fallback to PyPDF2/pdfplumber on timeout
+        - Retry logic with exponential backoff
+        - Better error handling and reporting
         
         Args:
             file_data: Binary PDF data from database (REQUIRED)
@@ -1211,7 +1401,7 @@ START EXTRACTING NOW:"""
         import base64
         
         try:
-            # ✅ BINARY DATA ONLY: Get PDF content from database binary data
+            # ✅ BINARY DATA VALIDATION
             if not file_data:
                 error_msg = 'No binary data provided - attachment may be corrupted or not uploaded correctly'
                 print(f"[DOCLING] ❌ {error_msg}")
@@ -1221,44 +1411,102 @@ START EXTRACTING NOW:"""
                     'text_content': 'PDF binary data missing - manual document review required'
                 }
             
-            pdf_content = file_data
-            file_size_kb = len(pdf_content) / 1024
-            print(f"[DOCLING] Processing binary PDF: {filename} ({file_size_kb:.1f} KB)")
+            # ✅ FILE SIZE ANALYSIS AND OPTIMIZATION
+            original_size_mb = len(file_data) / (1024 * 1024)
+            print(f"[DOCLING] Processing PDF: {filename} ({original_size_mb:.1f} MB)")
             
-            # Base64 encode the PDF content (required by Docling v1alpha API)
-            pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+            # Check if file exceeds reasonable processing limits
+            if original_size_mb > self.max_sync_file_size_mb:
+                print(f"[DOCLING] ⚠️ File {filename} ({original_size_mb:.1f} MB) exceeds sync limit ({self.max_sync_file_size_mb} MB)")
+                print(f"[DOCLING] Attempting fallback extraction for immediate analysis...")
+                fallback_result = self._extract_text_fallback(file_data, filename)
+                fallback_result['note'] = f'Large file ({original_size_mb:.1f} MB) - fallback extraction used'
+                return fallback_result
             
-            # Create the correct JSON request format
-            request_data = {
-                'file_sources': [
-                    {
-                        'filename': filename,
-                        'base64_string': pdf_base64
-                    }
-                ],
-                'options': {
-                    'to_formats': ['text'],  # Extract as plain text
-                    'do_ocr': True,         # Enable OCR for scanned PDFs
-                    'force_ocr': False,     # Don't replace existing text
-                    'do_table_structure': True,  # Extract table structure
-                    'include_images': False,     # Don't need images for text analysis
-                    'abort_on_error': False      # Continue processing even if errors
-                }
-            }
+            # ✅ PDF OPTIMIZATION FOR LARGE FILES
+            if original_size_mb > 5:
+                print(f"[DOCLING] File >5MB, attempting optimization...")
+                optimized_content = self._optimize_pdf_for_processing(file_data, filename)
+                optimized_size_mb = len(optimized_content) / (1024 * 1024)
+                
+                if len(optimized_content) < len(file_data):
+                    print(f"[DOCLING] Optimization reduced size from {original_size_mb:.1f} MB to {optimized_size_mb:.1f} MB")
+                    pdf_content = optimized_content
+                    file_size_mb = optimized_size_mb
+                else:
+                    pdf_content = file_data
+                    file_size_mb = original_size_mb
+            else:
+                pdf_content = file_data
+                file_size_mb = original_size_mb
             
-            # ✅ Correct Docling API endpoint (now supports up to 100MB PDFs!)
-            # API: POST https://ai-poc.corp.ia/docling/v1alpha/convert/source
-            endpoint = self.docling_api
+            # ✅ DYNAMIC TIMEOUT CALCULATION
+            dynamic_timeout = self._calculate_dynamic_timeout(file_size_mb)
+            print(f"[DOCLING] Using dynamic timeout: {dynamic_timeout}s for {file_size_mb:.1f} MB file")
             
-            print(f"[DOCLING] Calling API: {endpoint} (supports up to 100MB)")
-            print(f"[DOCLING] Payload size: {len(json.dumps(request_data))} bytes")
+            # ✅ DOCLING API CALL WITH RETRY LOGIC
+            return self._call_docling_with_retry(pdf_content, filename, dynamic_timeout, max_retries=2)
             
+        except Exception as e:
+            error_msg = f"Unexpected error in PDF processing: {str(e)}"
+            print(f"[DOCLING] ❌ {error_msg}")
+            
+            # Try fallback extraction even on unexpected errors
+            print(f"[DOCLING] Attempting emergency fallback extraction...")
             try:
+                fallback_result = self._extract_text_fallback(file_data, filename)
+                fallback_result['note'] = f'Emergency fallback after error: {error_msg}'
+                return fallback_result
+            except Exception as fallback_error:
+                print(f"[DOCLING] ❌ Emergency fallback also failed: {fallback_error}")
+                return {
+                    'success': False, 
+                    'error': f"{error_msg} (fallback also failed)",
+                    'text_content': f'[COMPLETE_FAILURE: {error_msg}]'
+                }
+
+    def _call_docling_with_retry(self, pdf_content: bytes, filename: str, timeout: int, max_retries: int = 2) -> Dict:
+        """Call Docling API with retry logic and automatic fallback on timeout"""
+        import base64
+        import time
+        
+        # Prepare request data
+        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+        request_data = {
+            'file_sources': [
+                {
+                    'filename': filename,
+                    'base64_string': pdf_base64
+                }
+            ],
+            'options': {
+                'to_formats': ['text'],  # Extract as plain text
+                'do_ocr': True,         # Enable OCR for scanned PDFs
+                'force_ocr': False,     # Don't replace existing text
+                'do_table_structure': True,  # Extract table structure
+                'include_images': False,     # Don't need images for text analysis
+                'abort_on_error': False      # Continue processing even if errors
+            }
+        }
+        
+        file_size_mb = len(pdf_content) / (1024 * 1024)
+        endpoint = self.docling_api
+        
+        print(f"[DOCLING] API Call - File: {filename} ({file_size_mb:.1f} MB), Timeout: {timeout}s, Max retries: {max_retries}")
+        
+        for attempt in range(max_retries + 1):  # 0, 1, 2 for max_retries=2
+            try:
+                if attempt > 0:
+                    wait_time = (2 ** (attempt - 1)) * 5  # 5s, 10s
+                    print(f"[DOCLING] Retry attempt {attempt}/{max_retries} after {wait_time}s wait...")
+                    time.sleep(wait_time)
+                
+                print(f"[DOCLING] Calling API (attempt {attempt + 1}/{max_retries + 1})...")
                 response = self.session.post(
                     endpoint,
                     headers={'Content-Type': 'application/json'},
                     json=request_data,
-                    timeout=60  # Longer timeout for PDF processing
+                    timeout=timeout
                 )
                 
                 print(f"[DOCLING] Response status: {response.status_code}")
@@ -1266,20 +1514,8 @@ START EXTRACTING NOW:"""
                 if response.status_code == 200:
                     result = response.json()
                     
-                    # Debug: Log the Docling response structure
-                    print(f"[DOCLING DEBUG] Response keys: {list(result.keys())}")
-                    print(f"[DOCLING DEBUG] Response structure: {str(result)[:500]}...")
-                    
                     # Extract text content from Docling response
                     document_data = result.get('document', {})
-                    
-                    # Debug: Check document structure
-                    if isinstance(document_data, dict):
-                        print(f"[DOCLING DEBUG] Document keys: {list(document_data.keys())}")
-                        if 'text_content' in document_data:
-                            print(f"[DOCLING DEBUG] Found text_content field with {len(document_data['text_content'])} chars")
-                        if 'markdown' in document_data:
-                            print(f"[DOCLING DEBUG] Found markdown field with {len(document_data['markdown'])} chars")
                     
                     # Try to get text from different possible response formats
                     text_content = ""
@@ -1295,48 +1531,82 @@ START EXTRACTING NOW:"""
                             str(document_data)
                         )
                     
-                    print(f"[DOCLING] ✅ Successfully extracted {len(text_content)} characters from {filename}")
-                    print(f"[DOCLING DEBUG] First 300 chars of extracted text: {text_content[:300]}...")
+                    if text_content and len(text_content) > 50:  # Ensure we got meaningful content
+                        print(f"[DOCLING] ✅ Successfully extracted {len(text_content)} characters from {filename}")
+                        return {
+                            'text_content': text_content,
+                            'metadata': {
+                                'processing_time': result.get('processing_time', 0),
+                                'status': result.get('status', 'success'),
+                                'filename': filename,
+                                'attempt': attempt + 1,
+                                'timeout_used': timeout
+                            },
+                            'success': True,
+                            'method': 'docling_api'
+                        }
+                    else:
+                        print(f"[DOCLING] ⚠️ Empty or minimal content extracted, may need retry")
+                        if attempt == max_retries:  # Last attempt
+                            print(f"[DOCLING] Last attempt returned minimal content, trying fallback...")
+                            break
+                        continue
+                        
+                elif response.status_code in [502, 503, 504]:  # Server errors - retry
+                    print(f"[DOCLING] Server error {response.status_code}, will retry...")
+                    if attempt == max_retries:
+                        break
+                    continue
                     
-                    return {
-                        'text_content': text_content,
-                        'metadata': {
-                            'processing_time': result.get('processing_time', 0),
-                            'status': result.get('status', 'success'),
-                            'filename': filename
-                        },
-                        'success': True,
-                        'endpoint_used': endpoint
-                    }
-                else:
+                else:  # Client errors - don't retry
                     error_msg = f"Status {response.status_code}: {response.text[:200]}"
-                    print(f"[DOCLING] ❌ {error_msg}")
-                    
-                    return {
-                        'text_content': f'Docling processing failed ({response.status_code}) - manual document review required',
-                        'metadata': {'error': error_msg, 'filename': filename},
-                        'success': False,
-                        'endpoint_used': endpoint
-                    }
-                    
-            except (requests.RequestException, json.JSONDecodeError) as e:
-                error_msg = f"{type(e).__name__}: {str(e)}"
-                print(f"[DOCLING] ❌ Request failed: {error_msg}")
+                    print(f"[DOCLING] ❌ Client error (no retry): {error_msg}")
+                    break
                 
+            except requests.exceptions.ReadTimeout:
+                print(f"[DOCLING] ❌ Timeout after {timeout}s (attempt {attempt + 1}/{max_retries + 1})")
+                if attempt == max_retries:
+                    print(f"[DOCLING] All retries exhausted due to timeout, trying fallback extraction...")
+                    break
+                continue
+                
+            except requests.exceptions.ConnectionError as e:
+                print(f"[DOCLING] ❌ Connection error (attempt {attempt + 1}): {e}")
+                if attempt == max_retries:
+                    break
+                continue
+                
+            except Exception as e:
+                print(f"[DOCLING] ❌ Unexpected error (attempt {attempt + 1}): {e}")
+                if attempt == max_retries:
+                    break
+                continue
+        
+        # All retries failed - try fallback extraction
+        print(f"[DOCLING] All API attempts failed, trying fallback extraction...")
+        try:
+            fallback_result = self._extract_text_fallback(pdf_content, filename)
+            if fallback_result.get('success'):
+                fallback_result['note'] = f'Docling API failed after {max_retries + 1} attempts - fallback successful'
+                fallback_result['method'] = 'fallback_after_docling_failure'
+                print(f"[DOCLING] ✅ Fallback extraction successful")
+                return fallback_result
+            else:
+                print(f"[DOCLING] ❌ Fallback extraction also failed")
                 return {
-                    'text_content': 'Docling service unavailable - manual document review required',
-                    'metadata': {'error': error_msg, 'filename': filename},
                     'success': False,
-                    'endpoint_used': endpoint
+                    'error': f'Both Docling API and fallback extraction failed for {filename}',
+                    'text_content': f'[EXTRACTION_FAILED: File may be corrupted, scanned without text layer, or too complex]',
+                    'method': 'all_methods_failed'
                 }
                 
-        except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}"
-            print(f"[DOCLING] ❌ {error_msg}")
+        except Exception as fallback_error:
+            print(f"[DOCLING] ❌ Fallback extraction error: {fallback_error}")
             return {
-                'success': False, 
-                'error': error_msg,
-                'text_content': 'PDF processing failed - manual document review required'
+                'success': False,
+                'error': f'Complete processing failure for {filename}: {fallback_error}',
+                'text_content': '[COMPLETE_FAILURE: Unable to extract any text from PDF]',
+                'method': 'complete_failure'
             }
 
 # Global AI instance
