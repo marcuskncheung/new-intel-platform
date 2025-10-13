@@ -12,6 +12,9 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class IntelligenceAI:
+    # Model configuration
+    LLM_MODEL = "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4"
+    
     def __init__(self):
         self.llm_api = "https://ai-poc.corp.ia/vllm/v1"
         self.embedding_api = "https://ai-poc.corp.ia/embedding/v1"
@@ -85,16 +88,9 @@ class IntelligenceAI:
         if attachments:
             print(f"[AI COMPREHENSIVE] Processing {len(attachments)} attachments")
             
-            # ✅ UPDATED: PDF processing enabled with correct Docling v1alpha API
-            # Using proper JSON format with base64-encoded content
-            skip_pdf_processing = False  # Now using correct endpoint and format!
-            
-            if skip_pdf_processing:
-                print(f"[AI COMPREHENSIVE] ⚠️ PDF processing temporarily disabled (Docling service unavailable)")
-                print(f"[AI COMPREHENSIVE] Will analyze email body only")
-                attachment_content = "PDF attachments available but not processed due to Docling service issues. Analysis based on email content only."
-            else:
-                for attachment in attachments:
+            # ✅ UPDATED: PDF processing enabled with Docling API (supports up to 100MB)
+            # Using proper JSON format with base64-encoded content - no fallback methods needed!
+            for attachment in attachments:
                     filename = attachment.get('filename', 'Unknown')
                     file_data = attachment.get('file_data')  # ✅ Binary data from database (ONLY source)
                     att_email_id = attachment.get('email_id', 'unknown')
@@ -115,84 +111,35 @@ class IntelligenceAI:
                     file_size_mb = len(file_data) / (1024 * 1024)
                     print(f"[AI COMPREHENSIVE] Processing binary attachment: {filename} ({file_size_kb:.1f} KB) for email {email_id}")
                     
-                    # Process PDF binary data with Docling
+                    # Process PDF binary data with Docling (now supports up to 100MB!)
                     if filename.lower().endswith('.pdf'):
-                        # ✅ Smart PDF extraction strategy:
-                        # 1. Try local extraction first for large PDFs (faster, no API limit)
-                        # 2. If local extraction fails (scanned PDF), fallback to Docling (has OCR)
-                        # 3. If Docling also fails (size limit), report error
+                        print(f"[AI COMPREHENSIVE] Processing PDF with Docling: {filename} ({file_size_mb:.1f} MB)")
                         
-                        MAX_DOCLING_SIZE_MB = 10
-                        extracted_text = None
-                        extraction_method = None
+                        # ✅ SIMPLIFIED: Use Docling for ALL PDFs (up to 100MB supported now)
+                        doc_result = self.process_attachment_with_docling(
+                            file_data=file_data,  # ✅ Pass binary data directly
+                            filename=filename
+                        )
                         
-                        if file_size_mb > MAX_DOCLING_SIZE_MB:
-                            print(f"[AI COMPREHENSIVE] ⚠️ Large PDF detected: {filename} ({file_size_mb:.1f} MB)")
-                            print(f"[AI COMPREHENSIVE]    Trying local extraction first...")
+                        if doc_result.get('success'):
+                            extracted_text = doc_result.get('text_content', '')
                             
-                            # ✅ Try local extraction for large PDFs
-                            local_result = self.extract_pdf_locally(file_data, filename)
+                            # Clean up the extracted text - remove base64 image data
+                            import re
+                            clean_text = re.sub(r'!\[Image\]\(data:image/[^)]+\)', '[IMAGE]', extracted_text)
+                            # Remove long base64 strings  
+                            clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
                             
-                            if local_result.get('success'):
-                                extracted_text = local_result.get('text_content', '')
-                                extraction_method = 'LOCAL'
-                                print(f"[AI COMPREHENSIVE] ✅ Local extraction successful: {len(extracted_text)} chars from {filename}")
-                            else:
-                                print(f"[AI COMPREHENSIVE] ⚠️ Local extraction failed (likely scanned PDF)")
-                                print(f"[AI COMPREHENSIVE] 🔄 Trying VLM OCR (extract images + AI vision)...")
-                                
-                                # ✅ Try VLM OCR for scanned PDFs (process first 5 pages only)
-                                vlm_result = self.extract_pdf_images_to_vlm(file_data, filename, max_pages=5)
-                                
-                                if vlm_result.get('success'):
-                                    extracted_text = vlm_result.get('text_content', '')
-                                    extraction_method = 'VLM_OCR'
-                                    pages_success = vlm_result.get('pages_success', 0)
-                                    pages_total = vlm_result.get('pages_processed', 0)
-                                    print(f"[AI COMPREHENSIVE] ✅ VLM OCR successful: {len(extracted_text)} chars from {pages_success}/{pages_total} pages")
-                                else:
-                                    # All methods failed
-                                    print(f"[AI COMPREHENSIVE] ❌ All extraction methods failed for {filename}")
-                                    print(f"[AI COMPREHENSIVE] ❌ Cannot process this scanned PDF - manual review required")
-                                    attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                                    attachment_content += f"[SCANNED PDF - ALL EXTRACTION METHODS FAILED]\n"
-                                    attachment_content += f"This is a {file_size_mb:.1f} MB scanned PDF.\n"
-                                    attachment_content += f"Tried: Local extraction → VLM OCR. All failed. Please review manually.\n"
-                                    continue
-                        
-                        # For small PDFs or if local extraction succeeded, use appropriate method
-                        if not extracted_text:
-                            print(f"[AI COMPREHENSIVE] Calling Docling for PDF: {filename} (Email {email_id}, Attachment {att_id})")
-                            doc_result = self.process_attachment_with_docling(
-                                file_data=file_data,  # ✅ Pass binary data directly
-                                file_path=None,       # ✅ No filepath - binary only
-                                filename=filename
-                            )
-                            if doc_result.get('success'):
-                                extracted_text = doc_result.get('text_content', '')
-                                extraction_method = 'DOCLING'
-                                
-                                # Clean up the extracted text - remove base64 image data
-                                import re
-                                # Remove base64 image data that's not useful for analysis
-                                clean_text = re.sub(r'!\[Image\]\(data:image/[^)]+\)', '[IMAGE]', extracted_text)
-                                # Remove long base64 strings
-                                clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
-                                extracted_text = clean_text
-                                
-                                print(f"[AI COMPREHENSIVE] ✅ Docling extracted {len(extracted_text)} chars from {filename} for email {email_id}")
-                            else:
-                                error_msg = doc_result.get('error', 'Unknown error')
-                                print(f"[AI COMPREHENSIVE] ❌ Docling failed for {filename}: {error_msg}")
-                                attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
-                                attachment_content += f"[EXTRACTION FAILED: {error_msg}]\n"
-                                continue
-                        
-                        # Add extracted text to attachment content
-                        if extracted_text:
-                            method_label = f"[{extraction_method}]" if extraction_method else ""
-                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) {method_label} ---\n"
-                            attachment_content += extracted_text
+                            print(f"[AI COMPREHENSIVE] ✅ Docling extracted {len(clean_text)} chars from {filename}")
+                            
+                            # Add extracted text to attachment content
+                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) [DOCLING] ---\n"
+                            attachment_content += clean_text
+                        else:
+                            error_msg = doc_result.get('error', 'Unknown error')
+                            print(f"[AI COMPREHENSIVE] ❌ Docling failed for {filename}: {error_msg}")
+                            attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) ---\n"
+                            attachment_content += f"[EXTRACTION FAILED: {error_msg}]\n"
                     else:
                         print(f"[AI COMPREHENSIVE] ⚠️ Skipping non-PDF file: {filename} (AI can only process PDFs)")
                         attachment_content += f"\n\n--- {filename} (Non-PDF - skipped) ---\n"
@@ -219,7 +166,7 @@ class IntelligenceAI:
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
+                    "model": self.LLM_MODEL,
                     "prompt": prompt,
                     "max_tokens": 3000,  # Increased to handle complex cases with multiple persons
                     "temperature": 0.3,  # Balanced for analytical tasks
@@ -522,7 +469,7 @@ Format your response as JSON:
         Now reads PDF attachments just like analyze_allegation_email_comprehensive()
         """
         try:
-            # Process PDF attachments to extract text content (SAME AS COMPREHENSIVE FUNCTION)
+            # Process PDF attachments to extract text content (simplified Docling-only approach)
             attachment_content = ""
             if attachments:
                 for attachment in attachments:
@@ -530,12 +477,11 @@ Format your response as JSON:
                     filename = attachment.get('filename', '').lower()
                     file_data = attachment.get('file_data')  # Binary data from database
                     
-                    # ✅ CRITICAL FIX: Only use binary data (no legacy filepath)
+                    # ✅ SIMPLIFIED: Use Docling for all PDFs (up to 100MB supported)
                     if filename.endswith('.pdf') and file_data:
                         print(f"[AI SUMMARIZE] Processing PDF attachment: {filename} ({len(file_data)/1024:.1f} KB)")
                         doc_result = self.process_attachment_with_docling(
                             file_data=file_data,
-                            file_path=None,  # ✅ Not used - binary only
                             filename=attachment.get('filename', 'document.pdf')
                         )
                         if doc_result.get('success'):
@@ -596,7 +542,7 @@ Analysis:"""
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
+                    "model": self.LLM_MODEL,
                     "prompt": prompt,
                     "max_tokens": 1500,  # Increased for comprehensive summaries
                     "temperature": 0.3,  # Balanced for analysis
@@ -708,7 +654,7 @@ Analysis:"""
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
+                    "model": self.LLM_MODEL,
                     "prompt": prompt,
                     "max_tokens": 6000,  # Large enough for grouping many emails
                     "temperature": 0.15,  # Lower for factual extraction tasks
@@ -951,6 +897,10 @@ EMAILS TO GROUP:
             'fallback_method': 'ultra_strict_title_matching'
         }
 
+    # ✅ OBSOLETE METHODS: No longer needed with Docling 100MB support
+    # The following methods were used when Docling had a 10MB limit
+    # Now kept for reference but not used in production
+    
     def extract_pdf_images_to_vlm(self, file_data: bytes, filename: str, max_pages: int = 5) -> Dict:
         """
         Extract PDF pages as images and send to VLM for OCR and text extraction
@@ -1089,7 +1039,7 @@ START EXTRACTING NOW:"""
                 f"{self.llm_api}/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "hosted_vllm/Qwen3-VL-30B-A3B-Thinking",
+                    "model": self.LLM_MODEL,
                     "prompt": prompt,
                     "images": [f"data:image/jpeg;base64,{image_base64}"],  # May need adjustment based on API
                     "max_tokens": 4000,
@@ -1247,13 +1197,12 @@ START EXTRACTING NOW:"""
                 'text_content': ''
             }
 
-    def process_attachment_with_docling(self, file_data: bytes = None, file_path: str = None, filename: str = "document.pdf") -> Dict:
+    def process_attachment_with_docling(self, file_data: bytes = None, filename: str = "document.pdf") -> Dict:
         """
-        Use Docling to extract text from PDF attachments (binary data from database)
+        Use Docling to extract text from PDF attachments (supports up to 100MB PDFs)
         
         Args:
-            file_data: Binary PDF data from database (REQUIRED - primary source)
-            file_path: Legacy parameter (not used - kept for backward compatibility)
+            file_data: Binary PDF data from database (REQUIRED)
             filename: Original filename for the PDF
             
         Returns:
@@ -1297,11 +1246,11 @@ START EXTRACTING NOW:"""
                 }
             }
             
-            # ✅ Correct Docling API endpoint from OpenAPI spec
+            # ✅ Correct Docling API endpoint (now supports up to 100MB PDFs!)
             # API: POST https://ai-poc.corp.ia/docling/v1alpha/convert/source
             endpoint = self.docling_api
             
-            print(f"[DOCLING] Calling API: {endpoint}")
+            print(f"[DOCLING] Calling API: {endpoint} (supports up to 100MB)")
             print(f"[DOCLING] Payload size: {len(json.dumps(request_data))} bytes")
             
             try:
