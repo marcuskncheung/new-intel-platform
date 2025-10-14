@@ -15,13 +15,31 @@ from typing import Dict, List, Tuple, Optional
 from sqlalchemy import func, or_, and_
 import difflib
 
-# Database integration
-try:
-    from app1_production import db, AllegedPersonProfile, EmailAllegedPersonLink, Email
-    DATABASE_AVAILABLE = True
-except ImportError:
-    DATABASE_AVAILABLE = False
-    print("WARNING: Database models not available - automation will run in simulation mode")
+# Database integration - Lazy loading to avoid circular imports
+DATABASE_AVAILABLE = False
+db = None
+AllegedPersonProfile = None
+EmailAllegedPersonLink = None
+Email = None
+
+def initialize_database():
+    """Initialize database models - called when needed to avoid circular imports"""
+    global DATABASE_AVAILABLE, db, AllegedPersonProfile, EmailAllegedPersonLink, Email
+    
+    if DATABASE_AVAILABLE:
+        return True
+        
+    try:
+        from app1_production import db as _db, AllegedPersonProfile as _AllegedPersonProfile, EmailAllegedPersonLink as _EmailAllegedPersonLink, Email as _Email
+        db = _db
+        AllegedPersonProfile = _AllegedPersonProfile
+        EmailAllegedPersonLink = _EmailAllegedPersonLink
+        Email = _Email
+        DATABASE_AVAILABLE = True
+        return True
+    except ImportError as e:
+        print(f"WARNING: Database models not available - automation will run in simulation mode: {e}")
+        return False
 
 def normalize_name_for_matching(name: str) -> str:
     """
@@ -88,7 +106,7 @@ def generate_next_poi_id() -> str:
     
     Queries existing profiles to find the highest number and increment
     """
-    if not DATABASE_AVAILABLE:
+    if not initialize_database():
         # Fallback when database not available
         timestamp = datetime.now().strftime("%y%m%d%H%M")
         return f"POI-{timestamp}"
@@ -139,7 +157,7 @@ def find_matching_profile(name_english: str, name_chinese: str,
     """
     
     try:
-        if not DATABASE_AVAILABLE:
+        if not initialize_database():
             print(f"[PROFILE MATCHING] Database not available, no matches found")
             return None
         
@@ -282,7 +300,7 @@ def create_or_update_alleged_person_profile(
             
             print(f"[ALLEGED PERSON AUTOMATION] 🆕 Creating new profile: {new_poi_id}")
             
-            if not DATABASE_AVAILABLE:
+            if not initialize_database():
                 # Simulation mode
                 new_profile = {
                     'poi_id': new_poi_id,
@@ -506,7 +524,7 @@ def link_email_to_profile(email_id: int, poi_id: str, profile_id: int = None) ->
     """
     
     try:
-        if not DATABASE_AVAILABLE:
+        if not initialize_database():
             print(f"[EMAIL-PROFILE LINKING] Simulating link: email {email_id} to profile {poi_id}")
             return True
         
