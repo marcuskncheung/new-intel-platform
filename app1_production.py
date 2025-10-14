@@ -1444,6 +1444,47 @@ def create_alleged_person_profile():
     # GET request - show form
     return render_template("create_alleged_profile.html")
 
+@app.route("/delete_alleged_person_profile/<int:profile_id>", methods=["POST"])
+@login_required
+def delete_alleged_person_profile(profile_id):
+    """
+    Delete an alleged person profile and all its linked relationships
+    
+    This will:
+    1. Delete all email-person links
+    2. Delete the profile itself
+    3. Does NOT delete the emails themselves (they remain in the system)
+    """
+    try:
+        # Get the profile
+        profile = AllegedPersonProfile.query.get_or_404(profile_id)
+        poi_id = profile.poi_id
+        
+        print(f"[DELETE PROFILE] Deleting profile {poi_id} (ID: {profile_id})")
+        
+        # Count linked emails before deletion
+        link_count = EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile_id).count()
+        
+        # Delete all email-person links first (foreign key constraint)
+        EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile_id).delete()
+        print(f"[DELETE PROFILE] Deleted {link_count} email-person links")
+        
+        # Delete the profile
+        db.session.delete(profile)
+        db.session.commit()
+        
+        print(f"[DELETE PROFILE] ✅ Successfully deleted profile {poi_id}")
+        flash(f"Profile {poi_id} and {link_count} linked allegation(s) deleted successfully", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[DELETE PROFILE] ❌ Error deleting profile {profile_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error deleting profile: {str(e)}", "error")
+    
+    return redirect(url_for("alleged_subject_list"))
+
 @app.route("/alleged_subject_profile/<poi_id>")
 @login_required
 def alleged_subject_profile_detail(poi_id):

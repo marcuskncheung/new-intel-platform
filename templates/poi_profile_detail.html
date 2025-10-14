@@ -68,9 +68,16 @@
                         </div>
                         
                         <div class="text-end">
-                            <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-outline-secondary btn-lg">
+                            <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-outline-secondary btn-lg me-2">
                                 <i class="bi bi-arrow-left"></i> Back to List
                             </a>
+                            <form method="post" action="{{ url_for('delete_alleged_person_profile', profile_id=profile.id) }}"
+                                  onsubmit="return confirm('⚠️ DELETE PROFILE {{ profile.poi_id }}?\n\nThis will permanently remove profile and {{ profile.email_count }} allegation link(s).\n\n⚠️ THIS CANNOT BE UNDONE!\n\nAre you sure?')"
+                                  style="display: inline;">
+                                <button class="btn btn-outline-danger btn-lg" type="submit">
+                                    <i class="bi bi-trash"></i> Delete Profile
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

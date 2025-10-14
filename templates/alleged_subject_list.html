@@ -20,11 +20,17 @@
         {% if t.time %}
           <div class="mb-2"><span class="badge bg-light text-dark">Time: {{ t.time }}</span></div>
         {% endif %}
-        <div class="mt-auto d-flex justify-content-between">
+        <div class="mt-auto d-flex justify-content-between align-items-center">
           {% if automation_enabled and t.poi_id %}
             {# New automated profile system #}
             <a href="{{ url_for('view_alleged_person_profile', profile_id=t.idx) }}" class="btn btn-primary btn-sm">View</a>
-            <button class="btn btn-danger btn-sm" disabled title="Delete feature coming soon">Delete</button>
+            <form method="post" action="{{ url_for('delete_alleged_person_profile', profile_id=t.idx) }}"
+                  onsubmit="return confirm('⚠️ Delete profile {{ t.poi_id }}?\n\nThis will remove:\n- Profile information\n- All linked allegations\n\nThe emails will remain in the system.\n\nAre you sure?')"
+                  style="margin: 0;">
+              <button class="btn btn-danger btn-sm" type="submit">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            </form>
           {% else %}
             {# Old legacy profile system #}
             <a href="{{ url_for('details', idx=t.idx) }}" class="btn btn-primary btn-sm">View</a>
