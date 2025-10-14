@@ -1,23 +1,80 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-    <!-- Profile Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="bi bi-person-badge-fill text-primary"></i> {{ profile.poi_id }}</h2>
-            <h4>
-                {% if profile.name_english %}{{ profile.name_english }}{% endif %}
-                {% if profile.name_chinese %}
-                    {% if profile.name_english %} / {% endif %}{{ profile.name_chinese }}
-                {% endif %}
-                {% if not profile.name_english and not profile.name_chinese %}Unknown{% endif %}
-            </h4>
-            <p class="text-muted mb-0">Automated Alleged Person Profile</p>
-        </div>
-        <div>
-            <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Back to List
-            </a>
+<div class="container-fluid mt-4">
+    <!-- Professional Profile Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg profile-header-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="profile-icon-wrapper me-3">
+                                    <i class="bi bi-person-badge-fill"></i>
+                                </div>
+                                <div>
+                                    <h1 class="mb-1 profile-poi-id">{{ profile.poi_id }}</h1>
+                                    <h3 class="mb-0 profile-name">
+                                        {% if profile.name_english %}{{ profile.name_english }}{% endif %}
+                                        {% if profile.name_chinese %}
+                                            {% if profile.name_english %}<span class="text-muted mx-2">/</span>{% endif %}{{ profile.name_chinese }}
+                                        {% endif %}
+                                        {% if not profile.name_english and not profile.name_chinese %}
+                                            <span class="text-muted">Name Not Specified</span>
+                                        {% endif %}
+                                    </h3>
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Info Badges -->
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% if profile.company %}
+                                <span class="badge bg-primary-soft px-3 py-2">
+                                    <i class="bi bi-building"></i> {{ profile.company }}
+                                </span>
+                                {% endif %}
+                                {% if profile.role %}
+                                <span class="badge bg-info-soft px-3 py-2">
+                                    <i class="bi bi-briefcase"></i> {{ profile.role }}
+                                </span>
+                                {% endif %}
+                                {% if profile.agent_number %}
+                                <span class="badge bg-secondary-soft px-3 py-2">
+                                    <i class="bi bi-person-vcard"></i> Agent: {{ profile.agent_number }}
+                                </span>
+                                {% endif %}
+                                {% if profile.license_number %}
+                                <span class="badge bg-warning-soft px-3 py-2">
+                                    <i class="bi bi-card-checklist"></i> License: {{ profile.license_number }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Status and Creation Info -->
+                            <div class="d-flex flex-wrap gap-3 text-muted small">
+                                <div>
+                                    <i class="bi bi-circle-fill me-1 {% if profile.status == 'ACTIVE' %}text-success{% else %}text-secondary{% endif %}"></i>
+                                    <strong>Status:</strong> {{ profile.status }}
+                                </div>
+                                <div>
+                                    <i class="bi bi-robot me-1"></i>
+                                    <strong>Created By:</strong> {{ profile.created_by }}
+                                </div>
+                                <div>
+                                    <i class="bi bi-calendar-plus me-1"></i>
+                                    <strong>Created:</strong> {{ profile.created_at }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -78,123 +135,413 @@
         </div>
     </div>
     
-    <!-- Statistics Card -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Statistics</h5>
+    <!-- Statistics Dashboard -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card stat-card-primary">
+                <div class="card-body text-center p-4">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-envelope-fill"></i>
+                    </div>
+                    <h2 class="stat-number mb-2">{{ profile.email_count }}</h2>
+                    <p class="stat-label mb-0">Linked Complaints</p>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row text-center">
-                <div class="col-md-3">
-                    <div class="p-3">
-                        <h3 class="text-primary mb-0">{{ profile.email_count }}</h3>
-                        <small class="text-muted">Linked Emails</small>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card stat-card-success">
+                <div class="card-body text-center p-4">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-calendar-check"></i>
                     </div>
+                    <h6 class="stat-date mb-2">{{ profile.first_mentioned_date }}</h6>
+                    <p class="stat-label mb-0">First Allegation</p>
                 </div>
-                <div class="col-md-3">
-                    <div class="p-3">
-                        <h6 class="mb-0">{{ profile.created_at }}</h6>
-                        <small class="text-muted">Profile Created</small>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card stat-card-warning">
+                <div class="card-body text-center p-4">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-calendar-event"></i>
                     </div>
+                    <h6 class="stat-date mb-2">{{ profile.last_mentioned_date }}</h6>
+                    <p class="stat-label mb-0">Latest Allegation</p>
                 </div>
-                <div class="col-md-3">
-                    <div class="p-3">
-                        <h6 class="mb-0">{{ profile.first_mentioned_date }}</h6>
-                        <small class="text-muted">First Mentioned</small>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm stat-card stat-card-info">
+                <div class="card-body text-center p-4">
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-clock-history"></i>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3">
-                        <h6 class="mb-0">{{ profile.last_mentioned_date }}</h6>
-                        <small class="text-muted">Last Mentioned</small>
-                    </div>
+                    <h6 class="stat-date mb-2">{{ profile.created_at }}</h6>
+                    <p class="stat-label mb-0">Profile Created</p>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Linked Emails Card -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-warning">
-            <h5 class="mb-0">
-                <i class="bi bi-envelope-fill"></i> Linked Emails 
-                <span class="badge bg-dark">{{ profile.linked_emails|length }}</span>
-            </h5>
-        </div>
-        <div class="card-body">
-            {% if profile.linked_emails %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Subject</th>
-                                <th>Sender</th>
-                                <th>Nature</th>
-                                <th>Confidence</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for email in profile.linked_emails %}
-                            <tr>
-                                <td><small>{{ email.received }}</small></td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 300px;">
-                                        {{ email.subject }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 200px;">
-                                        <small>{{ email.sender }}</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if email.alleged_nature %}
-                                        <span class="badge bg-secondary">{{ email.alleged_nature }}</span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if email.confidence %}
-                                        <span class="badge bg-info">{{ (email.confidence * 100)|round|int }}%</span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('int_source_email_detail', email_id=email.id) }}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-eye"></i> View
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- Allegations Timeline -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-gradient-danger text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Allegations Against This Person
+                        <span class="badge bg-white text-danger ms-2">{{ profile.linked_emails|length }}</span>
+                    </h4>
+                    <p class="mb-0 mt-2 opacity-90 small">
+                        Comprehensive timeline of all allegations, complaints, and mentions in intelligence sources
+                    </p>
                 </div>
-            {% else %}
-                <div class="alert alert-info mb-0">
-                    <i class="bi bi-info-circle"></i> No emails linked to this profile yet.
-                    <p class="mb-0 mt-2"><small>This profile may have been created manually or emails haven't been linked yet.</small></p>
+                <div class="card-body p-0">
+                    {% if profile.linked_emails %}
+                        <div class="table-responsive">
+                            <table class="table table-hover allegations-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="10%" class="ps-4">Date</th>
+                                        <th width="35%">Allegation Details</th>
+                                        <th width="15%">Allegation Type</th>
+                                        <th width="20%">Source</th>
+                                        <th width="10%" class="text-center">Confidence</th>
+                                        <th width="10%" class="text-center pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for email in profile.linked_emails %}
+                                    <tr class="allegation-row">
+                                        <td class="ps-4">
+                                            <div class="date-badge">
+                                                <i class="bi bi-calendar3 me-1"></i>
+                                                <small><strong>{{ email.received }}</strong></small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="allegation-content">
+                                                <div class="allegation-subject mb-2">
+                                                    <strong>{{ email.subject }}</strong>
+                                                </div>
+                                                {% if email.allegation_summary %}
+                                                <div class="allegation-summary">
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-file-text me-1"></i>
+                                                        {{ email.allegation_summary|truncate(200) }}
+                                                    </small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if email.alleged_nature %}
+                                                <span class="badge allegation-type-badge">
+                                                    <i class="bi bi-tag-fill me-1"></i>
+                                                    {{ email.alleged_nature }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted small">Not categorized</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="source-info">
+                                                <i class="bi bi-person-circle me-1 text-primary"></i>
+                                                <small class="text-truncate d-inline-block" style="max-width: 180px;" title="{{ email.sender }}">
+                                                    {{ email.sender }}
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if email.confidence %}
+                                                <div class="confidence-indicator">
+                                                    {% set conf_pct = (email.confidence * 100)|round|int %}
+                                                    <div class="confidence-circle 
+                                                        {% if conf_pct >= 80 %}confidence-high
+                                                        {% elif conf_pct >= 50 %}confidence-medium
+                                                        {% else %}confidence-low{% endif %}">
+                                                        {{ conf_pct }}%
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted small">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            <a href="{{ url_for('int_source_email_detail', email_id=email.id) }}" 
+                                               class="btn btn-sm btn-outline-primary btn-view-allegation"
+                                               title="View full allegation details">
+                                                <i class="bi bi-eye-fill me-1"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center">
+                            <div class="mb-4">
+                                <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                            </div>
+                            <h5 class="text-muted mb-3">No Allegations Recorded</h5>
+                            <p class="text-muted mb-0">
+                                This profile has been created but no complaints or allegations have been linked yet.
+                            </p>
+                            <p class="text-muted small mt-2">
+                                Allegations will appear here automatically when AI analysis identifies this person in intelligence sources.
+                            </p>
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-.table-borderless th {
-    padding: 0.5rem 0.5rem 0.5rem 0;
-    font-weight: 600;
-    color: #6c757d;
+/* Professional Profile Header */
+.profile-header-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
 }
-.table-borderless td {
+
+.profile-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+
+.profile-poi-id {
+    font-size: 2rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.profile-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    opacity: 0.95;
+}
+
+/* Soft Badge Colors */
+.badge.bg-primary-soft {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.badge.bg-info-soft {
+    background-color: rgba(13, 202, 240, 0.1);
+    color: #0dcaf0;
+    font-weight: 600;
+}
+
+.badge.bg-secondary-soft {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.badge.bg-warning-soft {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    font-weight: 600;
+}
+
+/* Statistics Cards */
+.stat-card {
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.stat-card-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-card-success {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    color: #155724;
+}
+
+.stat-card-warning {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #856404;
+}
+
+.stat-card-info {
+    background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+    color: #004085;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.9;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-date {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    font-weight: 500;
+}
+
+/* Allegations Table */
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.allegations-table {
+    font-size: 0.95rem;
+}
+
+.allegations-table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #dee2e6;
+    padding: 1rem;
+}
+
+.allegation-row {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.allegation-row:hover {
+    background-color: #f8f9fa;
+}
+
+.date-badge {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #0d6efd;
+}
+
+.allegation-content {
     padding: 0.5rem 0;
 }
+
+.allegation-subject {
+    color: #212529;
+    line-height: 1.4;
+}
+
+.allegation-summary {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+    line-height: 1.6;
+}
+
+.allegation-type-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.source-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Confidence Indicator */
+.confidence-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.confidence-high {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    color: #155724;
+}
+
+.confidence-medium {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #856404;
+}
+
+.confidence-low {
+    background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+    color: #721c24;
+}
+
+.btn-view-allegation {
+    border-radius: 20px;
+    padding: 0.4rem 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-view-allegation:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+}
+
+/* Shadow Effects */
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+}
+
 .shadow-sm {
-    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .profile-poi-id {
+        font-size: 1.5rem;
+    }
+    
+    .profile-name {
+        font-size: 1.2rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+    }
 }
 </style>
 {% endblock %}
