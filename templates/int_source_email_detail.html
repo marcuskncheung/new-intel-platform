@@ -64,7 +64,33 @@
           <form method="POST" action="{{ url_for('assign_case_number', email_id=email.id) }}">
             <div class="row">
               <div class="col-md-4">
-                <label class="form-label"><strong>Case Number:</strong></label>
+                <label class="form-label"><strong>INT Reference Number:</strong></label>
+                <div class="input-group">
+                  <input type="text" 
+                         class="form-control" 
+                         name="int_reference_number" 
+                         value="{{ email.int_reference_number or 'INT-XXX' }}"
+                         placeholder="INT-001"
+                         readonly
+                         style="background-color: #f8f9fa; font-weight: bold; font-family: monospace;">
+                  <button type="button" class="btn btn-outline-secondary" disabled>
+                    <i class="fas fa-lock"></i> Auto-generated
+                  </button>
+                </div>
+                <small class="text-muted">
+                  {% if email.int_reference_manual %}
+                    <i class="fas fa-pencil-alt text-warning"></i> Manually edited
+                  {% else %}
+                    <i class="fas fa-robot text-success"></i> Auto-assigned by order ({{ email.int_reference_order }})
+                  {% endif %}
+                  {% if email.int_reference_updated_at %}
+                    | Last updated: {{ email.int_reference_updated_at.strftime('%Y-%m-%d %H:%M') }}
+                  {% endif %}
+                </small>
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label"><strong>Manual Case Number:</strong></label>
                 <div class="input-group">
                   <input type="text" 
                          class="form-control" 
@@ -77,10 +103,8 @@
                     <i class="fas fa-save"></i> Assign
                   </button>
                 </div>
-                <small class="text-muted">Format: C2025-001, IA2025-015, etc.</small>
+                <small class="text-muted">Optional: Link to existing case (C2025-001, IA2025-015, etc.)</small>
               </div>
-              
-              <div class="col-md-4">
                 <label class="form-label"><strong>Case Status:</strong></label>
                 <div class="d-flex align-items-center">
                   {% if email.case_number %}

@@ -1853,20 +1853,20 @@
                 {% endif %}
               </td>
               <td>
-                {% if email.case_number %}
-                  <span class="badge bg-primary" title="{{ email.case_email_count }} emails in this case">
-                    <i class="fas fa-folder"></i> {{ email.case_number }}
-                    {% if email.case_email_count > 1 %}
-                      <span class="badge bg-light text-dark ms-1">{{ email.case_email_count }}</span>
+                {% if email.int_reference_number %}
+                  <span class="badge bg-primary" title="INT Reference Number - Order: {{ email.int_reference_order }}">
+                    <i class="fas fa-hashtag"></i> {{ email.int_reference_number }}
+                    {% if email.int_reference_manual %}
+                      <i class="fas fa-pencil-alt ms-1" title="Manually edited"></i>
                     {% endif %}
                   </span>
-                  {% if email.is_case_master %}
-                    <i class="fas fa-star text-warning ms-1" title="Master Email"></i>
-                  {% endif %}
                 {% else %}
-                  <span class="badge bg-warning text-dark" title="No case assigned">
-                    <i class="fas fa-clock"></i> Unassigned
+                  <span class="badge bg-warning text-dark" title="No INT number assigned">
+                    <i class="fas fa-clock"></i> Pending
                   </span>
+                {% endif %}
+                {% if email.case_number %}
+                  <br><small class="text-muted">Case: {{ email.case_number }}</small>
                 {% endif %}
               </td>
               <td>
