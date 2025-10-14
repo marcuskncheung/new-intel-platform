@@ -430,16 +430,40 @@ ANALYSIS INSTRUCTIONS:
 - Example: If the document only mentions "AXA" without any person's name, return:
   {{"name_english": "", "name_chinese": "", "agent_company_broker": "AXA", "role": "Broker"}}
 
+🔍 **CHINESE FORM FIELD RECOGNITION** - Many documents are Chinese whistleblowing or investigation forms. Look for these specific field labels:
+   - "受嫌人姓名" / "被告人" / "涉事人" / "被投訴人" = Alleged Person Name (THIS IS WHO IS ACCUSED!)
+   - "相關機構" / "所屬機構" / "公司" = Company/Organization  
+   - "工作部門" / "職位" / "職級" = Department/Role/Position
+   - "指控" / "投訴事項" / "違規行為" = Allegation/Complaint Type
+   - When you see these fields, the person named AFTER the field label is the alleged person, NOT the recipient!
+
+📋 **DOCUMENT TYPE CLASSIFICATION** - Identify the document type:
+   - If contains "whistleblowing" / "舉報" / "匿名投訴" / "檢舉" → Type: WHISTLEBLOWING (person in form is ACCUSED)
+   - If contains "case reference" like MC/ENQ/XX/XX → Type: ADMINISTRATIVE (check if new case or forwarding)
+   - If addressed TO a senior executive BUT they appear in "受嫌人姓名" field → They are ACCUSED, not recipient!
+   - If document says "關於 [name]" or "有關 [name]" → [name] is likely the alleged person
+
+👔 **EXECUTIVE ROLE CLASSIFICATION** - Correctly identify roles:
+   - "Chief" / "Director" / "Officer" / "首席" / "總監" / "主管" → Role: "Executive" (NOT Agent/Broker)
+   - "Agent" / "代理" / "營業代表" → Role: "Agent"
+   - "Broker" / "經紀" / "保險經紀" → Role: "Broker"
+   - "Manager" / "經理" → Role: "Manager"
+   - Senior titles (Chief Operating Officer, Chief Executive Officer, etc.) are "Executive" roles
+
 YOUR TASKS:
 
 1. **IDENTIFY ALLEGED SUBJECTS FROM PDF** - Look in the PDF content for who is being complained about:
+   - ⚠️ CRITICAL: Check for Chinese form fields first (受嫌人姓名, 被投訴人, etc.)
+   - If document is whistleblowing/complaint form, extract name from "受嫌人姓名" field
    - Extract BOTH English name AND Chinese name ONLY if EXPLICITLY STATED in the documents
    - Extract agent number, license number, registration number ONLY if EXPLICITLY MENTIONED
-   - Extract company/broker name (保險公司名稱) ONLY if EXPLICITLY MENTIONED
+   - Extract company/broker name (保險公司名稱, 相關機構) ONLY if EXPLICITLY MENTIONED
+   - Extract role/position from "工作部門" or "職位" field if present
    - If multiple people are EXPLICITLY accused, create separate entries for each person
    - If NO person is named, return empty strings for name fields but include the company if mentioned
    - Example with person: "LEUNG SHEUNG MAN EMERSON 梁尚文, Prudential Hong Kong Limited"
    - Example without person: {{"name_english": "", "name_chinese": "", "agent_company_broker": "AXA", "role": "Broker"}}
+   - Example from Chinese form: If you see "受嫌人姓名: Joe Lui" → {{"name_english": "Joe Lui", "name_chinese": "", "role": "Executive"}}
 
 2. **IDENTIFY ALLEGATION TYPE FROM PDF** - Based on PDF content, choose ONE specific category:
    - Cross-border selling (跨境保險招攬)
