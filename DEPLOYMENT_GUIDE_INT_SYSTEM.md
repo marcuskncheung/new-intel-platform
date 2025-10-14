@@ -1,5 +1,23 @@
 # 🚀 INT Reference Number System - Deployment Guide
 
+## ⚡ Quick Start (TL;DR)
+
+```bash
+# 1. Pull latest code
+cd /path/to/new-intel-platform-staging
+git pull origin main
+
+# 2. Run migration (one command!)
+sudo docker exec -it intelligence-app python migrate_add_int_reference.py
+
+# 3. Restart
+sudo docker-compose restart
+
+# ✅ Done! All emails now have INT-001, INT-002, INT-003...
+```
+
+---
+
 ## What's New?
 Your email case management system now has **professional INT reference numbering**:
 - **INT-001, INT-002, INT-003...** for all emails
@@ -19,20 +37,25 @@ cd /path/to/new-intel-platform-staging
 git pull origin main
 ```
 
-### Step 2: Enter Docker Container
+### Step 2: Run Migration Script Directly
 ```bash
-# Find container name
-docker ps
-
-# Enter container
-docker exec -it <container_name> /bin/bash
+# Run migration inside Docker container (one command)
+sudo docker exec -it intelligence-app python migrate_add_int_reference.py
 ```
 
-### Step 3: Run Migration Script
+**Alternative: Enter container shell first**
 ```bash
-# Inside Docker container
-cd /app
+# Find container name (if different from intelligence-app)
+sudo docker ps
+
+# Enter container
+sudo docker exec -it intelligence-app /bin/bash
+
+# Inside container, run migration
 python migrate_add_int_reference.py
+
+# Exit container
+exit
 ```
 
 **Expected Output:**
@@ -63,15 +86,12 @@ python migrate_add_int_reference.py
 ============================================================
 ```
 
-### Step 4: Exit Container & Restart Application
+### Step 3: Restart Application
 ```bash
-# Exit container
-exit
-
-# Restart application
-docker-compose restart
+# Restart Docker container
+sudo docker-compose restart
 # or
-docker restart <container_name>
+sudo docker restart intelligence-app
 ```
 
 ---
@@ -165,19 +185,26 @@ curl http://your-server/int_source/int_reference/100/emails
 ### Problem: Migration fails
 **Solution**: Migration script is idempotent - safe to run multiple times
 ```bash
-python migrate_add_int_reference.py
+sudo docker exec -it intelligence-app python migrate_add_int_reference.py
 ```
 
 ### Problem: INT numbers not showing
 **Solution**: Restart application
 ```bash
-docker-compose restart
+sudo docker-compose restart
 ```
 
 ### Problem: Numbers out of order
 **Solution**: Run reorder command
 ```bash
 curl -X POST http://your-server/int_source/int_reference/reorder_all
+```
+
+### Problem: Permission denied
+**Solution**: Use sudo for Docker commands
+```bash
+sudo docker exec -it intelligence-app python migrate_add_int_reference.py
+sudo docker logs intelligence-app
 ```
 
 ---
@@ -206,7 +233,7 @@ See `INT_REFERENCE_SYSTEM.md` for:
 
 If issues occur:
 1. Check migration output for errors
-2. Check Docker container logs: `docker logs <container_name>`
+2. Check Docker container logs: `sudo docker logs intelligence-app`
 3. Review `INT_REFERENCE_SYSTEM.md` for troubleshooting
 4. Contact development team
 

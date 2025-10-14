@@ -36,11 +36,14 @@ def run_migration():
             print(f"📋 Existing email table columns: {len(columns)}")
             
             # Check if columns already exist
+            # Note: PostgreSQL uses FALSE/TRUE, SQLite uses 0/1 for boolean defaults
+            is_postgresql = database_url.startswith('postgresql')
+            
             new_columns = {
                 'int_reference_number': "VARCHAR(20)",
                 'int_reference_order': "INTEGER",
-                'int_reference_manual': "BOOLEAN DEFAULT 0",
-                'int_reference_updated_at': "DATETIME",
+                'int_reference_manual': f"BOOLEAN DEFAULT {'FALSE' if is_postgresql else '0'}",
+                'int_reference_updated_at': "TIMESTAMP" if is_postgresql else "DATETIME",
                 'int_reference_updated_by': "VARCHAR(100)"
             }
             
