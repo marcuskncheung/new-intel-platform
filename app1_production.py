@@ -1421,6 +1421,87 @@ def edit_alleged_subject_profile(poi_id):
         flash(f"Error editing profile: {str(e)}", "error")
         return redirect(url_for("alleged_subject_list"))
 
+# 🧪 Automation System Test Route
+@app.route("/test_automation")
+@login_required
+def test_automation():
+    """Test the automation system and display results"""
+    try:
+        import alleged_person_automation
+        
+        results = {
+            'database_init': False,
+            'poi_generation': None,
+            'profile_matching': None,
+            'profile_creation': None,
+            'errors': []
+        }
+        
+        # Test 1: Database initialization
+        try:
+            results['database_init'] = alleged_person_automation.initialize_database()
+        except Exception as e:
+            results['errors'].append(f"Database init: {str(e)}")
+        
+        # Test 2: POI ID generation
+        try:
+            results['poi_generation'] = alleged_person_automation.generate_next_poi_id()
+        except Exception as e:
+            results['errors'].append(f"POI generation: {str(e)}")
+        
+        # Test 3: Profile matching
+        try:
+            results['profile_matching'] = alleged_person_automation.find_matching_profile(
+                name_english="Test Person",
+                name_chinese="测试人员"
+            )
+        except Exception as e:
+            results['errors'].append(f"Profile matching: {str(e)}")
+        
+        # Test 4: Profile creation (simulation)
+        try:
+            result = alleged_person_automation.create_or_update_alleged_person_profile(
+                name_english="Web Test Agent",
+                name_chinese="网页测试代理",
+                agent_number="WEB123456",
+                company="Web Test Insurance",
+                role="Agent",
+                source="WEB_TEST"
+            )
+            results['profile_creation'] = result
+        except Exception as e:
+            results['errors'].append(f"Profile creation: {str(e)}")
+        
+        return f"""
+        <html><head><title>🧪 Automation Test Results</title></head>
+        <body style="font-family: monospace; padding: 20px;">
+        <h1>🧪 Automation System Test Results</h1>
+        <h3>Database Initialization: {'✅ SUCCESS' if results['database_init'] else '❌ FAILED'}</h3>
+        <h3>POI ID Generation: {results['poi_generation'] or '❌ FAILED'}</h3>
+        <h3>Profile Matching: {'✅ WORKING' if results['profile_matching'] is not None else '❌ FAILED'}</h3>
+        <h3>Profile Creation: {'✅ SUCCESS' if results['profile_creation'] and results['profile_creation'].get('success') else '❌ FAILED'}</h3>
+        
+        <h2>📊 Detailed Results:</h2>
+        <pre>{str(results)}</pre>
+        
+        <h2>❌ Errors:</h2>
+        <ul>{''.join([f'<li>{error}</li>' for error in results['errors']]) if results['errors'] else '<li>No errors!</li>'}</ul>
+        
+        <p><a href="/alleged_subject_list">← Back to Alleged Subject List</a></p>
+        </body></html>
+        """
+        
+    except Exception as e:
+        return f"""
+        <html><head><title>❌ Automation Test Error</title></head>
+        <body style="font-family: monospace; padding: 20px;">
+        <h1>❌ Automation Test Failed</h1>
+        <p>Error: {str(e)}</p>
+        <pre>{traceback.format_exc()}</pre>
+        <p><a href="/alleged_subject_list">← Back to Alleged Subject List</a></p>
+        </body></html>
+        """
+
 # Example: Create route
 @app.route("/create", methods=["GET", "POST"])
 @login_required

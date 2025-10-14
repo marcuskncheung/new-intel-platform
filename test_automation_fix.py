@@ -19,32 +19,38 @@ try:
     import alleged_person_automation
     print("   ✅ alleged_person_automation module imported successfully")
     
-    # Test 2: Test database initialization
-    print("\n🗄️  Testing database initialization...")
-    db_success = alleged_person_automation.initialize_database()
-    if db_success:
-        print("   ✅ Database initialized successfully")
-        print("   ✅ Models available: AllegedPersonProfile, EmailAllegedPersonLink")
-    else:
-        print("   ❌ Database initialization failed")
-        
-    # Test 3: Test POI ID generation
-    print("\n🆔 Testing POI ID generation...")
-    test_poi_id = alleged_person_automation.generate_next_poi_id()
-    print(f"   ✅ Generated POI ID: {test_poi_id}")
+    # Test 2: Import Flask app for application context
+    print("\n🌐 Setting up Flask application context...")
+    from app1_production import app
+    print("   ✅ Flask app imported successfully")
     
-    # Test 4: Test profile matching (simulation)
-    print("\n🔍 Testing profile matching...")
-    test_match = alleged_person_automation.find_matching_profile(
-        name_english="Test Person",
-        name_chinese="测试人员"
-    )
-    if test_match is None:
-        print("   ✅ Profile matching working (no matches found as expected)")
-    else:
-        print(f"   ✅ Profile matching working (found: {test_match})")
+    # Test 3: Test database initialization within app context
+    print("\n🗄️  Testing database initialization...")
+    with app.app_context():
+        db_success = alleged_person_automation.initialize_database()
+        if db_success:
+            print("   ✅ Database initialized successfully")
+            print("   ✅ Models available: AllegedPersonProfile, EmailAllegedPersonLink")
+        else:
+            print("   ❌ Database initialization failed")
+            
+        # Test 4: Test POI ID generation
+        print("\n🆔 Testing POI ID generation...")
+        test_poi_id = alleged_person_automation.generate_next_poi_id()
+        print(f"   ✅ Generated POI ID: {test_poi_id}")
         
-    # Test 5: Test automation system status
+        # Test 5: Test profile matching
+        print("\n🔍 Testing profile matching...")
+        test_match = alleged_person_automation.find_matching_profile(
+            name_english="Test Person",
+            name_chinese="测试人员"
+        )
+        if test_match is None:
+            print("   ✅ Profile matching working (no matches found as expected)")
+        else:
+            print(f"   ✅ Profile matching working (found: {test_match})")
+            
+    # Test 6: Test automation system status
     print("\n🤖 Testing automation system status...")
     if hasattr(alleged_person_automation, 'process_ai_analysis_results'):
         print("   ✅ AI integration function available")
