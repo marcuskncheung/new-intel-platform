@@ -416,11 +416,16 @@
     letter-spacing: 0.5px;
     border-bottom: 2px solid #dee2e6;
     padding: 1rem;
+    color: #212529; /* Light mode: dark text */
 }
 
 .allegation-row {
     border-bottom: 1px solid #f0f0f0;
     transition: background-color 0.2s ease;
+}
+
+.allegation-row td {
+    color: #495057; /* Light mode: readable text */
 }
 
 .allegation-row:hover {
@@ -869,6 +874,45 @@
 
 [data-bs-theme="dark"] .bi-circle-fill.text-secondary {
     color: #6e7681 !important;
+}
+
+/* ========================================
+   LIGHT MODE FIXES - Ensure Visibility
+   ======================================== */
+
+/* Light Mode: Profile Information Card */
+.card-body .table th {
+    color: #212529 !important;
+    font-weight: 600;
+}
+
+.card-body .table td {
+    color: #495057 !important;
+}
+
+.card-body .table td strong {
+    color: #212529 !important;
+}
+
+/* Light Mode: Card Headers */
+.card-header.bg-primary {
+    color: #ffffff !important;
+}
+
+.card-header.bg-primary h5 {
+    color: #ffffff !important;
+}
+
+/* Light Mode: Stat Cards Text */
+.stat-card .card-body h3,
+.stat-card .card-body p {
+    color: #212529 !important;
+}
+
+/* Light Mode: Profile Header */
+.profile-header-card .profile-poi-id,
+.profile-header-card .profile-name {
+    color: #212529 !important;
 }
 
 </style>
