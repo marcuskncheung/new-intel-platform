@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <!-- Profile Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-person-badge-fill text-primary"></i> {{ profile.poi_id }}</h2>
+            <h4>
+                {% if profile.name_english %}{{ profile.name_english }}{% endif %}
+                {% if profile.name_chinese %}
+                    {% if profile.name_english %} / {% endif %}{{ profile.name_chinese }}
+                {% endif %}
+                {% if not profile.name_english and not profile.name_chinese %}Unknown{% endif %}
+            </h4>
+            <p class="text-muted mb-0">Automated Alleged Person Profile</p>
+        </div>
+        <div>
+            <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+    
+    <!-- Profile Information Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-person-badge"></i> Profile Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">English Name:</th>
+                            <td><strong>{{ profile.name_english or "N/A" }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Chinese Name:</th>
+                            <td><strong>{{ profile.name_chinese or "N/A" }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Agent Number:</th>
+                            <td>{{ profile.agent_number or "N/A" }}</td>
+                        </tr>
+                        <tr>
+                            <th>License Number:</th>
+                            <td>{{ profile.license_number or "N/A" }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Company:</th>
+                            <td>{{ profile.company or "N/A" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Role:</th>
+                            <td>{{ profile.role or "N/A" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge {% if profile.status == 'ACTIVE' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ profile.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created By:</th>
+                            <td>
+                                <span class="badge bg-info">{{ profile.created_by }}</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="p-3">
+                        <h3 class="text-primary mb-0">{{ profile.email_count }}</h3>
+                        <small class="text-muted">Linked Emails</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3">
+                        <h6 class="mb-0">{{ profile.created_at }}</h6>
+                        <small class="text-muted">Profile Created</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3">
+                        <h6 class="mb-0">{{ profile.first_mentioned_date }}</h6>
+                        <small class="text-muted">First Mentioned</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3">
+                        <h6 class="mb-0">{{ profile.last_mentioned_date }}</h6>
+                        <small class="text-muted">Last Mentioned</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Linked Emails Card -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">
+                <i class="bi bi-envelope-fill"></i> Linked Emails 
+                <span class="badge bg-dark">{{ profile.linked_emails|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if profile.linked_emails %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Sender</th>
+                                <th>Nature</th>
+                                <th>Confidence</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for email in profile.linked_emails %}
+                            <tr>
+                                <td><small>{{ email.received }}</small></td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 300px;">
+                                        {{ email.subject }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;">
+                                        <small>{{ email.sender }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if email.alleged_nature %}
+                                        <span class="badge bg-secondary">{{ email.alleged_nature }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if email.confidence %}
+                                        <span class="badge bg-info">{{ (email.confidence * 100)|round|int }}%</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('int_source_email_detail', email_id=email.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> No emails linked to this profile yet.
+                    <p class="mb-0 mt-2"><small>This profile may have been created manually or emails haven't been linked yet.</small></p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.table-borderless th {
+    padding: 0.5rem 0.5rem 0.5rem 0;
+    font-weight: 600;
+    color: #6c757d;
+}
+.table-borderless td {
+    padding: 0.5rem 0;
+}
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+}
+</style>
+{% endblock %}

@@ -1322,6 +1322,118 @@ def alleged_subject_list():
                                  targets=[],
                                  automation_enabled=False)
 
+@app.route("/alleged_person_profile/<int:profile_id>")
+@login_required  
+def view_alleged_person_profile(profile_id):
+    """
+    View details of an automated alleged person profile by database ID
+    Shows: POI ID, names, agent info, and all emails alleging this person
+    """
+    try:
+        profile = AllegedPersonProfile.query.get_or_404(profile_id)
+        
+        # Get all emails linked to this profile
+        links = EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile_id).all()
+        linked_emails = []
+        
+        for link in links:
+            email = Email.query.get(link.email_id)
+            if email:
+                linked_emails.append({
+                    'id': email.id,
+                    'subject': email.subject,
+                    'sender': email.sender,
+                    'received': email.received.strftime("%Y-%m-%d %H:%M") if email.received else "N/A",
+                    'alleged_nature': email.alleged_nature,
+                    'confidence': link.confidence
+                })
+        
+        # Build profile data for template
+        profile_data = {
+            'id': profile.id,
+            'poi_id': profile.poi_id,
+            'name_english': profile.name_english,
+            'name_chinese': profile.name_chinese,
+            'agent_number': profile.agent_number,
+            'license_number': profile.license_number,
+            'company': profile.company,
+            'role': profile.role,
+            'email_count': profile.email_count,
+            'created_at': profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "N/A",
+            'created_by': profile.created_by,
+            'first_mentioned_date': profile.first_mentioned_date.strftime("%Y-%m-%d") if profile.first_mentioned_date else "N/A",
+            'last_mentioned_date': profile.last_mentioned_date.strftime("%Y-%m-%d") if profile.last_mentioned_date else "N/A",
+            'status': profile.status,
+            'linked_emails': linked_emails
+        }
+        
+        return render_template("poi_profile_detail.html", profile=profile_data)
+        
+    except Exception as e:
+        print(f"[PROFILE DETAIL] ❌ Error loading profile {profile_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error loading profile: {str(e)}", "error")
+        return redirect(url_for('alleged_subject_list'))
+
+@app.route("/create_alleged_person_profile", methods=["GET", "POST"])
+@login_required
+def create_alleged_person_profile():
+    """
+    Create a new automated alleged person profile manually
+    This is an alternative to automatic creation via AI/email processing
+    """
+    if request.method == "POST":
+        try:
+            # Get form data
+            name_english = request.form.get("name_english", "").strip()
+            name_chinese = request.form.get("name_chinese", "").strip()
+            agent_number = request.form.get("agent_number", "").strip()
+            license_number = request.form.get("license_number", "").strip()
+            company = request.form.get("company", "").strip()
+            role = request.form.get("role", "").strip()
+            
+            # Validate at least one name is provided
+            if not name_english and not name_chinese:
+                flash("Please provide at least an English or Chinese name", "error")
+                return render_template("create_alleged_profile.html")
+            
+            # Import automation function with models
+            from alleged_person_automation import create_or_update_alleged_person_profile
+            
+            # Create profile using automation system
+            result = create_or_update_alleged_person_profile(
+                db, AllegedPersonProfile, EmailAllegedPersonLink,
+                name_english=name_english,
+                name_chinese=name_chinese,
+                agent_number=agent_number,
+                license_number=license_number,
+                company=company,
+                role=role,
+                email_id=None,  # No email link for manual creation
+                source="MANUAL_CREATE",
+                update_mode="merge"
+            )
+            
+            if result.get('success'):
+                poi_id = result.get('poi_id')
+                action = result.get('action')
+                flash(f"Profile {poi_id} {action} successfully!", "success")
+                return redirect(url_for('view_alleged_person_profile', profile_id=result.get('profile_id')))
+            else:
+                flash(f"Error creating profile: {result.get('error', 'Unknown error')}", "error")
+                return render_template("create_alleged_profile.html")
+                
+        except Exception as e:
+            print(f"[CREATE PROFILE] ❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(f"Error creating profile: {str(e)}", "error")
+            return render_template("create_alleged_profile.html")
+    
+    # GET request - show form
+    return render_template("create_alleged_profile.html")
+
 @app.route("/alleged_subject_profile/<poi_id>")
 @login_required
 def alleged_subject_profile_detail(poi_id):
