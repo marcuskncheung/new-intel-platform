@@ -137,7 +137,7 @@ def generate_int_numbers(conn, database_url):
                     UPDATE email 
                     SET int_reference_number = :int_number,
                         int_reference_order = :order,
-                        int_reference_manual = 0,
+                        int_reference_manual = FALSE,
                         int_reference_updated_at = :now
                     WHERE id = :email_id
                 """), {
