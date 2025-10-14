@@ -15,32 +15,6 @@ from typing import Dict, List, Tuple, Optional
 from sqlalchemy import func, or_, and_
 import difflib
 
-# Database integration - Lazy loading to avoid circular imports
-DATABASE_AVAILABLE = False
-db = None
-AllegedPersonProfile = None
-EmailAllegedPersonLink = None
-Email = None
-
-def initialize_database():
-    """Initialize database models - called when needed to avoid circular imports"""
-    global DATABASE_AVAILABLE, db, AllegedPersonProfile, EmailAllegedPersonLink, Email
-    
-    if DATABASE_AVAILABLE:
-        return True
-        
-    try:
-        from app1_production import db as _db, AllegedPersonProfile as _AllegedPersonProfile, EmailAllegedPersonLink as _EmailAllegedPersonLink, Email as _Email
-        db = _db
-        AllegedPersonProfile = _AllegedPersonProfile
-        EmailAllegedPersonLink = _EmailAllegedPersonLink
-        Email = _Email
-        DATABASE_AVAILABLE = True
-        return True
-    except ImportError as e:
-        print(f"WARNING: Database models not available - automation will run in simulation mode: {e}")
-        return False
-
 def normalize_name_for_matching(name: str) -> str:
     """
     Normalize name for duplicate detection
@@ -100,19 +74,19 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     
     return similarity
 
-def generate_next_poi_id() -> str:
+def generate_next_poi_id(db, AllegedPersonProfile) -> str:
     """
     Generate next sequential POI ID (POI-001, POI-002, etc.)
     
+    Args:
+        db: SQLAlchemy database instance from Flask app
+        AllegedPersonProfile: AllegedPersonProfile model class
+        
     Queries existing profiles to find the highest number and increment.
-    Called from Flask routes that already have active app context.
+    Uses db and models passed from Flask route handlers with active app context.
     """
-    if not initialize_database():
-        timestamp = datetime.now().strftime("%y%m%d%H%M")
-        return f"POI-{timestamp}"
-    
     try:
-        # Query database directly - Flask app context already active when called from routes
+        # Query database using passed db instance - already has active Flask app context
         highest_poi = db.session.query(AllegedPersonProfile.poi_id).filter(
             AllegedPersonProfile.poi_id.like('POI-%')
         ).order_by(AllegedPersonProfile.poi_id.desc()).first()
@@ -132,20 +106,26 @@ def generate_next_poi_id() -> str:
     
     except Exception as e:
         print(f"[POI ID GENERATION] Error: {e}")
-        timestamp = datetime.now().strftime("%y%m%d%H%M")
-        return f"POI-{timestamp}"
-    except Exception as e:
-        print(f"[POI ID GENERATION] Error: {e}")
         # Fallback to timestamp-based ID
         timestamp = datetime.now().strftime("%y%m%d%H%M")
         return f"POI-{timestamp}"
 
-def find_matching_profile(name_english: str, name_chinese: str, 
+def find_matching_profile(db, AllegedPersonProfile, 
+                         name_english: str, name_chinese: str,
                          agent_number: str = None, company: str = None,
                          similarity_threshold: float = 0.85) -> Optional[Dict]:
     """
     Find existing profile that matches the given person details
     
+    Args:
+        db: SQLAlchemy database instance from Flask app
+        AllegedPersonProfile: AllegedPersonProfile model class
+        name_english: English name to match
+        name_chinese: Chinese name to match
+        agent_number: Optional agent/license number
+        company: Optional company name
+        similarity_threshold: Minimum similarity score (0.0-1.0)
+        
     Returns:
         Dict with profile info if match found, None otherwise
         
@@ -157,11 +137,7 @@ def find_matching_profile(name_english: str, name_chinese: str,
     """
     
     try:
-        if not initialize_database():
-            print("[PROFILE MATCHING] Database not available")
-            return None
-        
-        # Database queries work directly - Flask app context already active from route handler
+        # Use passed models - already has active Flask app context from route handler
         # 1. Try exact agent number match first (most reliable)
         if agent_number and agent_number.strip():
             exact_match = AllegedPersonProfile.query.filter_by(
@@ -215,7 +191,7 @@ def find_matching_profile(name_english: str, name_chinese: str,
                 print(f"[PROFILE MATCHING] ✅ Found similarity match: {best_match.poi_id} (similarity: {best_similarity:.3f})")
                 return best_match.to_dict()
         
-        print(f"[PROFILE MATCHING] No matching profiles found")
+        print("[PROFILE MATCHING] No matching profiles found")
         return None
         
     except Exception as e:
@@ -225,6 +201,7 @@ def find_matching_profile(name_english: str, name_chinese: str,
         return None
 
 def create_or_update_alleged_person_profile(
+    db, AllegedPersonProfile, EmailAllegedPersonLink,
     name_english: str,
     name_chinese: str = "",
     agent_number: str = "",
@@ -239,6 +216,9 @@ def create_or_update_alleged_person_profile(
     Create new alleged person profile or update existing one
     
     Args:
+        db: SQLAlchemy database instance from Flask app
+        AllegedPersonProfile: AllegedPersonProfile model class
+        EmailAllegedPersonLink: EmailAllegedPersonLink model class
         name_english: English name of alleged person
         name_chinese: Chinese name of alleged person  
         agent_number: Agent/license number if available
@@ -259,6 +239,7 @@ def create_or_update_alleged_person_profile(
     try:
         # 1. Check for existing profile
         existing_profile = find_matching_profile(
+            db, AllegedPersonProfile,
             name_english=name_english,
             name_chinese=name_chinese,
             agent_number=agent_number,
@@ -297,33 +278,9 @@ def create_or_update_alleged_person_profile(
         
         else:
             # 2. Create new profile
-            new_poi_id = generate_next_poi_id()
+            new_poi_id = generate_next_poi_id(db, AllegedPersonProfile)
             
             print(f"[ALLEGED PERSON AUTOMATION] 🆕 Creating new profile: {new_poi_id}")
-            
-            if not initialize_database():
-                # Simulation mode
-                new_profile = {
-                    'poi_id': new_poi_id,
-                    'name_english': name_english,
-                    'name_chinese': name_chinese,
-                    'agent_number': agent_number,
-                    'license_number': license_number,
-                    'company': company,
-                    'role': role,
-                    'created_at': datetime.now(timezone.utc),
-                    'created_by': source,
-                    'email_count': 1 if email_id else 0
-                }
-                
-                return {
-                    'success': True,
-                    'action': 'created',
-                    'poi_id': new_poi_id,
-                    'profile_id': 'sim_id',
-                    'profile': new_profile,
-                    'message': f'Created new profile {new_poi_id} (simulation mode)'
-                }
             
             # Create normalized name for duplicate detection
             name_parts = []
@@ -356,7 +313,7 @@ def create_or_update_alleged_person_profile(
             
             # Create email link if email_id provided
             if email_id:
-                link_created = link_email_to_profile(email_id, new_poi_id, new_profile.id)
+                link_created = link_email_to_profile(db, EmailAllegedPersonLink, email_id, new_poi_id, new_profile.id)
                 if link_created:
                     new_profile.email_count = 1
             
@@ -380,7 +337,8 @@ def create_or_update_alleged_person_profile(
             'message': 'Failed to process alleged person profile'
         }
 
-def process_ai_analysis_results(analysis_result: Dict, email_id: int) -> List[Dict]:
+def process_ai_analysis_results(db, AllegedPersonProfile, EmailAllegedPersonLink, 
+                               analysis_result: Dict, email_id: int) -> List[Dict]:
     """
     Process AI analysis results and auto-create/update alleged person profiles
     
@@ -388,6 +346,9 @@ def process_ai_analysis_results(analysis_result: Dict, email_id: int) -> List[Di
     for any alleged persons identified.
     
     Args:
+        db: SQLAlchemy database instance from Flask app
+        AllegedPersonProfile: AllegedPersonProfile model class
+        EmailAllegedPersonLink: EmailAllegedPersonLink model class
         analysis_result: Result from IntelligenceAI.analyze_allegation_email_comprehensive()
         email_id: ID of the email that was analyzed
         
@@ -417,6 +378,7 @@ def process_ai_analysis_results(analysis_result: Dict, email_id: int) -> List[Di
             
             # Create or update profile
             result = create_or_update_alleged_person_profile(
+                db, AllegedPersonProfile, EmailAllegedPersonLink,
                 name_english=name_english,
                 name_chinese=name_chinese,
                 agent_number=agent_number,
@@ -442,7 +404,8 @@ def process_ai_analysis_results(analysis_result: Dict, email_id: int) -> List[Di
         print(f"[ALLEGED PERSON AUTOMATION] ❌ Error processing AI results: {e}")
         return [{'success': False, 'error': str(e)}]
 
-def process_manual_input(email_id: int, alleged_subject_english: str, 
+def process_manual_input(db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        email_id: int, alleged_subject_english: str, 
                         alleged_subject_chinese: str = "", 
                         additional_info: Dict = None) -> List[Dict]:
     """
@@ -452,6 +415,9 @@ def process_manual_input(email_id: int, alleged_subject_english: str,
     in email forms or edit pages.
     
     Args:
+        db: SQLAlchemy database instance from Flask app
+        AllegedPersonProfile: AllegedPersonProfile model class
+        EmailAllegedPersonLink: EmailAllegedPersonLink model class
         email_id: ID of the email
         alleged_subject_english: Manually entered English names (comma-separated)
         alleged_subject_chinese: Manually entered Chinese names (comma-separated)
@@ -498,6 +464,7 @@ def process_manual_input(email_id: int, alleged_subject_english: str,
         
         for name_english, name_chinese in name_pairs:
             result = create_or_update_alleged_person_profile(
+                db, AllegedPersonProfile, EmailAllegedPersonLink,
                 name_english=name_english,
                 name_chinese=name_chinese,
                 agent_number=additional_info.get('agent_number', ''),
@@ -516,21 +483,26 @@ def process_manual_input(email_id: int, alleged_subject_english: str,
         print(f"[ALLEGED PERSON AUTOMATION] ❌ Error processing manual input: {e}")
         return [{'success': False, 'error': str(e)}]
 
-def link_email_to_profile(email_id: int, poi_id: str, profile_id: int = None) -> bool:
+def link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile,
+                         email_id: int, poi_id: str, profile_id: int = None) -> bool:
     """
     Create a link between an email and an alleged person profile
     
+    Args:
+        db: SQLAlchemy database instance from Flask app
+        EmailAllegedPersonLink: EmailAllegedPersonLink model class
+        AllegedPersonProfile: AllegedPersonProfile model class
+        email_id: ID of the email
+        poi_id: POI ID (e.g., POI-001)
+        profile_id: Optional profile database ID
+        
     This maintains the many-to-many relationship so we can:
     - See all emails alleging a specific person
     - See all alleged persons mentioned in a specific email
     """
     
     try:
-        if not initialize_database():
-            print(f"[EMAIL-PROFILE LINKING] Simulating link: email {email_id} to profile {poi_id}")
-            return True
-        
-        # Flask app context already active from route handler
+        # Use passed models - Flask app context already active from route handler
         # Get profile ID if not provided
         if not profile_id:
             profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()

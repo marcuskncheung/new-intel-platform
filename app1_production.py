@@ -5489,7 +5489,9 @@ def int_source_update_assessment(email_id):
                     additional_info['role'] = intermediary_info[0]  # Use first type as role
                 
                 # Process manual input and auto-create profiles
+                # Pass db and models from Flask app context
                 profile_results = process_manual_input(
+                    db, AllegedPersonProfile, EmailAllegedPersonLink,
                     email_id=email.id,
                     alleged_subject_english=', '.join(processed_english),
                     alleged_subject_chinese=', '.join(processed_chinese),
@@ -7027,7 +7029,11 @@ def ai_comprehensive_analyze_email(email_id):
                     print(f"[AUTOMATION] 🚀 Auto-creating profiles for {len(alleged_persons)} alleged persons from email {email_id}")
                     
                     # Process AI analysis results and auto-create profiles
-                    profile_results = process_ai_analysis_results(analysis, email_id)
+                    # Pass db and models from Flask app context
+                    profile_results = process_ai_analysis_results(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        analysis, email_id
+                    )
                     
                     # Log results
                     created_count = sum(1 for r in profile_results if r.get('action') == 'created')
