@@ -219,10 +219,14 @@ def show_migration_status():
             
             # Check automation module
             try:
-                from alleged_person_automation import DATABASE_AVAILABLE
-                print(f"\n🤖 Automation Module: {'✅ LOADED' if DATABASE_AVAILABLE else '❌ NOT AVAILABLE'}")
-            except ImportError:
-                print(f"\n🤖 Automation Module: ❌ IMPORT ERROR")
+                import alleged_person_automation
+                # Test if automation can initialize database properly
+                db_init_success = alleged_person_automation.initialize_database()
+                print(f"\n🤖 Automation Module: {'✅ AVAILABLE' if db_init_success else '❌ NOT AVAILABLE'}")
+            except ImportError as e:
+                print(f"\n🤖 Automation Module: ❌ IMPORT ERROR - {e}")
+            except Exception as e:
+                print(f"\n🤖 Automation Module: ❌ INITIALIZATION ERROR - {e}")
             
             return profile_exists and link_exists
             

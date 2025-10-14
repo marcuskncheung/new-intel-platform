@@ -1427,7 +1427,19 @@ def edit_alleged_subject_profile(poi_id):
 def test_automation():
     """Test the automation system and display results"""
     try:
-        import alleged_person_automation
+        # Check if automation is available
+        try:
+            import alleged_person_automation
+        except ImportError:
+            return """
+            <html><head><title>❌ Automation Not Available</title></head>
+            <body style="font-family: monospace; padding: 20px;">
+            <h1>❌ Automation Module Not Available</h1>
+            <p>The alleged_person_automation module could not be imported.</p>
+            <p>Make sure the automation system is properly installed.</p>
+            <p><a href="/alleged_subject_list">← Back to Alleged Subject List</a></p>
+            </body></html>
+            """
         
         results = {
             'database_init': False,
