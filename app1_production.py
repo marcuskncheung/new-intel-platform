@@ -5669,21 +5669,46 @@ def int_source_update_assessment(email_id):
                 print(f"[MANUAL AUTOMATION] 🚀 Auto-creating profiles for manually entered alleged persons from email {email.id}")
                 
                 # Prepare additional info from form data
-                additional_info = {}
-                if license_info:
-                    additional_info['agent_number'] = license_info[0]  # Use first license as agent number
-                if intermediary_info:
-                    additional_info['role'] = intermediary_info[0]  # Use first type as role
+                # Each alleged person can have their own license info
+                # We'll match them up by index
+                additional_info_list = []
+                for i in range(max_len):
+                    person_info = {}
+                    
+                    # Get license number and type for this person
+                    if i < len(license_info) and license_info[i]:
+                        person_info['license_number'] = license_info[i]
+                        person_info['agent_number'] = license_info[i]  # Also set agent_number for compatibility
+                    
+                    if i < len(intermediary_info) and intermediary_info[i]:
+                        person_info['role'] = intermediary_info[i]  # Agent, Broker, etc.
+                    
+                    additional_info_list.append(person_info)
                 
                 # Process manual input and auto-create profiles
                 # Pass db and models from Flask app context
-                profile_results = process_manual_input(
-                    db, AllegedPersonProfile, EmailAllegedPersonLink,
-                    email_id=email.id,
-                    alleged_subject_english=', '.join(processed_english),
-                    alleged_subject_chinese=', '.join(processed_chinese),
-                    additional_info=additional_info
-                )
+                # Now process each person with their specific license info
+                profile_results = []
+                
+                for i in range(max_len):
+                    english_name = processed_english[i] if i < len(processed_english) else ""
+                    chinese_name = processed_chinese[i] if i < len(processed_chinese) else ""
+                    person_additional_info = additional_info_list[i] if i < len(additional_info_list) else {}
+                    
+                    # Skip if both names are empty
+                    if not english_name and not chinese_name:
+                        continue
+                    
+                    # Process this specific person
+                    result = process_manual_input(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        email_id=email.id,
+                        alleged_subject_english=english_name,
+                        alleged_subject_chinese=chinese_name,
+                        additional_info=person_additional_info
+                    )
+                    
+                    profile_results.extend(result)
                 
                 # Log results
                 created_count = sum(1 for r in profile_results if r.get('action') == 'created')

@@ -45,7 +45,7 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     Calculate similarity between two names (0.0 to 1.0)
     
     Uses different strategies:
-    - Exact match for Chinese names
+    - Exact match for Chinese names (very strict)
     - Fuzzy matching for English names
     - Handles name variations and common misspellings
     """
@@ -55,10 +55,33 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     norm1 = normalize_name_for_matching(name1)
     norm2 = normalize_name_for_matching(name2)
     
+    # Exact match - perfect score
     if norm1 == norm2:
         return 1.0
     
-    # Use difflib for fuzzy matching
+    # Check if both are Chinese names (contain Chinese characters)
+    is_chinese1 = bool(re.search(r'[\u4e00-\u9fff]', norm1))
+    is_chinese2 = bool(re.search(r'[\u4e00-\u9fff]', norm2))
+    
+    if is_chinese1 and is_chinese2:
+        # For Chinese names, use stricter exact character matching
+        # Chinese names are typically 2-4 characters, so high precision needed
+        if norm1 == norm2:
+            return 1.0
+        
+        # Check if one name contains the other (partial match)
+        if norm1 in norm2 or norm2 in norm1:
+            return 0.9
+        
+        # Character-by-character comparison for Chinese
+        common_chars = set(norm1) & set(norm2)
+        if common_chars:
+            char_similarity = len(common_chars) / max(len(set(norm1)), len(set(norm2)))
+            return char_similarity * 0.8  # Penalize partial matches
+        
+        return 0.0  # Different Chinese names
+    
+    # Use difflib for fuzzy matching (English names)
     similarity = difflib.SequenceMatcher(None, norm1, norm2).ratio()
     
     # Boost similarity for partial name matches
@@ -70,7 +93,7 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
         common_words = words1.intersection(words2)
         word_similarity = len(common_words) / max(len(words1), len(words2))
         # Combine character and word similarity
-        similarity = max(similarity, word_similarity * 0.8)
+        similarity = max(similarity, word_similarity * 0.85)
     
     return similarity
 
@@ -170,18 +193,31 @@ def find_matching_profile(db, AllegedPersonProfile,
                 if name_chinese and profile.name_chinese:
                     chi_similarity = calculate_name_similarity(name_chinese, profile.name_chinese)
                 
-                # Use the higher similarity score
-                overall_similarity = max(eng_similarity, chi_similarity)
+                # STRATEGY: If BOTH names are provided and match, it's very likely the same person
+                if name_english and name_chinese and profile.name_english and profile.name_chinese:
+                    # Both English and Chinese names provided - check if they match
+                    if eng_similarity >= 0.85 and chi_similarity >= 0.85:
+                        # Both names match well - definitely same person!
+                        overall_similarity = 1.0
+                        print(f"[PROFILE MATCHING] 🎯 Strong match: {profile.poi_id} - EN:{eng_similarity:.3f} CN:{chi_similarity:.3f}")
+                    elif eng_similarity >= 0.85 or chi_similarity >= 0.85:
+                        # One name matches strongly, the other exists but doesn't match as well
+                        # This could be a partial match or name variation
+                        overall_similarity = max(eng_similarity, chi_similarity) * 0.9
+                    else:
+                        # Neither name matches well enough
+                        overall_similarity = max(eng_similarity, chi_similarity)
+                else:
+                    # Only one name provided or profile has only one name
+                    # Use the higher similarity score
+                    overall_similarity = max(eng_similarity, chi_similarity)
                 
-                # Boost score if both English and Chinese names match well
-                if eng_similarity > 0.7 and chi_similarity > 0.7:
-                    overall_similarity = min(1.0, (eng_similarity + chi_similarity) / 2 + 0.2)
-                
-                # Boost score if company also matches
+                # Boost score if company also matches (additional confidence)
                 if company and profile.company:
                     company_similarity = calculate_name_similarity(company, profile.company)
                     if company_similarity > 0.8:
-                        overall_similarity = min(1.0, overall_similarity + 0.1)
+                        overall_similarity = min(1.0, overall_similarity + 0.05)
+                        print(f"[PROFILE MATCHING] 🏢 Company match boost: {profile.company}")
                 
                 if overall_similarity > best_similarity and overall_similarity >= similarity_threshold:
                     best_similarity = overall_similarity
