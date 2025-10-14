@@ -430,11 +430,17 @@ ANALYSIS INSTRUCTIONS:
 - Example: If the document only mentions "AXA" without any person's name, return:
   {{"name_english": "", "name_chinese": "", "agent_company_broker": "AXA", "role": "Broker"}}
 
-🔍 **CHINESE FORM FIELD RECOGNITION** - Many documents are Chinese whistleblowing or investigation forms. Look for these specific field labels:
+� **CRITICAL INSTRUCTION - PDF CONTENT PRIORITY:**
+   - The EMAIL BODY often just says "forwarding" or references case numbers
+   - The PDF ATTACHMENT contains the ACTUAL complaint details!
+   - Base your analysis on the PDF ATTACHMENT content, NOT the email forwarding text
+   - Ignore email body if it's just administrative forwarding - focus on PDF!
+
+�🔍 **CHINESE FORM FIELD RECOGNITION** - Many documents are Chinese whistleblowing or investigation forms. Look for these specific field labels:
    - "受嫌人姓名" / "被告人" / "涉事人" / "被投訴人" = Alleged Person Name (THIS IS WHO IS ACCUSED!)
-   - "相關機構" / "所屬機構" / "公司" = Company/Organization  
-   - "工作部門" / "職位" / "職級" = Department/Role/Position
-   - "指控" / "投訴事項" / "違規行為" = Allegation/Complaint Type
+   - "相關機構" / "所屬機構" / "公司" / "所屬公司" = Company/Organization  
+   - "工作部門" / "職位" / "職級" / "部門" = Department/Role/Position
+   - "指控" / "投訴事項" / "違規行為" / "指責" = Allegation/Complaint Type
    - When you see these fields, the person named AFTER the field label is the alleged person, NOT the recipient!
 
 📋 **DOCUMENT TYPE CLASSIFICATION** - Identify the document type:
@@ -449,6 +455,13 @@ ANALYSIS INSTRUCTIONS:
    - "Broker" / "經紀" / "保險經紀" → Role: "Broker"
    - "Manager" / "經理" → Role: "Manager"
    - Senior titles (Chief Operating Officer, Chief Executive Officer, etc.) are "Executive" roles
+
+💰 **BRIBERY & CORRUPTION DETECTION** - Recognize these serious allegations:
+   - "賄賂" / "貪污" / "回佣" / "kickback" / "bribery" / "corruption" → Allegation Type: "Breach of duty" or "Professional misconduct"
+   - "利益衝突" / "conflict of interest" → Allegation Type: "Breach of duty"
+   - "機密資訊牟利" / "using confidential info for profit" → Allegation Type: "Breach of duty"
+   - "濫用職權" / "abuse of power" → Allegation Type: "Professional misconduct"
+   - These are SERIOUS allegations - extract ALL details from PDF!
 
 YOUR TASKS:
 
@@ -475,19 +488,21 @@ YOUR TASKS:
    - Cold calling (未經同意推銷)
    - Pyramid scheme (傳銷)
    - Fraudulent claims (欺詐索償)
-   - Breach of duty (違反責任)
+   - **Breach of duty (違反責任) - USE THIS for bribery, corruption, misuse of confidential info, conflict of interest**
    - Money laundering (洗錢)
    - Identity theft (身份盜竊)
    - Regulatory violation (違反規例)
    - Consumer complaint (消費者投訴)
-   - Professional misconduct (專業失當)
+   - **Professional misconduct (專業失當) - USE THIS for abuse of power, improper conduct by executives**
    - Other
 
 3. **WRITE ALLEGATION SUMMARY BASED ON PDF** - Write a clear, concise summary (2-4 sentences in English) focusing on what the PDF attachment reveals:
+   - ⚠️ CRITICAL: Summarize the PDF ATTACHMENT content, NOT the email forwarding text!
    - What specific allegations are made in the PDF document?
    - Who is being complained about according to the PDF?
    - What evidence or details are provided in the PDF?
    - Include specific names, dates, amounts, or case references from the PDF
+   - For bribery/corruption cases, mention the specific misconduct alleged
    - Keep it factual and precise for regulators to quickly understand
 
 IMPORTANT: 
