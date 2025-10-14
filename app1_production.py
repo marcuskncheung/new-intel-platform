@@ -1335,19 +1335,32 @@ def view_alleged_person_profile(profile_id):
         # Get all emails linked to this profile
         links = EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile_id).all()
         linked_emails = []
+        email_dates = []  # Collect email dates for first/last calculation
         
         for link in links:
             email = Email.query.get(link.email_id)
             if email:
                 # Handle received date - it's stored as string in database
                 received_str = "N/A"
+                received_dt = None
+                
                 if email.received:
                     if hasattr(email.received, 'strftime'):
                         # It's a datetime object
                         received_str = email.received.strftime("%Y-%m-%d %H:%M")
+                        received_dt = email.received
                     else:
                         # It's already a string, use it directly (trim if too long)
                         received_str = str(email.received)[:16] if len(str(email.received)) > 16 else str(email.received)
+                        # Try to parse string to datetime for comparison
+                        try:
+                            from datetime import datetime
+                            received_dt = datetime.strptime(str(email.received)[:16], "%Y-%m-%d %H:%M")
+                        except:
+                            received_dt = None
+                
+                if received_dt:
+                    email_dates.append(received_dt)
                 
                 linked_emails.append({
                     'id': email.id,
@@ -1355,8 +1368,19 @@ def view_alleged_person_profile(profile_id):
                     'sender': email.sender,
                     'received': received_str,
                     'alleged_nature': email.alleged_nature,
+                    'allegation_summary': email.allegation_summary,
                     'confidence': link.confidence
                 })
+        
+        # Calculate first and last allegation dates from actual email dates
+        first_allegation_date = "N/A"
+        last_allegation_date = "N/A"
+        
+        if email_dates:
+            first_dt = min(email_dates)
+            last_dt = max(email_dates)
+            first_allegation_date = first_dt.strftime("%Y-%m-%d %H:%M")
+            last_allegation_date = last_dt.strftime("%Y-%m-%d %H:%M")
         
         # Build profile data for template
         profile_data = {
@@ -1371,8 +1395,8 @@ def view_alleged_person_profile(profile_id):
             'email_count': profile.email_count,
             'created_at': profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "N/A",
             'created_by': profile.created_by,
-            'first_mentioned_date': profile.first_mentioned_date.strftime("%Y-%m-%d") if profile.first_mentioned_date else "N/A",
-            'last_mentioned_date': profile.last_mentioned_date.strftime("%Y-%m-%d") if profile.last_mentioned_date else "N/A",
+            'first_mentioned_date': first_allegation_date,
+            'last_mentioned_date': last_allegation_date,
             'status': profile.status,
             'linked_emails': linked_emails
         }
