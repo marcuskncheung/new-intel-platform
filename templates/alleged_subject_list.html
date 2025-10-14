@@ -15,11 +15,18 @@
           <div class="mb-2"><span class="badge bg-light text-dark">Time: {{ t.time }}</span></div>
         {% endif %}
         <div class="mt-auto d-flex justify-content-between">
-          <a href="{{ url_for('details', idx=t.idx) }}" class="btn btn-primary btn-sm">View</a>
-          <form method="post" action="{{ url_for('delete', idx=t.idx) }}"
-                onsubmit="return confirm('Delete this profile?')">
-            <button class="btn btn-danger btn-sm">Delete</button>
-          </form>
+          {% if automation_enabled and t.poi_id %}
+            {# New automated profile system #}
+            <a href="{{ url_for('alleged_person_profile_detail', profile_id=t.idx) }}" class="btn btn-primary btn-sm">View</a>
+            <button class="btn btn-danger btn-sm" disabled title="Delete feature coming soon">Delete</button>
+          {% else %}
+            {# Old legacy profile system #}
+            <a href="{{ url_for('details', idx=t.idx) }}" class="btn btn-primary btn-sm">View</a>
+            <form method="post" action="{{ url_for('delete', idx=t.idx) }}"
+                  onsubmit="return confirm('Delete this profile?')">
+              <button class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          {% endif %}
         </div>
       </div>
     </div>

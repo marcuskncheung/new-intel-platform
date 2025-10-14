@@ -313,7 +313,8 @@ def create_or_update_alleged_person_profile(
             
             # Create email link if email_id provided
             if email_id:
-                link_created = link_email_to_profile(db, EmailAllegedPersonLink, email_id, new_poi_id, new_profile.id)
+                link_created = link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile, 
+                                                     email_id, new_poi_id, new_profile.id)
                 if link_created:
                     new_profile.email_count = 1
             
