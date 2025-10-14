@@ -550,5 +550,328 @@
         font-size: 2rem;
     }
 }
+
+/* ========================================
+   PROFESSIONAL DARK MODE STYLES
+   ======================================== */
+[data-bs-theme="dark"] {
+    /* Professional dark color palette */
+    --dark-bg-primary: #0d1117;
+    --dark-bg-secondary: #161b22;
+    --dark-bg-tertiary: #21262d;
+    --dark-border: #30363d;
+    --dark-text-primary: #e6edf3;
+    --dark-text-secondary: #8b949e;
+    --dark-text-muted: #6e7681;
+}
+
+/* Dark Mode: Profile Header Card */
+[data-bs-theme="dark"] .profile-header-card {
+    background: linear-gradient(135deg, #1f6feb 0%, #8957e5 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .profile-icon-wrapper {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Dark Mode: Soft Badges */
+[data-bs-theme="dark"] .badge.bg-primary-soft {
+    background-color: rgba(31, 111, 235, 0.2);
+    color: #58a6ff;
+}
+
+[data-bs-theme="dark"] .badge.bg-info-soft {
+    background-color: rgba(56, 139, 253, 0.2);
+    color: #79c0ff;
+}
+
+[data-bs-theme="dark"] .badge.bg-secondary-soft {
+    background-color: rgba(139, 148, 158, 0.2);
+    color: #8b949e;
+}
+
+[data-bs-theme="dark"] .badge.bg-warning-soft {
+    background-color: rgba(219, 109, 40, 0.2);
+    color: #ffa657;
+}
+
+/* Dark Mode: Profile Information Card */
+[data-bs-theme="dark"] .card {
+    background-color: var(--dark-bg-secondary);
+    border-color: var(--dark-border);
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .card-header {
+    background-color: var(--dark-bg-tertiary);
+    border-color: var(--dark-border);
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .card-header.bg-primary {
+    background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%) !important;
+    border-color: rgba(31, 111, 235, 0.3);
+}
+
+[data-bs-theme="dark"] .table-borderless th {
+    color: var(--dark-text-secondary);
+}
+
+[data-bs-theme="dark"] .table-borderless td {
+    color: var(--dark-text-primary);
+}
+
+/* Dark Mode: Statistics Cards */
+[data-bs-theme="dark"] .stat-card-primary {
+    background: linear-gradient(135deg, #1f6feb 0%, #8957e5 100%);
+    border: 1px solid rgba(31, 111, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);
+}
+
+[data-bs-theme="dark"] .stat-card-primary:hover {
+    box-shadow: 0 10px 30px rgba(31, 111, 235, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .stat-card-success {
+    background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+    color: #e6edf3;
+    border: 1px solid rgba(46, 160, 67, 0.3);
+    box-shadow: 0 4px 12px rgba(46, 160, 67, 0.2);
+}
+
+[data-bs-theme="dark"] .stat-card-success:hover {
+    box-shadow: 0 10px 30px rgba(46, 160, 67, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .stat-card-warning {
+    background: linear-gradient(135deg, #9e6a03 0%, #bf8700 100%);
+    color: #e6edf3;
+    border: 1px solid rgba(191, 135, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(191, 135, 0, 0.2);
+}
+
+[data-bs-theme="dark"] .stat-card-warning:hover {
+    box-shadow: 0 10px 30px rgba(191, 135, 0, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .stat-card-info {
+    background: linear-gradient(135deg, #0969da 0%, #1f6feb 100%);
+    color: #e6edf3;
+    border: 1px solid rgba(31, 111, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);
+}
+
+[data-bs-theme="dark"] .stat-card-info:hover {
+    box-shadow: 0 10px 30px rgba(31, 111, 235, 0.3) !important;
+}
+
+/* Dark Mode: Allegations Timeline */
+[data-bs-theme="dark"] .bg-gradient-danger {
+    background: linear-gradient(135deg, #da3633 0%, #f85149 100%);
+    border-color: rgba(248, 81, 73, 0.3);
+}
+
+[data-bs-theme="dark"] .allegations-table {
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .allegations-table thead {
+    background-color: var(--dark-bg-tertiary);
+    border-color: var(--dark-border);
+}
+
+[data-bs-theme="dark"] .allegations-table thead th {
+    color: var(--dark-text-secondary);
+    border-color: var(--dark-border);
+}
+
+[data-bs-theme="dark"] .allegation-row {
+    border-color: var(--dark-border);
+    background-color: var(--dark-bg-secondary);
+}
+
+[data-bs-theme="dark"] .allegation-row:hover {
+    background-color: var(--dark-bg-tertiary) !important;
+}
+
+[data-bs-theme="dark"] .date-badge {
+    background-color: var(--dark-bg-tertiary);
+    border-left-color: #1f6feb;
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .allegation-subject {
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .allegation-summary {
+    border-top-color: var(--dark-border);
+}
+
+[data-bs-theme="dark"] .allegation-summary .text-muted {
+    color: var(--dark-text-secondary) !important;
+}
+
+[data-bs-theme="dark"] .allegation-type-badge {
+    background: linear-gradient(135deg, #1f6feb 0%, #8957e5 100%);
+    border: 1px solid rgba(31, 111, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(31, 111, 235, 0.2);
+}
+
+[data-bs-theme="dark"] .source-info {
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .source-info .text-primary {
+    color: #58a6ff !important;
+}
+
+/* Dark Mode: Confidence Indicators */
+[data-bs-theme="dark"] .confidence-circle {
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .confidence-high {
+    background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+    color: #e6edf3;
+    box-shadow: 0 2px 8px rgba(46, 160, 67, 0.3);
+}
+
+[data-bs-theme="dark"] .confidence-medium {
+    background: linear-gradient(135deg, #9e6a03 0%, #bf8700 100%);
+    color: #e6edf3;
+    box-shadow: 0 2px 8px rgba(191, 135, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .confidence-low {
+    background: linear-gradient(135deg, #da3633 0%, #f85149 100%);
+    color: #e6edf3;
+    box-shadow: 0 2px 8px rgba(248, 81, 73, 0.3);
+}
+
+/* Dark Mode: Buttons */
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: var(--dark-text-primary);
+    border-color: var(--dark-border);
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: var(--dark-bg-tertiary);
+    border-color: var(--dark-text-secondary);
+    color: var(--dark-text-primary);
+}
+
+[data-bs-theme="dark"] .btn-outline-danger {
+    color: #f85149;
+    border-color: #f85149;
+}
+
+[data-bs-theme="dark"] .btn-outline-danger:hover {
+    background-color: #da3633;
+    border-color: #da3633;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary {
+    color: #58a6ff;
+    border-color: #58a6ff;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary:hover {
+    background-color: #1f6feb;
+    border-color: #1f6feb;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .btn-view-allegation:hover {
+    box-shadow: 0 5px 15px rgba(31, 111, 235, 0.4);
+}
+
+/* Dark Mode: Text Colors */
+[data-bs-theme="dark"] .text-muted {
+    color: var(--dark-text-secondary) !important;
+}
+
+[data-bs-theme="dark"] small.text-muted {
+    color: var(--dark-text-muted) !important;
+}
+
+/* Dark Mode: Badges */
+[data-bs-theme="dark"] .badge.bg-success {
+    background-color: #238636 !important;
+    color: #e6edf3;
+}
+
+[data-bs-theme="dark"] .badge.bg-secondary {
+    background-color: #30363d !important;
+    color: #e6edf3;
+}
+
+[data-bs-theme="dark"] .badge.bg-info {
+    background-color: #0969da !important;
+    color: #e6edf3;
+}
+
+[data-bs-theme="dark"] .badge.bg-white {
+    background-color: var(--dark-bg-tertiary) !important;
+    color: #f85149 !important;
+    border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+/* Dark Mode: Empty State */
+[data-bs-theme="dark"] .bi-inbox {
+    color: var(--dark-border) !important;
+}
+
+[data-bs-theme="dark"] h5.text-muted {
+    color: var(--dark-text-secondary) !important;
+}
+
+[data-bs-theme="dark"] p.text-muted {
+    color: var(--dark-text-muted) !important;
+}
+
+/* Dark Mode: Shadow Effects */
+[data-bs-theme="dark"] .shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-bs-theme="dark"] .shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Dark Mode: Table Responsive */
+[data-bs-theme="dark"] .table-responsive {
+    border-color: var(--dark-border);
+}
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: var(--dark-bg-tertiary);
+}
+
+/* Dark Mode: Professional Polish */
+[data-bs-theme="dark"] .card.border-0 {
+    border: 1px solid var(--dark-border) !important;
+}
+
+[data-bs-theme="dark"] .container-fluid {
+    background-color: var(--dark-bg-primary);
+}
+
+/* Dark Mode: Status Indicators */
+[data-bs-theme="dark"] .text-success {
+    color: #56d364 !important;
+}
+
+[data-bs-theme="dark"] .bi-circle-fill.text-success {
+    color: #56d364 !important;
+}
+
+[data-bs-theme="dark"] .bi-circle-fill.text-secondary {
+    color: #6e7681 !important;
+}
+
 </style>
 {% endblock %}
