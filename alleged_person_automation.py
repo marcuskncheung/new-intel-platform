@@ -104,50 +104,36 @@ def generate_next_poi_id() -> str:
     """
     Generate next sequential POI ID (POI-001, POI-002, etc.)
     
-    Queries existing profiles to find the highest number and increment
+    Queries existing profiles to find the highest number and increment.
+    Called from Flask routes that already have active app context.
     """
     if not initialize_database():
-        # Fallback when database not available
         timestamp = datetime.now().strftime("%y%m%d%H%M")
         return f"POI-{timestamp}"
     
     try:
-        # Ensure Flask app context is available for database operations
-        try:
-            from flask import current_app
-            app_context = current_app.app_context()
-        except RuntimeError:
-            try:
-                from app1_production import app
-                app_context = app.app_context()
-            except Exception:
-                print("[POI ID GENERATION] Cannot access Flask app context")
-                timestamp = datetime.now().strftime("%y%m%d%H%M")
-                return f"POI-{timestamp}"
+        # Query database directly - Flask app context already active when called from routes
+        highest_poi = db.session.query(AllegedPersonProfile.poi_id).filter(
+            AllegedPersonProfile.poi_id.like('POI-%')
+        ).order_by(AllegedPersonProfile.poi_id.desc()).first()
         
-        with app_context:
-            # Query for highest existing POI ID number
-            # POI IDs are like "POI-001", "POI-002", so we extract the number part
-            highest_poi = db.session.query(AllegedPersonProfile.poi_id).filter(
-                AllegedPersonProfile.poi_id.like('POI-%')
-            ).order_by(AllegedPersonProfile.poi_id.desc()).first()
-            
-            if highest_poi:
-                # Extract number from "POI-XXX" format
-                poi_id_str = highest_poi[0]
-                try:
-                    number_part = int(poi_id_str.split('-')[1])
-                    next_number = number_part + 1
-                    return f"POI-{next_number:03d}"
-                except (IndexError, ValueError):
-                    # Invalid format, fall back to counting
-                    pass
-            
-            # Fallback: count total profiles + 1
-            total_count = AllegedPersonProfile.query.count()
-            next_number = total_count + 1
-            return f"POI-{next_number:03d}"
+        if highest_poi:
+            poi_id_str = highest_poi[0]
+            try:
+                number_part = int(poi_id_str.split('-')[1])
+                next_number = number_part + 1
+                return f"POI-{next_number:03d}"
+            except (IndexError, ValueError):
+                pass
+        
+        total_count = AllegedPersonProfile.query.count()
+        next_number = total_count + 1
+        return f"POI-{next_number:03d}"
     
+    except Exception as e:
+        print(f"[POI ID GENERATION] Error: {e}")
+        timestamp = datetime.now().strftime("%y%m%d%H%M")
+        return f"POI-{timestamp}"
     except Exception as e:
         print(f"[POI ID GENERATION] Error: {e}")
         # Fallback to timestamp-based ID
@@ -172,40 +158,27 @@ def find_matching_profile(name_english: str, name_chinese: str,
     
     try:
         if not initialize_database():
-            print(f"[PROFILE MATCHING] Database not available, no matches found")
+            print("[PROFILE MATCHING] Database not available")
             return None
         
-        # Ensure Flask app context is available for database operations
-        try:
-            from flask import current_app
-            app_context = current_app.app_context()
-        except RuntimeError:
-            # We might already be in app context or need to use the app instance
-            try:
-                from app1_production import app
-                app_context = app.app_context()
-            except:
-                print(f"[PROFILE MATCHING] ❌ Cannot access Flask app context")
-                return None
-        
-        with app_context:
-            # 1. Try exact agent number match first (most reliable)
-            if agent_number and agent_number.strip():
-                exact_match = AllegedPersonProfile.query.filter_by(
-                    agent_number=agent_number.strip(),
-                    status='ACTIVE'
-                ).first()
-                
-                if exact_match:
-                    print(f"[PROFILE MATCHING] ✅ Found exact agent number match: {exact_match.poi_id}")
-                    return exact_match.to_dict()
+        # Database queries work directly - Flask app context already active from route handler
+        # 1. Try exact agent number match first (most reliable)
+        if agent_number and agent_number.strip():
+            exact_match = AllegedPersonProfile.query.filter_by(
+                agent_number=agent_number.strip(),
+                status='ACTIVE'
+            ).first()
             
-            # 2. Try name similarity matching
-            if name_english or name_chinese:
-                print(f"[PROFILE MATCHING] Searching for name similarity: EN='{name_english}' CN='{name_chinese}'")
-                
-                # Get all active profiles for similarity comparison
-                all_profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').all()
+            if exact_match:
+                print(f"[PROFILE MATCHING] ✅ Found exact agent number match: {exact_match.poi_id}")
+                return exact_match.to_dict()
+        
+        # 2. Try name similarity matching
+        if name_english or name_chinese:
+            print(f"[PROFILE MATCHING] Searching for name similarity: EN='{name_english}' CN='{name_chinese}'")
+            
+            # Get all active profiles for similarity comparison
+            all_profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').all()
             
             best_match = None
             best_similarity = 0.0
@@ -360,50 +333,34 @@ def create_or_update_alleged_person_profile(
                 name_parts.append(normalize_name_for_matching(name_chinese))
             normalized_name = ' | '.join(name_parts)
             
-            # Ensure Flask app context for database operations
-            try:
-                from flask import current_app
-                app_context = current_app.app_context()
-            except RuntimeError:
-                try:
-                    from app1_production import app
-                    app_context = app.app_context()
-                except Exception:
-                    print("[ALLEGED PERSON AUTOMATION] ❌ Cannot access Flask app context")
-                    return {
-                        'success': False,
-                        'action': 'error',
-                        'message': 'Flask app context not available'
-                    }
+            # Create new profile in database
+            # Flask app context already active from route handler
+            new_profile = AllegedPersonProfile(
+                poi_id=new_poi_id,
+                name_english=name_english.strip() if name_english else None,
+                name_chinese=name_chinese.strip() if name_chinese else None,
+                name_normalized=normalized_name,
+                agent_number=agent_number.strip() if agent_number else None,
+                license_number=license_number.strip() if license_number else None,
+                company=company.strip() if company else None,
+                role=role.strip() if role else None,
+                created_by=source,
+                email_count=0,
+                first_mentioned_date=datetime.utcnow() if email_id else None,
+                last_mentioned_date=datetime.utcnow() if email_id else None,
+                status='ACTIVE'
+            )
             
-            with app_context:
-                # Create new profile in database
-                new_profile = AllegedPersonProfile(
-                    poi_id=new_poi_id,
-                    name_english=name_english.strip() if name_english else None,
-                    name_chinese=name_chinese.strip() if name_chinese else None,
-                    name_normalized=normalized_name,
-                    agent_number=agent_number.strip() if agent_number else None,
-                    license_number=license_number.strip() if license_number else None,
-                    company=company.strip() if company else None,
-                    role=role.strip() if role else None,
-                    created_by=source,
-                    email_count=0,
-                    first_mentioned_date=datetime.utcnow() if email_id else None,
-                    last_mentioned_date=datetime.utcnow() if email_id else None,
-                    status='ACTIVE'
-                )
-                
-                db.session.add(new_profile)
-                db.session.flush()  # Get the ID without committing
-                
-                # Create email link if email_id provided
-                if email_id:
-                    link_created = link_email_to_profile(email_id, new_poi_id, new_profile.id)
-                    if link_created:
-                        new_profile.email_count = 1
-                
-                db.session.commit()
+            db.session.add(new_profile)
+            db.session.flush()  # Get the ID without committing
+            
+            # Create email link if email_id provided
+            if email_id:
+                link_created = link_email_to_profile(email_id, new_poi_id, new_profile.id)
+                if link_created:
+                    new_profile.email_count = 1
+            
+            db.session.commit()
             
             return {
                 'success': True,
@@ -573,61 +530,49 @@ def link_email_to_profile(email_id: int, poi_id: str, profile_id: int = None) ->
             print(f"[EMAIL-PROFILE LINKING] Simulating link: email {email_id} to profile {poi_id}")
             return True
         
-        # Ensure Flask app context for database operations
-        try:
-            from flask import current_app
-            app_context = current_app.app_context()
-        except RuntimeError:
-            try:
-                from app1_production import app
-                app_context = app.app_context()
-            except Exception:
-                print("[EMAIL-PROFILE LINKING] Cannot access Flask app context")
+        # Flask app context already active from route handler
+        # Get profile ID if not provided
+        if not profile_id:
+            profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()
+            if not profile:
+                print(f"[EMAIL-PROFILE LINKING] ❌ Profile {poi_id} not found")
                 return False
+            profile_id = profile.id
         
-        with app_context:
-            # Get profile ID if not provided
-            if not profile_id:
-                profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()
-                if not profile:
-                    print(f"[EMAIL-PROFILE LINKING] ❌ Profile {poi_id} not found")
-                    return False
-                profile_id = profile.id
-            
-            # Check if link already exists
-            existing_link = EmailAllegedPersonLink.query.filter_by(
-                email_id=email_id,
-                alleged_person_id=profile_id
-            ).first()
-            
-            if existing_link:
-                print(f"[EMAIL-PROFILE LINKING] ℹ️ Link already exists: email {email_id} to profile {poi_id}")
-                return True
-            
-            # Create new link
-            new_link = EmailAllegedPersonLink(
-                email_id=email_id,
-                alleged_person_id=profile_id,
-                created_by='AUTOMATION',
-                confidence=0.95  # High confidence for direct creation
-            )
-            
-            db.session.add(new_link)
-            
-            # Update profile counters
-            profile = AllegedPersonProfile.query.get(profile_id)
-            if profile:
-                profile.email_count = EmailAllegedPersonLink.query.filter_by(
-                    alleged_person_id=profile_id
-                ).count() + 1  # +1 for the new link
-                
-                # Update mention dates
-                if not profile.first_mentioned_date:
-                    profile.first_mentioned_date = datetime.utcnow()
-                profile.last_mentioned_date = datetime.utcnow()
-            
-            print(f"[EMAIL-PROFILE LINKING] ✅ Created link: email {email_id} to profile {poi_id}")
+        # Check if link already exists
+        existing_link = EmailAllegedPersonLink.query.filter_by(
+            email_id=email_id,
+            alleged_person_id=profile_id
+        ).first()
+        
+        if existing_link:
+            print(f"[EMAIL-PROFILE LINKING] ℹ️ Link already exists: email {email_id} to profile {poi_id}")
             return True
+        
+        # Create new link
+        new_link = EmailAllegedPersonLink(
+            email_id=email_id,
+            alleged_person_id=profile_id,
+            created_by='AUTOMATION',
+            confidence=0.95  # High confidence for direct creation
+        )
+        
+        db.session.add(new_link)
+        
+        # Update profile counters
+        profile = AllegedPersonProfile.query.get(profile_id)
+        if profile:
+            profile.email_count = EmailAllegedPersonLink.query.filter_by(
+                alleged_person_id=profile_id
+            ).count() + 1  # +1 for the new link
+            
+            # Update mention dates
+            if not profile.first_mentioned_date:
+                profile.first_mentioned_date = datetime.utcnow()
+            profile.last_mentioned_date = datetime.utcnow()
+        
+        print(f"[EMAIL-PROFILE LINKING] ✅ Created link: email {email_id} to profile {poi_id}")
+        return True
         
     except Exception as e:
         print(f"[EMAIL-PROFILE LINKING] ❌ Error linking email {email_id} to {poi_id}: {e}")
