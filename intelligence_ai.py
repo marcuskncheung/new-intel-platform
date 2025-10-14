@@ -30,6 +30,12 @@ class IntelligenceAI:
         self.large_file_threshold_mb = 10  # Files >10MB use async processing
         self.max_sync_file_size_mb = 50  # Maximum size for synchronous processing
         
+        # ✅ CRITICAL FIX: Configurable attachment text limits (was hardcoded to 2,000 chars!)
+        import os
+        self.attachment_text_limit = int(os.environ.get('ATTACHMENT_TEXT_LIMIT', '15000'))  # 15K per attachment
+        self.total_attachment_limit = int(os.environ.get('TOTAL_ATTACHMENT_LIMIT', '50000'))  # 50K total
+        self.prompt_attachment_limit = int(os.environ.get('PROMPT_ATTACHMENT_LIMIT', '15000'))  # 15K in prompt
+        
     def _calculate_dynamic_timeout(self, file_size_mb: float) -> int:
         """Calculate appropriate timeout based on file size (1 minute per MB, minimum 2 minutes)"""
         return max(120, int(file_size_mb * 60))
@@ -287,9 +293,11 @@ class IntelligenceAI:
                             
                             print(f"[AI COMPREHENSIVE] ✅ {method_used} extracted {len(clean_text)} chars from {filename}")
                             
-                            # Add extracted text to attachment content
+                            # ✅ Add extracted text to attachment content (no truncation - use full content)
                             attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) {method_tag} ---\n"
                             attachment_content += clean_text
+                            
+                            print(f"[AI COMPREHENSIVE] Added {len(clean_text)} chars to attachment content (total now: {len(attachment_content)} chars)")
                         else:
                             error_msg = doc_result.get('error', 'Unknown error')
                             method_used = doc_result.get('method', 'unknown')
@@ -355,11 +363,12 @@ class IntelligenceAI:
 
     def _create_comprehensive_analysis_prompt(self, email_data: Dict, attachment_content: str) -> str:
         """Create comprehensive analysis prompt for detailed investigation"""
-        # Debug: Show how much attachment content we're including
-        attachment_preview = attachment_content[:15000] if attachment_content else 'No attachments found'
+        # ✅ CRITICAL LOGGING: Show how much attachment content we're including
+        attachment_preview = attachment_content[:self.prompt_attachment_limit] if attachment_content else 'No attachments found'
         print(f"[PROMPT DEBUG] Email body length: {len(email_data.get('body', ''))}")
         print(f"[PROMPT DEBUG] Full attachment content length: {len(attachment_content)}")
-        print(f"[PROMPT DEBUG] Attachment content included in prompt: {len(attachment_preview)} chars")
+        print(f"[PROMPT DEBUG] Attachment content included in prompt: {len(attachment_preview)} chars (limit: {self.prompt_attachment_limit})")
+        print(f"[PROMPT DEBUG] Attachment text limit per PDF: {self.attachment_text_limit} chars")
         if attachment_content:
             print(f"[PROMPT DEBUG] First 200 chars of attachment: {attachment_content[:200]}...")
         
@@ -393,7 +402,7 @@ RECIPIENTS: {email_data.get('recipients', 'N/A')}
 BODY: {email_data.get('body', 'N/A')[:3000]}...
 
 ATTACHMENT CONTENT (CRITICAL - READ CAREFULLY):
-{attachment_content[:15000] if attachment_content else 'No attachments found'}...
+{attachment_content[:self.prompt_attachment_limit] if attachment_content else 'No attachments found'}...
 
 ANALYSIS INSTRUCTIONS:
 **IMPORTANT**: The PDF attachment contains the main complaint details. Read it carefully and base your analysis primarily on the PDF content, not just the email forwarding text.
@@ -657,9 +666,14 @@ Format your response as JSON:
                             if note:
                                 method_indicator += f" ({note})"
                             
+                            # ✅ CRITICAL FIX: Use configurable limit instead of hardcoded 2,000 chars
+                            text_to_use = extracted_text[:self.attachment_text_limit]  # Now 15K instead of 2K!
+                            
                             attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')}{method_indicator} ---\n"
-                            attachment_content += extracted_text[:2000]  # Limit per PDF
+                            attachment_content += text_to_use
+                            
                             print(f"[AI SUMMARIZE] Successfully extracted {len(extracted_text)} chars via {method_used}")
+                            print(f"[AI SUMMARIZE] Using {len(text_to_use)} chars for AI analysis (limit: {self.attachment_text_limit})")
                         else:
                             method_used = doc_result.get('method', 'unknown')
                             error_msg = doc_result.get('error', 'Unknown error')
@@ -667,9 +681,11 @@ Format your response as JSON:
                             
                             # Use partial content if available
                             if partial_content and len(partial_content) > 50:
+                                # ✅ CRITICAL FIX: Use more partial content instead of limiting to 1,000 chars
+                                partial_text_to_use = partial_content[:self.attachment_text_limit // 2]  # Half limit for partial
                                 attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} [PARTIAL: {method_used}] ---\n"
-                                attachment_content += partial_content[:1000]  # Smaller limit for partial content
-                                print(f"[AI SUMMARIZE] Using partial content from {filename}: {len(partial_content)} chars")
+                                attachment_content += partial_text_to_use
+                                print(f"[AI SUMMARIZE] Using partial content from {filename}: {len(partial_content)} total, {len(partial_text_to_use)} used")
                             else:
                                 attachment_content += f"\n\n--- PDF: {attachment.get('filename', 'Unknown')} [FAILED] ---\n"
                                 print(f"[AI SUMMARIZE] Failed to extract content from PDF: {filename} ({error_msg})")
@@ -718,8 +734,13 @@ Respond in JSON format:
 
 Analysis:"""
             
+            # ✅ CRITICAL LOGGING: Show total content lengths before sending to AI
             print(f"[AI SUMMARIZE] Analyzing email + {len(attachments) if attachments else 0} attachments for email {email_data.get('id', 'unknown')}...")
-            print(f"[AI SUMMARIZE] Email body: {len(email_body)} chars, Attachments: {len(attachment_content)} chars")
+            print(f"[AI SUMMARIZE] Email body: {len(email_body)} chars")
+            print(f"[AI SUMMARIZE] Total attachment content: {len(attachment_content)} chars") 
+            print(f"[AI SUMMARIZE] Attachment text limit per PDF: {self.attachment_text_limit} chars")
+            if attachment_content:
+                print(f"[AI SUMMARIZE] First 200 chars of attachments: {attachment_content[:200]}...")
             
             response = self.session.post(
                 f"{self.llm_api}/completions",
