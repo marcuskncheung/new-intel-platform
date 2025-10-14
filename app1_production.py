@@ -1339,11 +1339,21 @@ def view_alleged_person_profile(profile_id):
         for link in links:
             email = Email.query.get(link.email_id)
             if email:
+                # Handle received date - it's stored as string in database
+                received_str = "N/A"
+                if email.received:
+                    if hasattr(email.received, 'strftime'):
+                        # It's a datetime object
+                        received_str = email.received.strftime("%Y-%m-%d %H:%M")
+                    else:
+                        # It's already a string, use it directly (trim if too long)
+                        received_str = str(email.received)[:16] if len(str(email.received)) > 16 else str(email.received)
+                
                 linked_emails.append({
                     'id': email.id,
                     'subject': email.subject,
                     'sender': email.sender,
-                    'received': email.received.strftime("%Y-%m-%d %H:%M") if email.received else "N/A",
+                    'received': received_str,
                     'alleged_nature': email.alleged_nature,
                     'confidence': link.confidence
                 })
