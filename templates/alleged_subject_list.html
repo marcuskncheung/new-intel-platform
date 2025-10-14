@@ -2,7 +2,13 @@
 {% block content %}
 <h2>Alleged Subjects Dashboard</h2>
 <p>
-  <a href="{{ url_for('create') }}" class="btn btn-success">+ New Profile</a>
+  {% if automation_enabled %}
+    {# New automated profile system #}
+    <a href="{{ url_for('create_alleged_person_profile') }}" class="btn btn-success">+ New POI Profile</a>
+  {% else %}
+    {# Old legacy profile system #}
+    <a href="{{ url_for('create') }}" class="btn btn-success">+ New Profile</a>
+  {% endif %}
 </p>
 <div class="row">
   {% for t in targets %}
@@ -17,7 +23,7 @@
         <div class="mt-auto d-flex justify-content-between">
           {% if automation_enabled and t.poi_id %}
             {# New automated profile system #}
-            <a href="{{ url_for('alleged_person_profile_detail', profile_id=t.idx) }}" class="btn btn-primary btn-sm">View</a>
+            <a href="{{ url_for('view_alleged_person_profile', profile_id=t.idx) }}" class="btn btn-primary btn-sm">View</a>
             <button class="btn btn-danger btn-sm" disabled title="Delete feature coming soon">Delete</button>
           {% else %}
             {# Old legacy profile system #}
