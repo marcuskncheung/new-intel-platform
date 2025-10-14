@@ -346,8 +346,8 @@ def create_or_update_alleged_person_profile(
                 role=role.strip() if role else None,
                 created_by=source,
                 email_count=0,
-                first_mentioned_date=datetime.utcnow() if email_id else None,
-                last_mentioned_date=datetime.utcnow() if email_id else None,
+                first_mentioned_date=datetime.now(timezone.utc) if email_id else None,
+                last_mentioned_date=datetime.now(timezone.utc) if email_id else None,
                 status='ACTIVE'
             )
             
@@ -568,8 +568,11 @@ def link_email_to_profile(email_id: int, poi_id: str, profile_id: int = None) ->
             
             # Update mention dates
             if not profile.first_mentioned_date:
-                profile.first_mentioned_date = datetime.utcnow()
-            profile.last_mentioned_date = datetime.utcnow()
+                profile.first_mentioned_date = datetime.now(timezone.utc)
+            profile.last_mentioned_date = datetime.now(timezone.utc)
+        
+        # Commit the link creation and profile updates
+        db.session.commit()
         
         print(f"[EMAIL-PROFILE LINKING] ✅ Created link: email {email_id} to profile {poi_id}")
         return True
