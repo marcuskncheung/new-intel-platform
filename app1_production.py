@@ -730,6 +730,13 @@ class Email(db.Model):
     case_assigned_by = db.Column(db.String(100), nullable=True)  # Username who assigned the case number
     case_assigned_at = db.Column(db.DateTime, nullable=True)  # When case number was assigned
     
+    # Intelligence Reference Number (INT-XX system)
+    int_reference_number = db.Column(db.String(20), nullable=True, index=True)  # INT-001, INT-002, etc.
+    int_reference_order = db.Column(db.Integer, nullable=True, index=True)  # Numeric order for sorting (1, 2, 3...)
+    int_reference_manual = db.Column(db.Boolean, default=False)  # True if manually edited
+    int_reference_updated_at = db.Column(db.DateTime, nullable=True)  # When INT number was last changed
+    int_reference_updated_by = db.Column(db.String(100), nullable=True)  # Who updated the INT number
+    
     # Encryption flags (new fields)
     is_body_encrypted = db.Column(db.Boolean, default=False)
     is_subject_encrypted = db.Column(db.Boolean, default=False)
@@ -1119,6 +1126,142 @@ class EmailAllegedPersonLink(db.Model):
     
     def __repr__(self):
         return f'<EmailAllegedPersonLink email_id={self.email_id} person_id={self.alleged_person_id}>'
+
+# --- INT Reference Number Management Functions ---
+def generate_int_reference_for_new_email(email):
+    """
+    Auto-generate INT reference number for a new email
+    Assigns next available INT number based on chronological order
+    """
+    try:
+        # Find the highest existing order number
+        max_order = db.session.query(db.func.max(Email.int_reference_order)).scalar() or 0
+        
+        # Assign next number
+        next_order = max_order + 1
+        email.int_reference_number = f"INT-{next_order:03d}"
+        email.int_reference_order = next_order
+        email.int_reference_manual = False
+        email.int_reference_updated_at = datetime.utcnow()
+        
+        print(f"[INT-REF] Auto-assigned {email.int_reference_number} to email {email.id}")
+        return email.int_reference_number
+        
+    except Exception as e:
+        print(f"[INT-REF] Error generating INT reference: {e}")
+        return None
+
+def update_int_reference_number(email_id, new_int_number, updated_by):
+    """
+    Manually update INT reference number for an email
+    Format: INT-XXX where XXX is any number
+    Allows duplicates (same INT number for related emails)
+    """
+    try:
+        email = Email.query.get(email_id)
+        if not email:
+            return {'success': False, 'error': 'Email not found'}
+        
+        # Validate format: INT-XXX
+        import re
+        if not re.match(r'^INT-\d{1,4}$', new_int_number.upper()):
+            return {
+                'success': False, 
+                'error': 'Invalid format. Use INT-XXX (e.g., INT-001, INT-123)'
+            }
+        
+        old_number = email.int_reference_number
+        
+        # Extract numeric order from INT number
+        numeric_part = int(new_int_number.upper().split('-')[1])
+        
+        # Update the email
+        email.int_reference_number = new_int_number.upper()
+        email.int_reference_order = numeric_part
+        email.int_reference_manual = True
+        email.int_reference_updated_at = datetime.utcnow()
+        email.int_reference_updated_by = updated_by
+        
+        db.session.commit()
+        
+        print(f"[INT-REF] Manually updated email {email_id}: {old_number} → {new_int_number}")
+        
+        return {
+            'success': True,
+            'old_number': old_number,
+            'new_number': new_int_number.upper(),
+            'message': f'INT reference updated: {old_number} → {new_int_number.upper()}'
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[INT-REF] Error updating INT reference: {e}")
+        return {'success': False, 'error': str(e)}
+
+def reorder_int_references_after_change():
+    """
+    Reorder INT reference numbers after manual changes
+    This maintains chronological order while respecting manual edits
+    
+    Logic:
+    - Keep manually edited numbers as-is
+    - Auto-renumber non-manual entries to fill gaps
+    """
+    try:
+        # Get all emails ordered by received date (chronological)
+        all_emails = Email.query.order_by(Email.received.asc()).all()
+        
+        if not all_emails:
+            return {'success': True, 'updated': 0}
+        
+        # Separate manual and auto emails
+        manual_emails = [e for e in all_emails if e.int_reference_manual]
+        auto_emails = [e for e in all_emails if not e.int_reference_manual]
+        
+        # Get used INT numbers (from manual entries)
+        used_numbers = set()
+        for email in manual_emails:
+            if email.int_reference_order:
+                used_numbers.add(email.int_reference_order)
+        
+        # Renumber auto emails to fill gaps
+        next_available = 1
+        updated_count = 0
+        
+        for email in auto_emails:
+            # Find next available number
+            while next_available in used_numbers:
+                next_available += 1
+            
+            # Update if changed
+            new_number = f"INT-{next_available:03d}"
+            if email.int_reference_number != new_number:
+                email.int_reference_number = new_number
+                email.int_reference_order = next_available
+                email.int_reference_updated_at = datetime.utcnow()
+                updated_count += 1
+            
+            used_numbers.add(next_available)
+            next_available += 1
+        
+        db.session.commit()
+        
+        print(f"[INT-REF] Reordered {updated_count} INT references")
+        return {'success': True, 'updated': updated_count}
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[INT-REF] Error reordering INT references: {e}")
+        return {'success': False, 'error': str(e)}
+
+def get_emails_by_int_reference(int_number):
+    """Get all emails with the same INT reference number (for duplicates/related cases)"""
+    try:
+        emails = Email.query.filter_by(int_reference_number=int_number.upper()).order_by(Email.received.asc()).all()
+        return emails
+    except Exception as e:
+        print(f"[INT-REF] Error getting emails by INT reference: {e}")
+        return []
 
 # --- Data migration from Access to SQLAlchemy (run once) ---
 def migrate_access_to_sqlalchemy():
@@ -5752,6 +5895,92 @@ def int_source_update_assessment(email_id):
     return redirect(url_for("int_source_email_detail", email_id=email.id))
 
 # =============================================================================
+# INT REFERENCE NUMBER MANAGEMENT ROUTES
+# =============================================================================
+
+@app.route("/int_source/email/<int:email_id>/update_int_reference", methods=["POST"])
+@login_required
+def update_int_reference(email_id):
+    """API endpoint to update INT reference number for an email"""
+    try:
+        data = request.get_json()
+        new_int_number = data.get('int_reference_number', '').strip().upper()
+        
+        if not new_int_number:
+            return jsonify({'success': False, 'error': 'INT reference number is required'}), 400
+        
+        # Update the INT reference
+        result = update_int_reference_number(
+            email_id=email_id,
+            new_int_number=new_int_number,
+            updated_by=current_user.username
+        )
+        
+        if result['success']:
+            # Optional: Reorder other INT numbers to fill gaps
+            if data.get('reorder', False):
+                reorder_result = reorder_int_references_after_change()
+                result['reorder_info'] = reorder_result
+            
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"[INT-REF API] Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route("/int_source/int_reference/reorder_all", methods=["POST"])
+@login_required
+def reorder_all_int_references():
+    """Reorder all INT reference numbers to fill gaps (respects manual edits)"""
+    try:
+        result = reorder_int_references_after_change()
+        
+        if result['success']:
+            flash(f"Successfully reordered {result['updated']} INT reference numbers", "success")
+        else:
+            flash(f"Error reordering INT references: {result.get('error', 'Unknown error')}", "error")
+        
+        return jsonify(result), 200 if result['success'] else 500
+        
+    except Exception as e:
+        print(f"[INT-REF API] Error in reorder_all: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route("/int_source/int_reference/<int_number>/emails")
+@login_required
+def get_int_reference_emails(int_number):
+    """Get all emails with the same INT reference number"""
+    try:
+        int_ref = f"INT-{int_number:03d}"
+        emails = get_emails_by_int_reference(int_ref)
+        
+        email_data = []
+        for email in emails:
+            email_data.append({
+                'id': email.id,
+                'entry_id': email.entry_id,
+                'subject': email.subject,
+                'sender': email.sender,
+                'received': email.received,
+                'status': email.status,
+                'int_reference_number': email.int_reference_number,
+                'int_reference_manual': email.int_reference_manual
+            })
+        
+        return jsonify({
+            'success': True,
+            'int_reference': int_ref,
+            'count': len(emails),
+            'emails': email_data
+        }), 200
+        
+    except Exception as e:
+        print(f"[INT-REF API] Error getting emails: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# =============================================================================
 # EXCHANGE WEB SERVICES (EWS) EMAIL EXTRACTION - NEW METHOD
 # =============================================================================
 
@@ -5987,6 +6216,15 @@ def import_emails_from_exchange_ews(account, folder_name='Inbox', commit_to_db=T
                     db.session.add(new_email)
                     # Flush to detect unique constraint violations early
                     db.session.flush()
+                    
+                    # ✅ AUTO-GENERATE INT REFERENCE NUMBER for new email
+                    try:
+                        generate_int_reference_for_new_email(new_email)
+                        print(f"[INT-REF] Assigned {new_email.int_reference_number} to new email")
+                    except Exception as int_error:
+                        print(f"[INT-REF] Warning: Could not assign INT reference: {int_error}")
+                        # Don't fail the entire email import if INT numbering fails
+                    
                 except Exception as e:
                     db.session.rollback()
                     print(f"[ERROR] Failed to add Intelligence email (likely duplicate): {entry_id} - {str(e)}")
