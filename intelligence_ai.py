@@ -280,18 +280,29 @@ class IntelligenceAI:
                             method_used = doc_result.get('method', 'unknown')
                             note = doc_result.get('note', '')
                             
-                            # Clean up the extracted text - remove base64 image data
+                            # ✅ FIX: Clean up the extracted text - remove ONLY markdown image syntax with base64 data
                             import re
+                            # Remove markdown image syntax: ![alt](data:image/...)
                             clean_text = re.sub(r'!\[Image\]\(data:image/[^)]+\)', '[IMAGE]', extracted_text)
-                            # Remove long base64 strings  
-                            clean_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{100,}', '[BASE64_IMAGE]', clean_text)
+                            # Remove inline base64 images ONLY if they're in markdown image format
+                            clean_text = re.sub(r'!\[[^\]]*\]\(data:image/[^;]+;base64,[A-Za-z0-9+/=]+\)', '[IMAGE]', clean_text)
+                            
+                            # ⚠️ CRITICAL: Log BEFORE and AFTER to verify we're not removing too much
+                            chars_before = len(extracted_text)
+                            chars_after = len(clean_text)
+                            chars_removed = chars_before - chars_after
+                            
+                            if chars_removed > chars_before * 0.5:  # If we removed more than 50%
+                                print(f"[AI COMPREHENSIVE] ⚠️ WARNING: Image cleaning removed {chars_removed:,} chars ({chars_removed/chars_before*100:.1f}%) from {filename}")
+                                print(f"[AI COMPREHENSIVE] ⚠️ This may indicate aggressive regex matching - using original text instead")
+                                clean_text = extracted_text  # Use original to preserve content
                             
                             # Indicate extraction method in output
                             method_tag = f"[{method_used.upper()}]"
                             if note:
                                 method_tag += f" ({note})"
                             
-                            print(f"[AI COMPREHENSIVE] ✅ {method_used} extracted {len(clean_text)} chars from {filename}")
+                            print(f"[AI COMPREHENSIVE] ✅ {method_used} extracted {len(clean_text)} chars from {filename} (cleaned from {chars_before} chars)")
                             
                             # ✅ Add extracted text to attachment content (no truncation - use full content)
                             attachment_content += f"\n\n--- {filename} (Email {email_id}, Attachment {att_id}) {method_tag} ---\n"
@@ -409,14 +420,26 @@ ANALYSIS INSTRUCTIONS:
 
 ⚠️ CRITICAL: Ensure your analysis is based on the attachment content shown above. Do NOT mix up content from different emails.
 
+🚨 **ABSOLUTELY PROHIBITED - DO NOT HALLUCINATE:**
+- DO NOT make up names that are not explicitly written in the documents
+- DO NOT guess or infer people's names from context
+- DO NOT create fictional agent numbers, license numbers, or company names
+- If you cannot find a specific piece of information in the text, LEAVE IT EMPTY ("")
+- ONLY extract information that is EXPLICITLY STATED in the documents
+- If a field asks for a name but no name appears in the documents, return empty strings for that person
+- Example: If the document only mentions "AXA" without any person's name, return:
+  {{"name_english": "", "name_chinese": "", "agent_company_broker": "AXA", "role": "Broker"}}
+
 YOUR TASKS:
 
 1. **IDENTIFY ALLEGED SUBJECTS FROM PDF** - Look in the PDF content for who is being complained about:
-   - Extract BOTH English name AND Chinese name (if available) 
-   - Extract agent number, license number, registration number (if mentioned)
-   - Extract company/broker name (保險公司名稱) (if mentioned)
-   - If multiple people are accused, create separate entries for each person
-   - Example: "LEUNG SHEUNG MAN EMERSON 梁尚文, Prudential Hong Kong Limited"
+   - Extract BOTH English name AND Chinese name ONLY if EXPLICITLY STATED in the documents
+   - Extract agent number, license number, registration number ONLY if EXPLICITLY MENTIONED
+   - Extract company/broker name (保險公司名稱) ONLY if EXPLICITLY MENTIONED
+   - If multiple people are EXPLICITLY accused, create separate entries for each person
+   - If NO person is named, return empty strings for name fields but include the company if mentioned
+   - Example with person: "LEUNG SHEUNG MAN EMERSON 梁尚文, Prudential Hong Kong Limited"
+   - Example without person: {{"name_english": "", "name_chinese": "", "agent_company_broker": "AXA", "role": "Broker"}}
 
 2. **IDENTIFY ALLEGATION TYPE FROM PDF** - Based on PDF content, choose ONE specific category:
    - Cross-border selling (跨境保險招攬)
