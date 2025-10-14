@@ -353,12 +353,14 @@ def create_or_update_alleged_person_profile(
             
     except Exception as e:
         print(f"[ALLEGED PERSON AUTOMATION] ❌ Error: {e}")
-            return {
-                'success': False,
-                'action': 'error',
-                'error': str(e),
-                'message': 'Failed to process alleged person profile'
-            }def process_ai_analysis_results(analysis_result: Dict, email_id: int) -> List[Dict]:
+        return {
+            'success': False,
+            'action': 'error',
+            'error': str(e),
+            'message': 'Failed to process alleged person profile'
+        }
+
+def process_ai_analysis_results(analysis_result: Dict, email_id: int) -> List[Dict]:
     """
     Process AI analysis results and auto-create/update alleged person profiles
     
