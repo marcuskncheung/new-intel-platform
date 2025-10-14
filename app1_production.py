@@ -1425,85 +1425,73 @@ def edit_alleged_subject_profile(poi_id):
 @app.route("/test_automation")
 @login_required
 def test_automation():
-    """Test the automation system and display results"""
+    """Test the automation system with real database data"""
     try:
-        # Check if automation is available
-        try:
-            import alleged_person_automation
-        except ImportError:
-            return """
-            <html><head><title>❌ Automation Not Available</title></head>
-            <body style="font-family: monospace; padding: 20px;">
-            <h1>❌ Automation Module Not Available</h1>
-            <p>The alleged_person_automation module could not be imported.</p>
-            <p>Make sure the automation system is properly installed.</p>
-            <p><a href="/alleged_subject_list">← Back to Alleged Subject List</a></p>
-            </body></html>
-            """
+        # Get current profiles count
+        profile_count = AllegedPersonProfile.query.count()
+        
+        # Get an actual email to test with
+        test_email = Email.query.first()
         
         results = {
-            'database_init': False,
-            'poi_generation': None,
-            'profile_matching': None,
-            'profile_creation': None,
+            'automation_enabled': ALLEGED_PERSON_AUTOMATION,
+            'current_profiles': profile_count,
+            'database_ok': True,
+            'test_email_id': test_email.id if test_email else None,
+            'next_poi_id': None,
+            'test_result': None,
             'errors': []
         }
         
-        # Test 1: Database initialization
+        # Test POI generation
         try:
-            results['database_init'] = alleged_person_automation.initialize_database()
+            next_poi = generate_next_poi_id()
+            results['next_poi_id'] = next_poi
         except Exception as e:
-            results['errors'].append(f"Database init: {str(e)}")
-        
-        # Test 2: POI ID generation
-        try:
-            results['poi_generation'] = alleged_person_automation.generate_next_poi_id()
-        except Exception as e:
-            results['errors'].append(f"POI generation: {str(e)}")
-        
-        # Test 3: Profile matching
-        try:
-            results['profile_matching'] = alleged_person_automation.find_matching_profile(
-                name_english="Test Person",
-                name_chinese="测试人员"
-            )
-        except Exception as e:
-            results['errors'].append(f"Profile matching: {str(e)}")
-        
-        # Test 4: Profile creation (simulation)
-        try:
-            result = alleged_person_automation.create_or_update_alleged_person_profile(
-                name_english="Web Test Agent",
-                name_chinese="网页测试代理",
-                agent_number="WEB123456",
-                company="Web Test Insurance",
-                role="Agent",
-                source="WEB_TEST"
-            )
-            results['profile_creation'] = result
-        except Exception as e:
-            results['errors'].append(f"Profile creation: {str(e)}")
+            results['errors'].append(f'POI generation failed: {str(e)}')
         
         return f"""
         <html><head><title>🧪 Automation Test Results</title></head>
-        <body style="font-family: monospace; padding: 20px;">
-        <h1>🧪 Automation System Test Results</h1>
-        <h3>Database Initialization: {'✅ SUCCESS' if results['database_init'] else '❌ FAILED'}</h3>
-        <h3>POI ID Generation: {results['poi_generation'] or '❌ FAILED'}</h3>
-        <h3>Profile Matching: {'✅ WORKING' if results['profile_matching'] is not None else '❌ FAILED'}</h3>
-        <h3>Profile Creation: {'✅ SUCCESS' if results['profile_creation'] and results['profile_creation'].get('success') else '❌ FAILED'}</h3>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5;">
+        <h1>🧪 Automation System Status</h1>
         
-        <h2>📊 Detailed Results:</h2>
-        <pre>{str(results)}</pre>
+        <div style="background: white; padding: 20px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #28a745;">
+        <h3>📊 System Status</h3>
+        <p><strong>Automation Enabled:</strong> {'✅ YES' if results['automation_enabled'] else '❌ NO'}</p>
+        <p><strong>Current Profiles:</strong> {results['current_profiles']}</p>
+        <p><strong>Database:</strong> {'✅ Connected' if results['database_ok'] else '❌ Error'}</p>
+        <p><strong>Test Email ID:</strong> {results['test_email_id'] or 'No emails found'}</p>
+        <p><strong>Next POI ID:</strong> {results['next_poi_id'] or 'Error generating'}</p>
+        </div>
         
-        <h2>❌ Errors:</h2>
-        <ul>{''.join([f'<li>{error}</li>' for error in results['errors']]) if results['errors'] else '<li>No errors!</li>'}</ul>
+        {'<div style="background: #ffe6e6; padding: 20px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #dc3545;"><h3>❌ Errors</h3><ul>' + ''.join([f'<li>{error}</li>' for error in results['errors']]) + '</ul></div>' if results['errors'] else ''}
         
-        <p><a href="/alleged_subject_list">← Back to Alleged Subject List</a></p>
+        <div style="background: white; padding: 20px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #007bff;">
+        <h3>🔍 How to Test Real Automation</h3>
+        <ol>
+        <li><strong>Go to Intelligence Source:</strong> <a href="/int_source" target="_blank" style="color: #007bff;">Click here to open emails</a></li>
+        <li><strong>Select any email</strong> from the list</li>
+        <li><strong>Fill in Alleged Subjects:</strong> Enter English and/or Chinese names in the assessment form</li>
+        <li><strong>Click "Save Assessment"</strong> - this will trigger automation</li>
+        <li><strong>Check Results:</strong> <a href="/alleged_subject_list" target="_blank" style="color: #007bff;">View Alleged Subject List</a> to see new POI profiles</li>
+        </ol>
+        
+        <p style="background: #e6f7ff; padding: 15px; border-radius: 3px; margin-top: 15px;">
+        <strong>💡 Expected Result:</strong> When you save an assessment with alleged person names, 
+        the system should automatically create POI profiles (POI-001, POI-002, etc.) and display them 
+        in the Alleged Subject List page.
+        </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+        <a href="/alleged_subject_list" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin-right: 10px;">← Back to Alleged Subject List</a>
+        <a href="/int_source" style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Test with Real Email →</a>
+        </div>
         </body></html>
         """
         
     except Exception as e:
+        import traceback
         return f"""
         <html><head><title>❌ Automation Test Error</title></head>
         <body style="font-family: monospace; padding: 20px;">
@@ -5501,7 +5489,6 @@ def int_source_update_assessment(email_id):
                     additional_info['role'] = intermediary_info[0]  # Use first type as role
                 
                 # Process manual input and auto-create profiles
-                from alleged_person_automation import process_manual_input
                 profile_results = process_manual_input(
                     email_id=email.id,
                     alleged_subject_english=', '.join(processed_english),
@@ -7040,7 +7027,6 @@ def ai_comprehensive_analyze_email(email_id):
                     print(f"[AUTOMATION] 🚀 Auto-creating profiles for {len(alleged_persons)} alleged persons from email {email_id}")
                     
                     # Process AI analysis results and auto-create profiles
-                    from alleged_person_automation import process_ai_analysis_results
                     profile_results = process_ai_analysis_results(analysis, email_id)
                     
                     # Log results
