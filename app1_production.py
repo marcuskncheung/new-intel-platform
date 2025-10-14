@@ -78,6 +78,21 @@ from docx import Document as DocxDocument  # This import is correct if python-do
 from collections import Counter
 
 # Advanced Flask scaling imports
+
+# Import alleged person automation system
+try:
+    from alleged_person_automation import (
+        normalize_name_for_matching, calculate_name_similarity, generate_next_poi_id,
+        find_matching_profile, create_or_update_alleged_person_profile,
+        process_ai_analysis_results, process_manual_input, link_email_to_profile
+    )
+    ALLEGED_PERSON_AUTOMATION = True
+    print("✅ Alleged Person Automation System loaded")
+except ImportError:
+    ALLEGED_PERSON_AUTOMATION = False
+    print("WARNING: Alleged Person Automation System not available")
+
+# Advanced Flask scaling imports
 from concurrent.futures import ThreadPoolExecutor
 import time
 from functools import wraps
@@ -1013,6 +1028,98 @@ class EmailAnalysisLock(db.Model):
     def __repr__(self):
         return f'<EmailAnalysisLock email_id={self.email_id} locked_by={self.locked_by}>'
 
+# ✅ NEW: Alleged Person Profile System for Automated Profile Creation
+class AllegedPersonProfile(db.Model):
+    """
+    Automated alleged person profile system
+    
+    Auto-creates profiles when AI analysis or manual input identifies alleged persons.
+    Assigns unique POI IDs (POI-001, POI-002) and links to related emails.
+    """
+    __tablename__ = 'alleged_person_profile'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    poi_id = db.Column(db.String(20), unique=True, nullable=False, index=True)  # POI-001, POI-002, etc.
+    
+    # Name information
+    name_english = db.Column(db.String(255), index=True)
+    name_chinese = db.Column(db.String(255), index=True)
+    name_normalized = db.Column(db.String(500), index=True)  # For duplicate detection
+    
+    # Professional information
+    agent_number = db.Column(db.String(100), index=True)
+    license_number = db.Column(db.String(100))
+    company = db.Column(db.String(255))
+    role = db.Column(db.String(100))  # Agent, Broker, etc.
+    
+    # Profile metadata
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT, IMPORT
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Statistics
+    email_count = db.Column(db.Integer, default=0)  # How many emails mention this person
+    first_mentioned_date = db.Column(db.DateTime)
+    last_mentioned_date = db.Column(db.DateTime)
+    
+    # Status
+    status = db.Column(db.String(50), default='ACTIVE')  # ACTIVE, MERGED, ARCHIVED
+    merged_into_poi_id = db.Column(db.String(20))  # If merged into another profile
+    
+    # Additional notes
+    notes = db.Column(db.Text)
+    
+    def __repr__(self):
+        return f'<AllegedPersonProfile {self.poi_id}: {self.name_english or self.name_chinese}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'poi_id': self.poi_id,
+            'name_english': self.name_english,
+            'name_chinese': self.name_chinese,
+            'agent_number': self.agent_number,
+            'license_number': self.license_number,
+            'company': self.company,
+            'role': self.role,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_by': self.created_by,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'email_count': self.email_count,
+            'first_mentioned_date': self.first_mentioned_date.isoformat() if self.first_mentioned_date else None,
+            'last_mentioned_date': self.last_mentioned_date.isoformat() if self.last_mentioned_date else None,
+            'status': self.status,
+            'notes': self.notes
+        }
+
+class EmailAllegedPersonLink(db.Model):
+    """
+    Many-to-many relationship between emails and alleged persons
+    
+    Allows tracking which emails mention which alleged persons
+    and enables profile pages to show all related emails.
+    """
+    __tablename__ = 'email_alleged_person_link'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
+    alleged_person_id = db.Column(db.Integer, db.ForeignKey('alleged_person_profile.id'), nullable=False)
+    
+    # Link metadata
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT
+    confidence = db.Column(db.Float)  # AI confidence score (0.0 to 1.0)
+    
+    # Relationships
+    email = db.relationship('Email', backref='alleged_person_links')
+    alleged_person = db.relationship('AllegedPersonProfile', backref='email_links')
+    
+    # Ensure unique email-person combinations
+    __table_args__ = (db.UniqueConstraint('email_id', 'alleged_person_id', name='unique_email_person_link'),)
+    
+    def __repr__(self):
+        return f'<EmailAllegedPersonLink email_id={self.email_id} person_id={self.alleged_person_id}>'
+
 # --- Data migration from Access to SQLAlchemy (run once) ---
 def migrate_access_to_sqlalchemy():
     # Only run if table is empty
@@ -1126,21 +1233,193 @@ def allowed_file(fn):
 @app.route("/alleged_subject_list")
 @login_required
 def alleged_subject_list():
-    profiles = CaseProfile.query.all()
-    seen = set()
-    targets = []
-    for p in profiles:
-        key = (p.alleged_subject_en, p.alleged_subject_cn)
-        if key in seen:
-            continue
-        seen.add(key)
-        targets.append({
-            "idx": p.id,
-            "label": p.alleged_subject_en or p.alleged_subject_cn,
-            "subtitle": p.alleged_subject_cn if p.alleged_subject_en else "",
-            "time": p.date_of_receipt
-        })
-    return render_template("alleged_subject_list.html", targets=targets)
+    """
+    🤖 AUTOMATED ALLEGED PERSON PROFILES
+    
+    Shows all alleged person profiles created automatically by AI analysis
+    and manual input. Each profile has a unique POI ID (POI-001, POI-002) 
+    and links to all emails alleging that person.
+    """
+    try:
+        # Get all active alleged person profiles, ordered by creation date (newest first)
+        profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').order_by(
+            AllegedPersonProfile.created_at.desc()
+        ).all()
+        
+        targets = []
+        for profile in profiles:
+            # Build display name
+            name_parts = []
+            if profile.name_english:
+                name_parts.append(profile.name_english)
+            if profile.name_chinese:
+                name_parts.append(f"({profile.name_chinese})")
+            
+            display_name = " ".join(name_parts) if name_parts else profile.poi_id
+            
+            # Build subtitle with additional info
+            subtitle_parts = []
+            if profile.agent_number:
+                subtitle_parts.append(f"Agent: {profile.agent_number}")
+            if profile.company:
+                subtitle_parts.append(f"Company: {profile.company}")
+            if profile.email_count > 0:
+                subtitle_parts.append(f"{profile.email_count} email(s)")
+            
+            subtitle = " | ".join(subtitle_parts) if subtitle_parts else ""
+            
+            targets.append({
+                "idx": profile.id,
+                "poi_id": profile.poi_id,  # For direct POI navigation
+                "label": display_name,
+                "subtitle": subtitle,
+                "time": profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "",
+                "email_count": profile.email_count,
+                "created_by": profile.created_by,
+                "agent_number": profile.agent_number,
+                "company": profile.company,
+                "last_mentioned": profile.last_mentioned_date.strftime("%Y-%m-%d") if profile.last_mentioned_date else ""
+            })
+        
+        print(f"[ALLEGED SUBJECT LIST] Showing {len(targets)} automated alleged person profiles")
+        
+        return render_template("alleged_subject_list.html", 
+                             targets=targets,
+                             automation_enabled=True,
+                             total_profiles=len(targets))
+    
+    except Exception as e:
+        print(f"[ALLEGED SUBJECT LIST] ❌ Error loading profiles: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback to old system if new system fails
+        try:
+            profiles = CaseProfile.query.all()
+            seen = set()
+            targets = []
+            for p in profiles:
+                key = (p.alleged_subject_en, p.alleged_subject_cn)
+                if key in seen:
+                    continue
+                seen.add(key)
+                targets.append({
+                    "idx": p.id,
+                    "label": p.alleged_subject_en or p.alleged_subject_cn,
+                    "subtitle": p.alleged_subject_cn if p.alleged_subject_en else "",
+                    "time": p.date_of_receipt
+                })
+            
+            flash("Using legacy profile system due to error. Check logs.", "warning")
+            return render_template("alleged_subject_list.html", 
+                                 targets=targets,
+                                 automation_enabled=False)
+        
+        except Exception as fallback_error:
+            print(f"[ALLEGED SUBJECT LIST] ❌ Fallback also failed: {fallback_error}")
+            flash(f"Error loading alleged person profiles: {str(e)}", "error")
+            return render_template("alleged_subject_list.html", 
+                                 targets=[],
+                                 automation_enabled=False)
+
+@app.route("/alleged_subject_profile/<poi_id>")
+@login_required
+def alleged_subject_profile_detail(poi_id):
+    """
+    Show detailed profile for a specific alleged person (POI)
+    
+    Displays:
+    - Profile information (names, agent number, company, etc.)
+    - All emails alleging this person
+    - Profile history and statistics
+    """
+    try:
+        # Get the profile
+        profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()
+        
+        if not profile:
+            flash(f"Profile {poi_id} not found", "error")
+            return redirect(url_for("alleged_subject_list"))
+        
+        # Get all emails linked to this profile
+        email_links = db.session.query(EmailAllegedPersonLink, Email).join(
+            Email, EmailAllegedPersonLink.email_id == Email.id
+        ).filter(
+            EmailAllegedPersonLink.alleged_person_id == profile.id
+        ).order_by(Email.received.desc()).all()
+        
+        related_emails = []
+        for link, email in email_links:
+            related_emails.append({
+                'email_id': email.id,
+                'subject': email.subject,
+                'sender': email.sender,
+                'received': email.received,
+                'alleged_nature': email.alleged_nature,
+                'allegation_summary': email.allegation_summary,
+                'link_created_at': link.created_at,
+                'link_confidence': link.confidence,
+                'link_created_by': link.created_by
+            })
+        
+        print(f"[PROFILE DETAIL] Showing profile {poi_id} with {len(related_emails)} related emails")
+        
+        return render_template("alleged_subject_profile_detail.html",
+                             profile=profile,
+                             related_emails=related_emails,
+                             total_emails=len(related_emails))
+    
+    except Exception as e:
+        print(f"[PROFILE DETAIL] ❌ Error loading profile {poi_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error loading profile details: {str(e)}", "error")
+        return redirect(url_for("alleged_subject_list"))
+
+@app.route("/alleged_subject_profile/<poi_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_alleged_subject_profile(poi_id):
+    """
+    Edit alleged person profile information
+    """
+    try:
+        profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()
+        
+        if not profile:
+            flash(f"Profile {poi_id} not found", "error")
+            return redirect(url_for("alleged_subject_list"))
+        
+        if request.method == "POST":
+            # Update profile information
+            profile.name_english = request.form.get("name_english", "").strip() or None
+            profile.name_chinese = request.form.get("name_chinese", "").strip() or None
+            profile.agent_number = request.form.get("agent_number", "").strip() or None
+            profile.license_number = request.form.get("license_number", "").strip() or None
+            profile.company = request.form.get("company", "").strip() or None
+            profile.role = request.form.get("role", "").strip() or None
+            profile.notes = request.form.get("notes", "").strip() or None
+            
+            # Update normalized name for duplicate detection
+            name_parts = []
+            if profile.name_english:
+                name_parts.append(normalize_name_for_matching(profile.name_english))
+            if profile.name_chinese:
+                name_parts.append(normalize_name_for_matching(profile.name_chinese))
+            profile.name_normalized = ' | '.join(name_parts) if name_parts else None
+            
+            db.session.commit()
+            
+            flash(f"Profile {poi_id} updated successfully", "success")
+            return redirect(url_for("alleged_subject_profile_detail", poi_id=poi_id))
+        
+        return render_template("edit_alleged_subject_profile.html", profile=profile)
+    
+    except Exception as e:
+        print(f"[PROFILE EDIT] ❌ Error editing profile {poi_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error editing profile: {str(e)}", "error")
+        return redirect(url_for("alleged_subject_list"))
 
 # Example: Create route
 @app.route("/create", methods=["GET", "POST"])
@@ -5116,6 +5395,47 @@ def int_source_update_assessment(email_id):
         
         db.session.commit()
         
+        # 🤖 AUTOMATED ALLEGED PERSON PROFILE CREATION FOR MANUAL INPUT
+        if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
+            try:
+                print(f"[MANUAL AUTOMATION] 🚀 Auto-creating profiles for manually entered alleged persons from email {email.id}")
+                
+                # Prepare additional info from form data
+                additional_info = {}
+                if license_info:
+                    additional_info['agent_number'] = license_info[0]  # Use first license as agent number
+                if intermediary_info:
+                    additional_info['role'] = intermediary_info[0]  # Use first type as role
+                
+                # Process manual input and auto-create profiles
+                from alleged_person_automation import process_manual_input
+                profile_results = process_manual_input(
+                    email_id=email.id,
+                    alleged_subject_english=', '.join(processed_english),
+                    alleged_subject_chinese=', '.join(processed_chinese),
+                    additional_info=additional_info
+                )
+                
+                # Log results
+                created_count = sum(1 for r in profile_results if r.get('action') == 'created')
+                updated_count = sum(1 for r in profile_results if r.get('action') == 'updated')
+                
+                automation_messages = []
+                if created_count > 0:
+                    automation_messages.append(f"Created {created_count} new alleged person profile(s)")
+                    print(f"[MANUAL AUTOMATION] ✅ Created {created_count} new alleged person profiles")
+                if updated_count > 0:
+                    automation_messages.append(f"Updated {updated_count} existing alleged person profile(s)")
+                    print(f"[MANUAL AUTOMATION] ✅ Updated {updated_count} existing alleged person profiles")
+                
+                if automation_messages:
+                    flash(" | ".join(automation_messages), "info")
+                
+            except Exception as automation_error:
+                print(f"[MANUAL AUTOMATION] ❌ Error in profile automation: {automation_error}")
+                # Don't fail the entire save if automation fails
+                flash("Assessment saved, but profile automation had an error. Check logs.", "warning")
+        
         # Build detailed success message
         saved_info = []
         if processed_english:
@@ -6620,6 +6940,45 @@ def ai_comprehensive_analyze_email(email_id):
             
             db.session.commit()
             print(f"[AI SAVE] ✅ All AI analysis results saved to database for email {email_id}")
+            
+            # 🤖 AUTOMATED ALLEGED PERSON PROFILE CREATION
+            if ALLEGED_PERSON_AUTOMATION and alleged_persons:
+                try:
+                    print(f"[AUTOMATION] 🚀 Auto-creating profiles for {len(alleged_persons)} alleged persons from email {email_id}")
+                    
+                    # Process AI analysis results and auto-create profiles
+                    from alleged_person_automation import process_ai_analysis_results
+                    profile_results = process_ai_analysis_results(analysis, email_id)
+                    
+                    # Log results
+                    created_count = sum(1 for r in profile_results if r.get('action') == 'created')
+                    updated_count = sum(1 for r in profile_results if r.get('action') == 'updated')
+                    
+                    if created_count > 0:
+                        print(f"[AUTOMATION] ✅ Created {created_count} new alleged person profiles")
+                    if updated_count > 0:
+                        print(f"[AUTOMATION] ✅ Updated {updated_count} existing alleged person profiles")
+                    
+                    # Add automation results to response
+                    analysis['profile_automation'] = {
+                        'enabled': True,
+                        'results': profile_results,
+                        'profiles_created': created_count,
+                        'profiles_updated': updated_count
+                    }
+                    
+                except Exception as automation_error:
+                    print(f"[AUTOMATION] ❌ Error in profile automation: {automation_error}")
+                    # Don't fail the entire AI analysis if automation fails
+                    analysis['profile_automation'] = {
+                        'enabled': False,
+                        'error': str(automation_error)
+                    }
+            else:
+                if not ALLEGED_PERSON_AUTOMATION:
+                    print(f"[AUTOMATION] ⚠️ Alleged person automation disabled")
+                else:
+                    print(f"[AUTOMATION] ℹ️ No alleged persons found, skipping profile creation")
             
             # ✅ Add email_id to analysis object for frontend use
             analysis['email_id'] = email_id
