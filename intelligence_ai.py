@@ -1528,7 +1528,7 @@ START EXTRACTING NOW:"""
             print(f"[DOCLING] Using dynamic timeout: {dynamic_timeout}s for {file_size_mb:.1f} MB file")
             
             # ✅ DOCLING API CALL WITH RETRY LOGIC
-            return self._call_docling_with_retry(pdf_content, filename, dynamic_timeout, max_retries=2)
+            return self._call_docling_with_retry(pdf_content, filename, dynamic_timeout, max_retries=3)
             
         except Exception as e:
             error_msg = f"Unexpected error in PDF processing: {str(e)}"
@@ -1548,7 +1548,7 @@ START EXTRACTING NOW:"""
                     'text_content': f'[COMPLETE_FAILURE: {error_msg}]'
                 }
 
-    def _call_docling_with_retry(self, pdf_content: bytes, filename: str, timeout: int, max_retries: int = 2) -> Dict:
+    def _call_docling_with_retry(self, pdf_content: bytes, filename: str, timeout: int, max_retries: int = 3) -> Dict:
         """Call Docling API with retry logic and automatic fallback on timeout"""
         import base64
         import time
@@ -1618,7 +1618,30 @@ START EXTRACTING NOW:"""
                             str(document_data)
                         )
                     
-                    if text_content and len(text_content) > 50:  # Ensure we got meaningful content
+                    # ✅ CHECK FOR EMPTY OCR RESULT - Use VLM fallback for image-only PDFs
+                    if not text_content or len(text_content) < 50:
+                        print(f"[DOCLING] ⚠️ OCR returned empty/minimal content ({len(text_content)} chars)")
+                        print(f"[DOCLING] This might be a pure-image PDF - trying VLM OCR fallback...")
+                        
+                        # Try VLM-based image OCR as fallback for scanned PDFs
+                        try:
+                            vlm_result = self.extract_pdf_images_to_vlm(pdf_content, filename, max_pages=5)
+                            if vlm_result.get('success') and len(vlm_result.get('text_content', '')) > 50:
+                                print(f"[DOCLING] ✅ VLM OCR extracted {len(vlm_result['text_content'])} chars from image-based PDF")
+                                vlm_result['method'] = 'docling_failed_vlm_ocr_fallback'
+                                vlm_result['note'] = 'Docling OCR returned empty, used VLM image OCR'
+                                return vlm_result
+                        except Exception as vlm_error:
+                            print(f"[DOCLING] ⚠️ VLM OCR fallback also failed: {vlm_error}")
+                        
+                        # If VLM also failed and this is last attempt, use standard fallback
+                        if attempt == max_retries:
+                            print(f"[DOCLING] Last attempt + VLM failed, trying PyPDF2 fallback...")
+                            break
+                        continue
+                    
+                    # If we got good content, return it
+                    if text_content and len(text_content) > 50:
                         print(f"[DOCLING] ✅ Successfully extracted {len(text_content)} characters from {filename}")
                         return {
                             'text_content': text_content,
