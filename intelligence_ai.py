@@ -661,13 +661,34 @@ Format your response as JSON:
                 # Parse alleged persons with proper validation
                 alleged_persons = []
                 for person in result.get('alleged_persons', []):
+                    # Extract license/agent numbers
+                    agent_num = person.get('agent_number', '')[:50]
+                    license_num = person.get('license_number', '')[:50]
+                    role = person.get('role', '')[:100]
+                    
+                    # Determine if person is an intermediary (has license/agent number)
+                    is_intermediary = bool(agent_num or license_num)
+                    
+                    # Determine license type from role or default
+                    license_type = ''
+                    if is_intermediary:
+                        role_lower = role.lower()
+                        if 'broker' in role_lower:
+                            license_type = 'Broker'
+                        elif 'agent' in role_lower or agent_num:
+                            license_type = 'Agent'
+                        else:
+                            license_type = 'Agent'  # Default to Agent
+                    
                     alleged_persons.append({
                         'name_english': person.get('name_english', '')[:255],
                         'name_chinese': person.get('name_chinese', '')[:255],
-                        'agent_number': person.get('agent_number', '')[:50],
-                        'license_number': person.get('license_number', '')[:50],
+                        'agent_number': agent_num,
+                        'license_number': license_num or agent_num,  # Use agent_number as fallback
                         'company': person.get('company', '')[:255],
-                        'role': person.get('role', '')[:100]
+                        'role': role,
+                        'is_intermediary': is_intermediary,  # ✅ NEW: For frontend checkbox
+                        'license_type': license_type  # ✅ NEW: For frontend dropdown
                     })
                 
                 comprehensive_result = {

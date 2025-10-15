@@ -7428,21 +7428,38 @@ def ai_comprehensive_analyze_email(email_id):
                     email.alleged_subject = ', '.join(combined_names)[:255]
                     print(f"[AI SAVE] ✅ Saved legacy alleged_subject: {email.alleged_subject}")
                 
-                # Save agent/license numbers to JSON fields
+                # Save agent/license numbers to JSON fields (matching template expectations)
                 if agent_numbers or license_numbers:
-                    license_data = []
-                    for i, person in enumerate(alleged_persons):
-                        person_license = {
-                            'person': person.get('name_english', '') or person.get('name_chinese', '') or f"Person {i+1}",
-                            'agent_number': person.get('agent_number', ''),
-                            'license_number': person.get('license_number', ''),
-                            'company': person.get('company', ''),
-                            'role': person.get('role', '')
-                        }
-                        license_data.append(person_license)
+                    # Prepare arrays matching the person count
+                    license_numbers_array = []
+                    intermediary_types_array = []
                     
-                    email.license_numbers_json = json.dumps(license_data, ensure_ascii=False)
-                    print(f"[AI SAVE] ✅ Saved {len(license_data)} license records to JSON")
+                    for i, person in enumerate(alleged_persons):
+                        # Get license/agent number
+                        license_num = person.get('license_number', '') or person.get('agent_number', '')
+                        license_numbers_array.append(license_num)
+                        
+                        # Determine intermediary type
+                        # Check if person has license info - if yes, mark as Agent (default)
+                        if license_num:
+                            # Try to determine type from role or default to Agent
+                            role = person.get('role', '').lower()
+                            if 'broker' in role:
+                                intermediary_types_array.append('Broker')
+                            elif 'agent' in role or person.get('agent_number', ''):
+                                intermediary_types_array.append('Agent')
+                            else:
+                                intermediary_types_array.append('Agent')  # Default
+                        else:
+                            intermediary_types_array.append('')  # No license
+                    
+                    # Save to database in format template expects
+                    email.license_numbers_json = json.dumps(license_numbers_array, ensure_ascii=False)
+                    email.intermediary_types_json = json.dumps(intermediary_types_array, ensure_ascii=False)
+                    
+                    print(f"[AI SAVE] ✅ Saved license data for {len(license_numbers_array)} persons")
+                    print(f"[AI SAVE]   - License numbers: {license_numbers_array}")
+                    print(f"[AI SAVE]   - Intermediary types: {intermediary_types_array}")
                 
             else:
                 print(f"[AI SAVE] ⚠️ No alleged persons found in AI analysis")
