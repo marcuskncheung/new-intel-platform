@@ -7476,6 +7476,19 @@ def ai_comprehensive_analyze_email(email_id):
             db.session.commit()
             print(f"[AI SAVE] ✅ All AI analysis results saved to database for email {email_id}")
             
+            # ✅ VERIFICATION: Log what was actually saved to database
+            db.session.refresh(email)  # Refresh to get exact database values
+            print(f"[AI VERIFY] Database values after commit:")
+            print(f"[AI VERIFY]   - alleged_subject_english: '{email.alleged_subject_english}'")
+            print(f"[AI VERIFY]   - alleged_subject_chinese: '{email.alleged_subject_chinese}'")
+            print(f"[AI VERIFY]   - alleged_subject (legacy): '{email.alleged_subject}'")
+            if email.alleged_subject_english:
+                en_count = len(email.alleged_subject_english.split(','))
+                print(f"[AI VERIFY]   - English names count: {en_count}")
+            if email.alleged_subject_chinese:
+                cn_count = len(email.alleged_subject_chinese.split(','))
+                print(f"[AI VERIFY]   - Chinese names count: {cn_count}")
+            
             # 🤖 AUTOMATED ALLEGED PERSON PROFILE CREATION
             if ALLEGED_PERSON_AUTOMATION and alleged_persons:
                 try:
