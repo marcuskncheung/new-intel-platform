@@ -1627,8 +1627,8 @@
         </div>
       </div>
       
-      <!-- Bulk Actions Toolbar -->
-      <div id="bulk-actions-toolbar" class="bulk-actions-toolbar d-none">
+      <!-- Bulk Actions Toolbar - HIDDEN (checkboxes removed) -->
+      <div id="bulk-actions-toolbar" class="bulk-actions-toolbar d-none" style="display: none !important;">
         <div class="d-flex align-items-center justify-content-between">
           <div class="bulk-selection-info">
             <span id="selected-count">0</span> emails selected
@@ -1771,29 +1771,26 @@
         <table class="table table-hover" id="inbox-table">
           <thead class="table-light">
             <tr>
-              <th style="width: 40px;">
-                <input type="checkbox" id="select-all-checkbox" class="form-check-input" title="Select all emails">
-              </th>
               <th class="sortable" data-column="0">
-                Sender <i class="fas fa-sort sort-icon"></i>
+                Case Number <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="1">
-                Recipients <i class="fas fa-sort sort-icon"></i>
+                Sender <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="2">
-                Subject <i class="fas fa-sort sort-icon"></i>
+                Recipients <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="3">
-                Received <i class="fas fa-sort sort-icon"></i>
+                Subject <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="4">
-                Combined Score <i class="fas fa-sort sort-icon"></i>
+                Received <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="5">
-                Status <i class="fas fa-sort sort-icon"></i>
+                Combined Score <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="6">
-                Case Number <i class="fas fa-sort sort-icon"></i>
+                Status <i class="fas fa-sort sort-icon"></i>
               </th>
               <th>Action</th>
             </tr>
@@ -1807,7 +1804,21 @@
                 data-thread-key="{{ email.thread_key }}"
                 title="{{ 'Thread: ' + email.thread_count|string + ' emails in conversation' if email.is_thread else 'Single email' }}">
               <td>
-                <input type="checkbox" class="form-check-input" data-email-id="{{ email.id }}" title="Select email">
+                {% if email.int_reference_number %}
+                  <span class="badge bg-primary" title="INT Reference Number - Order: {{ email.int_reference_order }}">
+                    <i class="fas fa-hashtag"></i> {{ email.int_reference_number }}
+                    {% if email.int_reference_manual %}
+                      <i class="fas fa-pencil-alt ms-1" title="Manually edited"></i>
+                    {% endif %}
+                  </span>
+                {% else %}
+                  <span class="badge bg-warning text-dark" title="No INT number assigned">
+                    <i class="fas fa-clock"></i> Pending
+                  </span>
+                {% endif %}
+                {% if email.case_number %}
+                  <br><small class="text-muted">Case: {{ email.case_number }}</small>
+                {% endif %}
               </td>
               <td>
                 {% if email.is_thread %}
@@ -1850,23 +1861,6 @@
                   <span class="badge bg-success status-case-opened">Case Opened</span>
                 {% else %}
                   <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if email.int_reference_number %}
-                  <span class="badge bg-primary" title="INT Reference Number - Order: {{ email.int_reference_order }}">
-                    <i class="fas fa-hashtag"></i> {{ email.int_reference_number }}
-                    {% if email.int_reference_manual %}
-                      <i class="fas fa-pencil-alt ms-1" title="Manually edited"></i>
-                    {% endif %}
-                  </span>
-                {% else %}
-                  <span class="badge bg-warning text-dark" title="No INT number assigned">
-                    <i class="fas fa-clock"></i> Pending
-                  </span>
-                {% endif %}
-                {% if email.case_number %}
-                  <br><small class="text-muted">Case: {{ email.case_number }}</small>
                 {% endif %}
               </td>
               <td>
@@ -3243,13 +3237,14 @@
 </script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Bulk Actions System
-    var bulkActionsToolbar = document.getElementById('bulk-actions-toolbar');
-    var selectAllCheckbox = document.getElementById('select-all-checkbox');
-    var emailCheckboxes = document.querySelectorAll('input[type="checkbox"][data-email-id]');
-    var selectedCountEl = document.getElementById('selected-count');
+    // Bulk Actions System - DISABLED (checkboxes removed)
+    // var bulkActionsToolbar = document.getElementById('bulk-actions-toolbar');
+    // var selectAllCheckbox = document.getElementById('select-all-checkbox');
+    // var emailCheckboxes = document.querySelectorAll('input[type="checkbox"][data-email-id]');
+    // var selectedCountEl = document.getElementById('selected-count');
     
-    if (bulkActionsToolbar && selectAllCheckbox && emailCheckboxes.length) {
+    // Bulk actions disabled - checkboxes have been removed from the table
+    if (false) {  // Changed from: if (bulkActionsToolbar && selectAllCheckbox && emailCheckboxes.length)
       initializeBulkActions();
     }
     
