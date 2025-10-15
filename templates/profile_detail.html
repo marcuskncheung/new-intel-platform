@@ -3,6 +3,52 @@
 {% block title %}Profile: {{ profile.name_english }} - Intelligence Platform{% endblock %}
 
 {% block content %}
+<style>
+/* Allegation Detail Button Styling */
+.allegation-detail-btn {
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.allegation-detail-btn:hover {
+    text-decoration: underline;
+    color: #0056b3 !important;
+}
+
+.allegation-detail-btn:hover .badge {
+    background-color: #0056b3 !important;
+    transform: scale(1.05);
+}
+
+.allegation-detail-btn .badge {
+    transition: all 0.2s ease;
+}
+
+/* Modal Description Box */
+#modal-description {
+    background: #ffffff !important;
+    border: 2px solid #dee2e6 !important;
+    color: #212529 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Ensure good contrast in modal */
+.modal-body strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+.modal-body .text-dark {
+    color: #212529 !important;
+}
+</style>
+
 <div class="container-fluid mt-4">
     <!-- Header -->
     <div class="row mb-4">
@@ -247,18 +293,23 @@
                                     <td>
                                         {{ allegation.allegation_type }}
                                         {% if allegation.allegation_description %}
-                                            <br><small class="text-muted" style="cursor: pointer;" 
-                                                onclick="showAllegationDetail(
-                                                    '{{ allegation.allegation_type }}', 
-                                                    `{{ allegation.allegation_description|replace('`', '\\`')|replace('\n', ' ')|replace('\r', '') }}`,
-                                                    '{{ allegation.allegation_date.strftime('%Y-%m-%d %H:%M') if allegation.allegation_date else 'N/A' }}',
-                                                    '{{ allegation.source_type }}',
-                                                    '{{ allegation.source_reference }}',
-                                                    '{{ allegation.complainant_name or 'Unknown' }}'
-                                                )" 
-                                                title="Click to view full details">
-                                                {{ allegation.allegation_description[:100] }}{% if allegation.allegation_description|length > 100 %}... <span class="badge bg-primary">Click to read more</span>{% endif %}
-                                            </small>
+                                            <br>
+                                            <button class="btn btn-sm btn-link text-muted p-0 allegation-detail-btn" 
+                                                    data-type="{{ allegation.allegation_type }}"
+                                                    data-description="{{ allegation.allegation_description|e }}"
+                                                    data-date="{{ allegation.allegation_date.strftime('%Y-%m-%d %H:%M') if allegation.allegation_date else 'N/A' }}"
+                                                    data-source="{{ allegation.source_type }}"
+                                                    data-reference="{{ allegation.source_reference }}"
+                                                    data-complainant="{{ allegation.complainant_name or 'Unknown' }}"
+                                                    style="text-align: left; text-decoration: none;">
+                                                <small>
+                                                    {{ allegation.allegation_description[:100] }}{% if allegation.allegation_description|length > 100 %}... 
+                                                    <span class="badge bg-primary">
+                                                        <i class="bi bi-zoom-in"></i> Click to read full details
+                                                    </span>
+                                                    {% endif %}
+                                                </small>
+                                            </button>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -469,17 +520,36 @@ function generateReport() {
     window.open(`/alleged_subject_profiles/{{ profile.id }}/report`, '_blank');
 }
 
-function showAllegationDetail(type, description, date, sourceType, sourceRef, complainant) {
-    // Populate modal fields
-    document.getElementById('modal-date').textContent = date;
-    document.getElementById('modal-type').innerHTML = '<span class="badge bg-info">' + type + '</span>';
-    document.getElementById('modal-source').innerHTML = '<span class="badge bg-primary">' + sourceType + '</span> - ' + sourceRef;
-    document.getElementById('modal-complainant').textContent = complainant;
-    document.getElementById('modal-description').textContent = description;
+// Allegation Detail Modal Handler
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event to all allegation detail buttons
+    const allegationBtns = document.querySelectorAll('.allegation-detail-btn');
     
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('allegationDetailModal'));
-    modal.show();
-}
+    allegationBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Get data from button attributes
+            const type = this.getAttribute('data-type');
+            const description = this.getAttribute('data-description');
+            const date = this.getAttribute('data-date');
+            const source = this.getAttribute('data-source');
+            const reference = this.getAttribute('data-reference');
+            const complainant = this.getAttribute('data-complainant');
+            
+            // Populate modal
+            document.getElementById('modal-date').textContent = date;
+            document.getElementById('modal-type').innerHTML = '<span class="badge bg-info fs-6">' + type + '</span>';
+            document.getElementById('modal-source').innerHTML = '<span class="badge bg-primary">' + source + '</span> - ' + reference;
+            document.getElementById('modal-complainant').textContent = complainant;
+            document.getElementById('modal-description').textContent = description;
+            
+            // Show modal using Bootstrap 5 API
+            const modalEl = document.getElementById('allegationDetailModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        });
+    });
+});
 </script>
 {% endblock %}
