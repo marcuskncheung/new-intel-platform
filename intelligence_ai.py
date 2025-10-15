@@ -1564,8 +1564,12 @@ START EXTRACTING NOW:"""
             ],
             'options': {
                 'to_formats': ['text'],  # Extract as plain text
-                'do_ocr': True,         # Enable OCR for scanned PDFs
-                'force_ocr': False,     # Don't replace existing text
+                'do_ocr': True,              # ✅ Enable OCR for scanned PDFs (correct key)
+                'force_full_page_ocr': True, # ✅ Force OCR on all pages, even with embedded text
+                'ocr_options': {             # ✅ Configure OCR engine and languages
+                    'engine': 'tesseract',   # Use Tesseract OCR engine
+                    'lang': 'eng+chi_tra'    # Support English + Traditional Chinese
+                },
                 'do_table_structure': True,  # Extract table structure
                 'include_images': False,     # Don't need images for text analysis
                 'abort_on_error': False      # Continue processing even if errors
