@@ -106,25 +106,25 @@
         <!-- Profile Information -->
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header bg-white">
                     <h5><i class="bi bi-person-vcard"></i> Profile Information</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body bg-white">
                     <table class="table table-borderless">
                         <tr>
-                            <td><strong>English Name:</strong></td>
-                            <td>{{ profile.name_english }}</td>
+                            <td style="background-color: white !important;"><strong>English Name:</strong></td>
+                            <td style="background-color: white !important; color: #000;">{{ profile.name_english }}</td>
                         </tr>
                         {% if profile.name_chinese %}
                         <tr>
-                            <td><strong>Chinese Name:</strong></td>
-                            <td>{{ profile.name_chinese }}</td>
+                            <td style="background-color: white !important;"><strong>Chinese Name:</strong></td>
+                            <td style="background-color: white !important; color: #000;">{{ profile.name_chinese }}</td>
                         </tr>
                         {% endif %}
                         {% if profile.license_number %}
                         <tr>
-                            <td><strong>License Number:</strong></td>
-                            <td><span class="badge bg-info">{{ profile.license_number }}</span></td>
+                            <td style="background-color: white !important;"><strong>License Number:</strong></td>
+                            <td style="background-color: white !important;"><span class="badge bg-info text-white">{{ profile.license_number }}</span></td>
                         </tr>
                         {% endif %}
                         {% if profile.company_broker %}
@@ -247,7 +247,18 @@
                                     <td>
                                         {{ allegation.allegation_type }}
                                         {% if allegation.allegation_description %}
-                                            <br><small class="text-muted">{{ allegation.allegation_description[:100] }}{% if allegation.allegation_description|length > 100 %}...{% endif %}</small>
+                                            <br><small class="text-muted" style="cursor: pointer;" 
+                                                onclick="showAllegationDetail(
+                                                    '{{ allegation.allegation_type }}', 
+                                                    `{{ allegation.allegation_description|replace('`', '\\`')|replace('\n', ' ')|replace('\r', '') }}`,
+                                                    '{{ allegation.allegation_date.strftime('%Y-%m-%d %H:%M') if allegation.allegation_date else 'N/A' }}',
+                                                    '{{ allegation.source_type }}',
+                                                    '{{ allegation.source_reference }}',
+                                                    '{{ allegation.complainant_name or 'Unknown' }}'
+                                                )" 
+                                                title="Click to view full details">
+                                                {{ allegation.allegation_description[:100] }}{% if allegation.allegation_description|length > 100 %}... <span class="badge bg-primary">Click to read more</span>{% endif %}
+                                            </small>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -316,6 +327,53 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Allegation Detail Modal -->
+<div class="modal fade" id="allegationDetailModal" tabindex="-1" aria-labelledby="allegationDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="allegationDetailModalLabel">
+          <i class="bi bi-file-text"></i> Allegation Full Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <strong><i class="bi bi-calendar-event"></i> Date:</strong>
+            <div id="modal-date" class="mt-1 text-dark"></div>
+          </div>
+          <div class="col-md-6">
+            <strong><i class="bi bi-tag"></i> Type:</strong>
+            <div id="modal-type" class="mt-1 text-dark"></div>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <strong><i class="bi bi-folder"></i> Source:</strong>
+            <div id="modal-source" class="mt-1 text-dark"></div>
+          </div>
+          <div class="col-md-6">
+            <strong><i class="bi bi-person"></i> Complainant:</strong>
+            <div id="modal-complainant" class="mt-1 text-dark"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <strong><i class="bi bi-file-text"></i> Full Description:</strong>
+            <div id="modal-description" class="mt-2 p-3 bg-light border rounded text-dark" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto; font-size: 1rem; line-height: 1.6;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- LOCAL Chart.js - NO EXTERNAL CDN -->
@@ -409,6 +467,19 @@ function viewSource(sourceType, sourceId) {
 
 function generateReport() {
     window.open(`/alleged_subject_profiles/{{ profile.id }}/report`, '_blank');
+}
+
+function showAllegationDetail(type, description, date, sourceType, sourceRef, complainant) {
+    // Populate modal fields
+    document.getElementById('modal-date').textContent = date;
+    document.getElementById('modal-type').innerHTML = '<span class="badge bg-info">' + type + '</span>';
+    document.getElementById('modal-source').innerHTML = '<span class="badge bg-primary">' + sourceType + '</span> - ' + sourceRef;
+    document.getElementById('modal-complainant').textContent = complainant;
+    document.getElementById('modal-description').textContent = description;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('allegationDetailModal'));
+    modal.show();
 }
 </script>
 {% endblock %}
