@@ -19,6 +19,8 @@ class IntelligenceAI:
         self.llm_api = "https://ai-poc.corp.ia/vllm/v1"
         self.embedding_api = "https://ai-poc.corp.ia/embedding/v1"
         self.docling_api = "https://ai-poc.corp.ia/docling/v1alpha/convert/source"
+        self.docling_async_api = "https://ai-poc.corp.ia/docling/v1alpha/convert-async"  # ✅ Async endpoint for large files
+        self.docling_job_status_api = "https://ai-poc.corp.ia/docling/v1alpha/jobs"      # ✅ Job status/result endpoint
         
         # Configure session for internal corporate network
         self.session = requests.Session()
@@ -28,7 +30,8 @@ class IntelligenceAI:
         # ✅ CRITICAL FIX: Extended timeouts for large PDF processing
         self.docling_timeout_base = 600  # 10 minutes base timeout for Docling
         self.large_file_threshold_mb = 10  # Files >10MB use async processing
-        self.max_sync_file_size_mb = 50  # Maximum size for synchronous processing
+        self.max_sync_file_size_mb = 10  # Docling's synchronous endpoint limit (v1/convert)
+        self.max_async_file_size_mb = 100  # Maximum size for async processing
         
         # ✅ CRITICAL FIX: Configurable attachment text limits (was hardcoded to 2,000 chars!)
         import os
@@ -1163,10 +1166,6 @@ EMAILS TO GROUP:
             'fallback_method': 'ultra_strict_title_matching'
         }
 
-    # ✅ OBSOLETE METHODS: No longer needed with Docling 100MB support
-    # The following methods were used when Docling had a 10MB limit
-    # Now kept for reference but not used in production
-    
     def extract_pdf_images_to_vlm(self, file_data: bytes, filename: str, max_pages: int = 5) -> Dict:
         """
         Extract PDF pages as images and send to VLM for OCR and text extraction
@@ -1494,19 +1493,24 @@ START EXTRACTING NOW:"""
                     'text_content': 'PDF binary data missing - manual document review required'
                 }
             
-            # ✅ FILE SIZE ANALYSIS AND OPTIMIZATION
+            # ✅ FILE SIZE ANALYSIS AND ROUTING
             original_size_mb = len(file_data) / (1024 * 1024)
             print(f"[DOCLING] Processing PDF: {filename} ({original_size_mb:.1f} MB)")
             
-            # Check if file exceeds reasonable processing limits
-            if original_size_mb > self.max_sync_file_size_mb:
-                print(f"[DOCLING] ⚠️ File {filename} ({original_size_mb:.1f} MB) exceeds sync limit ({self.max_sync_file_size_mb} MB)")
-                print(f"[DOCLING] Attempting fallback extraction for immediate analysis...")
+            # Check if file exceeds async processing limits
+            if original_size_mb > self.max_async_file_size_mb:
+                print(f"[DOCLING] ⚠️ File {filename} ({original_size_mb:.1f} MB) exceeds async limit ({self.max_async_file_size_mb} MB)")
+                print(f"[DOCLING] Using fallback extraction for immediate analysis...")
                 fallback_result = self._extract_text_fallback(file_data, filename)
-                fallback_result['note'] = f'Large file ({original_size_mb:.1f} MB) - fallback extraction used'
+                fallback_result['note'] = f'Very large file ({original_size_mb:.1f} MB) - fallback extraction used'
                 return fallback_result
             
-            # ✅ PDF OPTIMIZATION FOR LARGE FILES
+            # ✅ ROUTE TO ASYNC API FOR FILES >10 MB
+            if original_size_mb > self.max_sync_file_size_mb:
+                print(f"[DOCLING] File >10 MB, using ASYNC job API...")
+                return self._call_docling_async(file_data, filename)
+            
+            # ✅ PDF OPTIMIZATION FOR MEDIUM FILES (5-10 MB)
             if original_size_mb > 5:
                 print(f"[DOCLING] File >5MB, attempting optimization...")
                 optimized_content = self._optimize_pdf_for_processing(file_data, filename)
@@ -1533,7 +1537,7 @@ START EXTRACTING NOW:"""
         except Exception as e:
             error_msg = f"Unexpected error in PDF processing: {str(e)}"
             print(f"[DOCLING] ❌ {error_msg}")
-            
+
             # Try fallback extraction even on unexpected errors
             print(f"[DOCLING] Attempting emergency fallback extraction...")
             try:
@@ -1547,6 +1551,189 @@ START EXTRACTING NOW:"""
                     'error': f"{error_msg} (fallback also failed)",
                     'text_content': f'[COMPLETE_FAILURE: {error_msg}]'
                 }
+
+    def _call_docling_async(self, pdf_content: bytes, filename: str, max_polls: int = 60) -> Dict:
+        """
+        Call Docling ASYNC job API for large files >10 MB
+        
+        Workflow:
+        1. POST to /v1alpha/convert-async → get job_id
+        2. Poll /v1alpha/jobs/{job_id} until status='success' or 'failed'
+        3. GET /v1alpha/jobs/{job_id}/result to retrieve text
+        
+        Args:
+            pdf_content: Binary PDF data
+            filename: Original filename
+            max_polls: Maximum number of status polls (default 60 = 10 minutes at 10s intervals)
+        
+        Returns:
+            Dict with 'success', 'text_content', 'metadata', 'error'
+        """
+        import base64
+        import time
+        
+        try:
+            file_size_mb = len(pdf_content) / (1024 * 1024)
+            print(f"[DOCLING ASYNC] Starting async job for: {filename} ({file_size_mb:.1f} MB)")
+            
+            # Prepare request data
+            pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+            request_data = {
+                'file_sources': [
+                    {
+                        'filename': filename,
+                        'base64_string': pdf_base64
+                    }
+                ],
+                'options': {
+                    'to_formats': ['text'],
+                    'do_ocr': True,
+                    'force_full_page_ocr': True,
+                    'ocr_options': {
+                        'engine': 'tesseract',
+                        'lang': 'eng+chi_tra'
+                    },
+                    'do_table_structure': True,
+                    'include_images': False,
+                    'abort_on_error': False
+                }
+            }
+            
+            # Step 1: Submit async job
+            print(f"[DOCLING ASYNC] Submitting job to {self.docling_async_api}...")
+            response = self.session.post(
+                self.docling_async_api,
+                headers={'Content-Type': 'application/json'},
+                json=request_data,
+                timeout=60  # Initial submission timeout
+            )
+            
+            if response.status_code != 202:  # Async jobs return 202 Accepted
+                error_msg = f"Async job submission failed: {response.status_code} - {response.text[:200]}"
+                print(f"[DOCLING ASYNC] ❌ {error_msg}")
+                # Fall back to VLM or PyPDF2
+                return self._handle_docling_failure(pdf_content, filename, error_msg)
+            
+            result = response.json()
+            job_id = result.get('job_id') or result.get('id')
+            
+            if not job_id:
+                error_msg = "No job_id in async response"
+                print(f"[DOCLING ASYNC] ❌ {error_msg}")
+                return self._handle_docling_failure(pdf_content, filename, error_msg)
+            
+            print(f"[DOCLING ASYNC] ✅ Job submitted: {job_id}")
+            
+            # Step 2: Poll job status
+            job_status_url = f"{self.docling_job_status_api}/{job_id}"
+            poll_interval = 10  # seconds
+            
+            for poll_num in range(max_polls):
+                time.sleep(poll_interval)
+                
+                print(f"[DOCLING ASYNC] Polling job status ({poll_num + 1}/{max_polls})...")
+                status_response = self.session.get(
+                    job_status_url,
+                    timeout=30
+                )
+                
+                if status_response.status_code != 200:
+                    print(f"[DOCLING ASYNC] ⚠️ Status check failed: {status_response.status_code}")
+                    continue
+                
+                status_data = status_response.json()
+                job_status = status_data.get('status', '').lower()
+                
+                print(f"[DOCLING ASYNC] Job status: {job_status}")
+                
+                if job_status == 'success' or job_status == 'completed':
+                    # Step 3: Get result
+                    print(f"[DOCLING ASYNC] Job completed! Fetching result...")
+                    result_url = f"{job_status_url}/result"
+                    
+                    result_response = self.session.get(result_url, timeout=60)
+                    
+                    if result_response.status_code == 200:
+                        result_data = result_response.json()
+                        document_data = result_data.get('document', {})
+                        
+                        text_content = ""
+                        if isinstance(document_data, str):
+                            text_content = document_data
+                        elif isinstance(document_data, dict):
+                            text_content = (
+                                document_data.get('text_content', '') or
+                                document_data.get('markdown', '') or
+                                document_data.get('text', '') or
+                                document_data.get('content', '')
+                            )
+                        
+                        # Check if we need VLM fallback
+                        if not text_content or len(text_content) < 50:
+                            print(f"[DOCLING ASYNC] ⚠️ Empty result, trying VLM fallback...")
+                            vlm_result = self.extract_pdf_images_to_vlm(pdf_content, filename, max_pages=5)
+                            if vlm_result.get('success'):
+                                vlm_result['method'] = 'docling_async_empty_vlm_fallback'
+                                vlm_result['note'] = 'Async job returned empty, used VLM OCR'
+                                return vlm_result
+                        
+                        if text_content:
+                            print(f"[DOCLING ASYNC] ✅ Extracted {len(text_content)} characters")
+                            return {
+                                'text_content': text_content,
+                                'metadata': {
+                                    'job_id': job_id,
+                                    'polls': poll_num + 1,
+                                    'filename': filename
+                                },
+                                'success': True,
+                                'method': 'docling_async_api'
+                            }
+                    else:
+                        error_msg = f"Result fetch failed: {result_response.status_code}"
+                        print(f"[DOCLING ASYNC] ❌ {error_msg}")
+                        break
+                
+                elif job_status == 'failed' or job_status == 'error':
+                    error_msg = status_data.get('error', 'Job failed')
+                    print(f"[DOCLING ASYNC] ❌ Job failed: {error_msg}")
+                    break
+                
+                elif job_status in ['pending', 'processing', 'running']:
+                    continue  # Keep polling
+                
+                else:
+                    print(f"[DOCLING ASYNC] ⚠️ Unknown status: {job_status}")
+                    continue
+            
+            # If we get here, polling timed out or job failed
+            error_msg = f"Async job timeout or failure after {max_polls * poll_interval}s"
+            print(f"[DOCLING ASYNC] ❌ {error_msg}")
+            return self._handle_docling_failure(pdf_content, filename, error_msg)
+            
+        except Exception as e:
+            error_msg = f"Async processing error: {str(e)}"
+            print(f"[DOCLING ASYNC] ❌ {error_msg}")
+            return self._handle_docling_failure(pdf_content, filename, error_msg)
+    
+    def _handle_docling_failure(self, pdf_content: bytes, filename: str, error_msg: str) -> Dict:
+        """Handle Docling failures with VLM then PyPDF2 fallback"""
+        # Try VLM first
+        try:
+            print(f"[DOCLING FALLBACK] Trying VLM OCR...")
+            vlm_result = self.extract_pdf_images_to_vlm(pdf_content, filename, max_pages=5)
+            if vlm_result.get('success') and len(vlm_result.get('text_content', '')) > 50:
+                vlm_result['method'] = 'docling_failed_vlm_fallback'
+                vlm_result['note'] = f'Docling failed ({error_msg}), used VLM OCR'
+                return vlm_result
+        except Exception as vlm_error:
+            print(f"[DOCLING FALLBACK] VLM also failed: {vlm_error}")
+        
+        # Final fallback to PyPDF2
+        print(f"[DOCLING FALLBACK] Trying PyPDF2/pdfplumber...")
+        fallback_result = self._extract_text_fallback(pdf_content, filename)
+        fallback_result['note'] = f'Docling + VLM failed, used PyPDF2 ({error_msg})'
+        return fallback_result
 
     def _call_docling_with_retry(self, pdf_content: bytes, filename: str, timeout: int, max_retries: int = 3) -> Dict:
         """Call Docling API with retry logic and automatic fallback on timeout"""
