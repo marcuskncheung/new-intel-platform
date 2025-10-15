@@ -7247,7 +7247,9 @@ def ai_comprehensive_analyze_email(email_id):
                 
                 # Check file type for AI processing
                 if not attachment.filename.lower().endswith('.pdf'):
-                    print(f"   ⚠️ Non-PDF file ({attachment.content_type}) - AI can only analyze PDFs")
+                    # Derive file type from filename extension
+                    file_ext = attachment.filename.split('.')[-1] if '.' in attachment.filename else 'unknown'
+                    print(f"   ⚠️ Non-PDF file (.{file_ext}) - AI can only analyze PDFs")
                     attachment_info['note'] = f"Non-PDF file - AI will analyze email content only"
                 else:
                     print(f"   ✅ PDF file ready for AI analysis")
