@@ -5741,18 +5741,18 @@ def int_source_update_assessment(email_id):
         
         # Only include if at least one name is provided
         if english_name or chinese_name:
-            if english_name:
-                processed_english.append(english_name)
-            if chinese_name:
-                processed_chinese.append(chinese_name)
+            # Append names (may create gaps if only one name provided)
+            processed_english.append(english_name)
+            processed_chinese.append(chinese_name)
             
             # Handle insurance intermediary license info
+            # License info is matched by index position with names
             if i < len(license_numbers_list):
                 license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
                 license_type = license_types[i] if i < len(license_types) else ""
-                if license_num:
-                    license_info.append(license_num)
-                    intermediary_info.append(license_type)
+                # Append license info at same index as names (empty string if no license)
+                license_info.append(license_num if license_num else "")
+                intermediary_info.append(license_type if license_type else "")
     
     # Update email with processed subjects - Store separately
     email.alleged_subject_english = ', '.join(processed_english) if processed_english else None
@@ -5781,15 +5781,16 @@ def int_source_update_assessment(email_id):
     
     # Store license information using JSON for multiple licenses
     import json
-    if license_info:
+    if license_info and any(license_info):  # Check if any license exists
+        # Filter out empty strings but keep index positions
         email.license_numbers_json = json.dumps(license_info)
         email.intermediary_types_json = json.dumps(intermediary_info)
-        email.license_number = license_info[0]  # First license for backward compatibility
+        # Set first non-empty license for backward compatibility
+        email.license_number = next((lic for lic in license_info if lic), None)
     else:
         email.license_numbers_json = None
         email.intermediary_types_json = None
         email.license_number = None
-        email.license_number = license_info[0] if license_info else None
     
     # Determine case opening based on combined score and reviewer agreement
     combined_score = (email.source_reliability or 0) + (email.content_validity or 0)
