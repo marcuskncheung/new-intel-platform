@@ -1681,7 +1681,9 @@ def alleged_subject_profile_detail(poi_id):
         related_emails = []
         for link, email in email_links:
             related_emails.append({
-                'email_id': email.id,
+                'id': email.id,  # Email ID for linking
+                'link_id': link.id,  # Link ID for unlinking
+                'int_reference_number': email.int_reference_number,  # INT-XXX
                 'subject': email.subject,
                 'sender': email.sender,
                 'received': email.received,
@@ -1694,7 +1696,7 @@ def alleged_subject_profile_detail(poi_id):
         
         print(f"[PROFILE DETAIL] Showing profile {poi_id} with {len(related_emails)} related emails")
         
-        return render_template("alleged_subject_profile_detail.html",
+        return render_template("poi_profile_detail.html",
                              profile=profile,
                              related_emails=related_emails,
                              total_emails=len(related_emails))
