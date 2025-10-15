@@ -968,4 +968,240 @@ document.addEventListener('DOMContentLoaded', function() {
               location.reload();
             }, 2000);
           } else {
-            alert('Comprehensive AI analysis failed: ' + (data.message or
+            alert('Comprehensive AI analysis failed: ' + (data.message || 'Unknown error'));
+          }
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-gear"></i> AI Analysis';
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Network error: ' + error.message);
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-gear"></i> AI Analysis';
+        });
+      }
+    }
+  });
+});
+
+// Helper function to show comprehensive analysis in modal
+function showComprehensiveAnalysisModal(analysis) {
+  const modalId = 'comprehensiveAnalysisModal';
+  
+  // Create modal if it doesn't exist
+  if (!document.getElementById(modalId)) {
+    const modalHTML = `
+      <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="${modalId}Label">
+                <i class="bi bi-robot"></i> Comprehensive AI Analysis Results
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="${modalId}Body">
+              <!-- Content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  }
+  
+  // Build modal content
+  let modalContent = '<div class="container-fluid">';
+  
+  // Summary section
+  if (analysis.alleged_subject || analysis.alleged_nature || analysis.allegation_summary) {
+    modalContent += `
+      <div class="card border-primary mb-3">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="bi bi-info-circle"></i> Analysis Summary</h6>
+        </div>
+        <div class="card-body">
+          ${analysis.alleged_subject ? `<p><strong>Alleged Subject(s):</strong> ${analysis.alleged_subject}</p>` : ''}
+          ${analysis.alleged_nature ? `<p><strong>Allegation Type:</strong> ${analysis.alleged_nature}</p>` : ''}
+          ${analysis.allegation_summary ? `<p><strong>Summary:</strong> ${analysis.allegation_summary}</p>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  // Reasoning section
+  if (analysis.reasoning) {
+    modalContent += `
+      <div class="card border-info mb-3">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="bi bi-lightbulb"></i> AI Reasoning</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">${analysis.reasoning}</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Scores section
+  if (analysis.source_reliability || analysis.content_validity || analysis.confidence_score) {
+    modalContent += `
+      <div class="card border-success mb-3">
+        <div class="card-header bg-success text-white">
+          <h6 class="mb-0"><i class="bi bi-graph-up"></i> Assessment Scores</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <strong>Source Reliability:</strong> ${analysis.source_reliability || 'N/A'}/5
+            </div>
+            <div class="col-md-4">
+              <strong>Content Validity:</strong> ${analysis.content_validity || 'N/A'}/5
+            </div>
+            <div class="col-md-4">
+              <strong>Confidence Score:</strong> ${analysis.confidence_score ? Math.round(analysis.confidence_score * 100) + '%' : 'N/A'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Regulatory Impact
+  if (analysis.regulatory_impact) {
+    modalContent += `
+      <div class="card border-danger mb-3">
+        <div class="card-header bg-danger text-white">
+          <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Regulatory Impact</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">${analysis.regulatory_impact}</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Recommended Actions
+  if (analysis.recommended_actions && analysis.recommended_actions.length > 0) {
+    modalContent += `
+      <div class="card border-secondary mb-3">
+        <div class="card-header bg-secondary text-white">
+          <h6 class="mb-0"><i class="bi bi-list-check"></i> Recommended Actions</h6>
+        </div>
+        <div class="card-body">
+          <ul class="mb-0">
+            ${analysis.recommended_actions.map(action => `<li>${action}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Attachment Analysis
+  if (analysis.attachment_analysis) {
+    modalContent += `
+      <div class="card border-primary mb-3">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="bi bi-paperclip"></i> Attachment Analysis</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">${analysis.attachment_analysis}</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  modalContent += '</div>';
+  
+  // Insert content and show modal
+  document.getElementById(modalId + 'Body').innerHTML = modalContent;
+  const modal = new bootstrap.Modal(document.getElementById(modalId));
+  modal.show();
+}
+
+// Function to update alleged subjects form with AI-detected persons
+function updateAllegedSubjectsForm(allegedPersons) {
+  const container = document.getElementById('alleged-subjects');
+  if (!container || !allegedPersons || allegedPersons.length === 0) {
+    return;
+  }
+  
+  // Clear existing rows
+  container.innerHTML = '';
+  
+  // Add a row for each detected person
+  allegedPersons.forEach((person, index) => {
+    addAllegedSubjectWithData(
+      person.english_name || '',
+      person.chinese_name || '',
+      person.is_intermediary || false,
+      person.license_type || '',
+      person.license_number || ''
+    );
+  });
+  
+  updateRemoveButtons();
+}
+
+// Function to add alleged subject row with pre-filled data
+function addAllegedSubjectWithData(englishName, chineseName, isIntermediary, licenseType, licenseNumber) {
+  const container = document.getElementById('alleged-subjects');
+  const newRow = document.createElement('div');
+  newRow.className = 'alleged-subject-row mb-3 p-3 border rounded';
+  newRow.style.backgroundColor = '#f8f9fa';
+  newRow.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="text-primary mb-0">📋 Alleged Subject Details</h6>
+      <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+        🗑️ Remove
+      </button>
+    </div>
+    
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">📝 English Name</label>
+        <input type="text" name="alleged_subjects_en[]" class="form-control" value="${englishName}" placeholder="Enter English name">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+        <input type="text" name="alleged_subjects_cn[]" class="form-control" value="${chineseName}" placeholder="Enter Chinese name">
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)" ${isIntermediary ? 'checked' : ''}>
+        <label class="form-check-label">Is this an insurance intermediary?</label>
+      </div>
+    </div>
+    
+    <div class="insurance-fields" style="display: ${isIntermediary ? 'block' : 'none'}; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label">License Type:</label>
+          <select name="intermediary_type[]" class="form-select">
+            <option value="">Select Type</option>
+            <option value="Agent" ${licenseType === 'Agent' ? 'selected' : ''}>Agent</option>
+            <option value="Broker" ${licenseType === 'Broker' ? 'selected' : ''}>Broker</option>
+            <option value="Other" ${licenseType === 'Other' ? 'selected' : ''}>Other</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">License Number:</label>
+          <input type="text" name="license_numbers[]" class="form-control" value="${licenseNumber}" placeholder="Enter license number">
+        </div>
+      </div>
+    </div>
+    
+    <p class="text-muted mt-2 mb-0">
+      <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+    </p>
+  `;
+  container.appendChild(newRow);
+}
+</script>
+
+{% endblock %}
