@@ -301,10 +301,10 @@
                   {% set license_numbers = [] %}
                   {% set intermediary_types = [] %}
                   {% if email.license_numbers_json %}
-                    {% set license_numbers = email.license_numbers_json | fromjson %}
+                    {% set license_numbers = email.license_numbers_json | from_json %}
                   {% endif %}
                   {% if email.intermediary_types_json %}
-                    {% set intermediary_types = email.intermediary_types_json | fromjson %}
+                    {% set intermediary_types = email.intermediary_types_json | from_json %}
                   {% endif %}
                   
                   {% for i in range(max_len) %}
