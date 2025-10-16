@@ -5417,6 +5417,90 @@ def delete_online_patrol(entry_id):
         flash(f"Error deleting entry: {e}", "danger")
     return redirect(url_for("int_source"))
 
+@app.route("/delete_whatsapp/<int:entry_id>", methods=["POST"])
+@login_required
+def delete_whatsapp(entry_id):
+    """Delete WhatsApp entry and reorder INT numbers"""
+    entry = WhatsAppEntry.query.get_or_404(entry_id)
+    try:
+        # Delete associated CaseProfile if exists
+        if entry.case_profile:
+            case_profile = entry.case_profile
+            db.session.delete(case_profile)
+        
+        db.session.delete(entry)
+        db.session.commit()
+        
+        # Reorder remaining INT numbers chronologically
+        reorder_int_numbers_after_delete()
+        
+        flash("WhatsApp entry deleted successfully. INT numbers reordered.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting entry: {e}", "danger")
+    return redirect(url_for("int_source"))
+
+@app.route("/delete_email/<int:email_id>", methods=["POST"])
+@login_required
+def delete_email(email_id):
+    """Delete Email entry and reorder INT numbers"""
+    email = Email.query.get_or_404(email_id)
+    try:
+        # Delete associated CaseProfile if exists
+        if email.caseprofile_id:
+            case_profile = CaseProfile.query.get(email.caseprofile_id)
+            if case_profile:
+                db.session.delete(case_profile)
+        
+        db.session.delete(email)
+        db.session.commit()
+        
+        # Reorder remaining INT numbers chronologically
+        reorder_int_numbers_after_delete()
+        
+        flash("Email entry deleted successfully. INT numbers reordered.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting entry: {e}", "danger")
+    return redirect(url_for("int_source"))
+
+def reorder_int_numbers_after_delete():
+    """
+    Reorder all INT numbers chronologically after deletion
+    This ensures no gaps and maintains chronological order
+    """
+    try:
+        # Get all remaining CaseProfiles sorted by receipt date
+        all_profiles = CaseProfile.query.order_by(
+            CaseProfile.date_of_receipt.asc()
+        ).all()
+        
+        if not all_profiles:
+            return
+        
+        # Renumber them chronologically
+        for new_order, case_profile in enumerate(all_profiles, 1):
+            new_int_ref = f"INT-{new_order:03d}"
+            
+            # Update CaseProfile
+            case_profile.int_reference = new_int_ref
+            case_profile.index_order = new_order
+            
+            # Update linked Email if exists
+            if case_profile.email_id:
+                email = Email.query.get(case_profile.email_id)
+                if email:
+                    email.int_reference_number = new_int_ref
+                    email.int_reference_order = new_order
+        
+        db.session.commit()
+        print(f"[DEBUG] Reordered {len(all_profiles)} INT numbers after deletion")
+        
+    except Exception as e:
+        print(f"[DEBUG] Error reordering INT numbers: {e}")
+        db.session.rollback()
+        raise
+
 # Add this route to fix url_for('surveillance_export', fmt=...) errors in your templates
 @app.route("/surveillance_export/<fmt>")
 @login_required
