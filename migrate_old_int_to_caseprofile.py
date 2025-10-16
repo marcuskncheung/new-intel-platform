@@ -52,8 +52,19 @@ def migrate_emails():
         print("\n🔄 Starting migration...")
         print("-" * 80)
         
+        # Find existing INT numbers to avoid conflicts
+        existing_caseprofiles = CaseProfile.query.all()
+        existing_int_numbers = {cp.int_reference for cp in existing_caseprofiles}
+        existing_orders = {cp.index_order for cp in existing_caseprofiles}
+        
+        print(f"  Existing CaseProfiles: {len(existing_caseprofiles)}")
+        print(f"  Existing INT numbers: {sorted(existing_int_numbers)}")
+        print(f"  Existing orders: {sorted(existing_orders)}")
+        print()
+        
         migrated = 0
         errors = 0
+        skipped = 0
         
         for i, email in enumerate(emails_to_migrate, 1):
             try:
@@ -83,6 +94,19 @@ def migrate_emails():
                     except:
                         int_order = i
                 
+                # Check if this INT number already exists
+                if int_number in existing_int_numbers:
+                    print(f"  ⚠️  Skipping email ID {email.id}: {int_number} already exists in CaseProfile")
+                    skipped += 1
+                    continue
+                
+                # Check if order already exists (shouldn't happen, but be safe)
+                if int_order in existing_orders:
+                    print(f"  ⚠️  Order conflict for {int_number}, finding next available...")
+                    # Find next available order
+                    int_order = max(existing_orders) + 1
+                    int_number = f"INT-{int_order:03d}"
+                
                 # Create CaseProfile entry
                 case_profile = CaseProfile(
                     int_reference=int_number,
@@ -107,16 +131,23 @@ def migrate_emails():
                 # Link email to CaseProfile
                 email.caseprofile_id = case_profile.id
                 
+                # Track new entries
+                existing_int_numbers.add(int_number)
+                existing_orders.add(int_order)
+                
                 db.session.commit()
                 
                 migrated += 1
                 
                 if i % 10 == 0 or i == total:
-                    print(f"  Progress: {i}/{total} ({migrated} migrated, {errors} errors)")
+                    print(f"  Progress: {i}/{total} ({migrated} migrated, {skipped} skipped, {errors} errors)")
                 
             except Exception as e:
                 errors += 1
-                print(f"\n  ❌ Error migrating email ID {email.id} ({int_number}): {e}")
+                error_msg = str(e)
+                if len(error_msg) > 100:
+                    error_msg = error_msg[:100] + "..."
+                print(f"\n  ❌ Error migrating email {i}: {error_msg}")
                 db.session.rollback()
                 continue
         
@@ -125,6 +156,7 @@ def migrate_emails():
         print("=" * 80)
         print(f"  Total emails processed: {total}")
         print(f"  ✅ Successfully migrated: {migrated}")
+        print(f"  ⚠️  Skipped (already exist): {skipped}")
         print(f"  ❌ Errors: {errors}")
         
         if migrated > 0:
