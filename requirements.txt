@@ -49,6 +49,9 @@ Pillow>=10.3.0
 # Optional: Exchange Web Services for direct Exchange server connection
 exchangelib==5.2.0
 
+# Database diagnostic tools
+tabulate==0.9.0  # For check_database_schema.py output formatting
+
 # Timezone support - For Hong Kong timezone conversion
 pytz==2025.2
 
