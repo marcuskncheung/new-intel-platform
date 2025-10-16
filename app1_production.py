@@ -5400,9 +5400,18 @@ def online_patrol_detail(entry_id):
 def delete_online_patrol(entry_id):
     entry = OnlinePatrolEntry.query.get_or_404(entry_id)
     try:
+        # Delete associated CaseProfile if exists
+        if entry.case_profile:
+            case_profile = entry.case_profile
+            db.session.delete(case_profile)
+        
         db.session.delete(entry)
         db.session.commit()
-        flash("Online Patrol entry deleted successfully.", "success")
+        
+        # Reorder remaining INT numbers chronologically
+        reorder_int_numbers_after_delete()
+        
+        flash("Online Patrol entry deleted successfully. INT numbers reordered.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error deleting entry: {e}", "danger")

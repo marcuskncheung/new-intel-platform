@@ -2098,6 +2098,9 @@
               <td>
                 <div class="pro-action-btns">
                   <a href="{{ url_for('whatsapp_detail', entry_id=w.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                  <form method="post" action="{{ url_for('delete_whatsapp', entry_id=w.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this WhatsApp entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
+                    <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                  </form>
                 </div>
               </td>
             </tr>
@@ -2292,7 +2295,7 @@
               <td>
                 <div class="pro-action-btns">
                   <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                  <form method="post" action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" style="display:inline;" onsubmit="return confirm('Delete this Online Patrol entry?');">
+                  <form method="post" action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
                     <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
                   </form>
                 </div>
