@@ -68,10 +68,42 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import pandas as pd
 from datetime import datetime
+import pytz  # 🇭🇰 For Hong Kong timezone conversion
 import io
 import re
 import html
 import tempfile
+
+# 🇭🇰 HONG KONG TIMEZONE CONFIGURATION
+HK_TZ = pytz.timezone('Asia/Hong_Kong')
+
+def get_hk_time():
+    """Get current time in Hong Kong timezone"""
+    return datetime.now(HK_TZ)
+
+def utc_to_hk(utc_dt):
+    """Convert UTC/naive datetime to Hong Kong time"""
+    if utc_dt is None:
+        return None
+    if not isinstance(utc_dt, datetime):
+        return utc_dt
+    if utc_dt.tzinfo is None:
+        # Assume UTC if no timezone
+        utc_dt = pytz.utc.localize(utc_dt)
+    return utc_dt.astimezone(HK_TZ)
+
+def format_hk_time(dt, format='%Y-%m-%d %H:%M:%S'):
+    """Format datetime in Hong Kong timezone"""
+    if dt is None:
+        return ""
+    if not isinstance(dt, datetime):
+        return str(dt)
+    try:
+        hk_time = utc_to_hk(dt)
+        return hk_time.strftime(format)
+    except:
+        return str(dt)
+
 from email_utils import split_email_thread, extract_meta_and_content
 from sqlalchemy import text, inspect
 from docx import Document as DocxDocument  # This import is correct if python-docx is installed
@@ -438,20 +470,20 @@ except RuntimeError as e:
 
 @app.template_filter('strftime')
 def _jinja2_filter_datetime(value, format='%Y-%m-%d %H:%M:%S'):
+    """🇭🇰 Format datetime in Hong Kong timezone"""
     if value is None or value == "":
         return ""
     
-    # If it's already a datetime object, format it directly
+    # If it's already a datetime object, convert to HK time and format
     if hasattr(value, 'strftime'):
-        return value.strftime(format)
+        return format_hk_time(value, format)
     
     if isinstance(value, str):
         # Try to parse the string as a datetime
-        # Try common formats, or customize as needed
         for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
             try:
                 parsed_dt = datetime.strptime(value, fmt)
-                return parsed_dt.strftime(format)
+                return format_hk_time(parsed_dt, format)
             except ValueError:
                 continue
         # If parsing fails, return the string as-is
@@ -462,20 +494,20 @@ def _jinja2_filter_datetime(value, format='%Y-%m-%d %H:%M:%S'):
 
 @app.template_filter('safe_datetime')
 def safe_datetime_filter(value, format='%Y-%m-%d %H:%M'):
-    """Safe datetime formatting that handles both datetime objects and strings"""
+    """🇭🇰 Safe datetime formatting in Hong Kong timezone"""
     if value is None or value == "":
         return ""
     
-    # If it's already a datetime object, format it directly
+    # If it's already a datetime object, convert to HK time and format
     if hasattr(value, 'strftime'):
-        return value.strftime(format)
+        return format_hk_time(value, format)
     
     if isinstance(value, str):
         # Try to parse the string as a datetime
         for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
             try:
                 parsed_dt = datetime.strptime(value, fmt)
-                return parsed_dt.strftime(format)
+                return format_hk_time(parsed_dt, format)
             except ValueError:
                 continue
         # If parsing fails, return the string as-is (truncated if too long)
@@ -551,7 +583,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='user')  # 'admin' or 'user'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_hk_time)
     last_login = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True)
     
@@ -571,7 +603,7 @@ class AuditLog(db.Model):
     details = db.Column(db.Text)              # Encrypted sensitive details - must be TEXT not VARCHAR
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))    # Browser/client info
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_hk_time)
     session_id = db.Column(db.String(200))    # Track user sessions - Increased from 100 to 200
     severity = db.Column(db.String(20), default='info')  # info, warning, critical
     
@@ -709,7 +741,7 @@ class Email(db.Model):
     source_reliability = db.Column(db.Integer)
     content_validity = db.Column(db.Integer)
     intelligence_case_opened = db.Column(db.Boolean, default=False)
-    assessment_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
     alleged_subject = db.Column(db.String(255))     # Encrypted - sensitive PII (Legacy field)
     alleged_subject_english = db.Column(db.String(500))  # English names separated by commas
     alleged_subject_chinese = db.Column(db.String(500))  # Chinese names separated by commas
@@ -915,7 +947,7 @@ class WhatsAppEntry(db.Model):
     details = db.Column(db.Text)
     source_reliability = db.Column(db.Integer)
     content_validity = db.Column(db.Integer)
-    assessment_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
     preparer = db.Column(db.String(255))
     reviewer_name = db.Column(db.String(255))
     reviewer_comment = db.Column(db.Text)
@@ -960,7 +992,7 @@ class OnlinePatrolEntry(db.Model):
     details = db.Column(db.Text)
     source_reliability = db.Column(db.Integer)
     content_validity = db.Column(db.Integer)
-    assessment_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
 
 class SurveillanceEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -984,7 +1016,7 @@ class Target(db.Model):
     license_number = db.Column(db.String(64))
 
     content_validity = db.Column(db.Integer)
-    assessment_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
 
 class WhatsAppImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -998,7 +1030,7 @@ class SurveillancePhoto(db.Model):
     surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
     filename = db.Column(db.String(255))
     image_data = db.Column(db.LargeBinary)
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    uploaded_at = db.Column(db.DateTime, default=get_hk_time)
 
 class SurveillanceDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1060,9 +1092,9 @@ class AllegedPersonProfile(db.Model):
     role = db.Column(db.String(100))  # Agent, Broker, etc.
     
     # Profile metadata
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_hk_time)
     created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT, IMPORT
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=get_hk_time, onupdate=get_hk_time)
     
     # Statistics
     email_count = db.Column(db.Integer, default=0)  # How many emails mention this person
@@ -1113,7 +1145,7 @@ class EmailAllegedPersonLink(db.Model):
     alleged_person_id = db.Column(db.Integer, db.ForeignKey('alleged_person_profile.id'), nullable=False)
     
     # Link metadata
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_hk_time)
     created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT
     confidence = db.Column(db.Float)  # AI confidence score (0.0 to 1.0)
     
@@ -1142,7 +1174,7 @@ def generate_int_reference_for_new_email(email):
         email.int_reference_number = f"INT-{next_order:03d}"
         email.int_reference_order = next_order
         email.int_reference_manual = False
-        email.int_reference_updated_at = datetime.utcnow()
+        email.int_reference_updated_at = get_hk_time()
         
         print(f"[INT-REF] Auto-assigned {email.int_reference_number} to email {email.id}")
         return email.int_reference_number
@@ -1179,7 +1211,7 @@ def update_int_reference_number(email_id, new_int_number, updated_by):
         email.int_reference_number = new_int_number.upper()
         email.int_reference_order = numeric_part
         email.int_reference_manual = True
-        email.int_reference_updated_at = datetime.utcnow()
+        email.int_reference_updated_at = get_hk_time()
         email.int_reference_updated_by = updated_by
         
         db.session.commit()
@@ -1238,7 +1270,7 @@ def reorder_int_references_after_change():
             if email.int_reference_number != new_number:
                 email.int_reference_number = new_number
                 email.int_reference_order = next_available
-                email.int_reference_updated_at = datetime.utcnow()
+                email.int_reference_updated_at = get_hk_time()
                 updated_count += 1
             
             used_numbers.add(next_available)
@@ -1671,12 +1703,19 @@ def alleged_subject_profile_detail(poi_id):
             flash(f"Profile {poi_id} not found", "error")
             return redirect(url_for("alleged_subject_list"))
         
-        # Get all emails linked to this profile
+        # Get all emails linked to this profile (both auto-linked AND manually-linked)
         email_links = db.session.query(EmailAllegedPersonLink, Email).join(
             Email, EmailAllegedPersonLink.email_id == Email.id
         ).filter(
             EmailAllegedPersonLink.alleged_person_id == profile.id
         ).order_by(Email.received.desc()).all()
+        
+        print(f"[PROFILE DETAIL DEBUG] Profile {poi_id} (ID: {profile.id}) has {len(email_links)} total email links in database")
+        
+        # Count auto vs manual links
+        auto_count = sum(1 for link, _ in email_links if link.created_by in ['AI', 'AI_ANALYSIS', 'MANUAL_INPUT', 'System'])
+        manual_count = sum(1 for link, _ in email_links if link.created_by == 'Manual')
+        print(f"[PROFILE DETAIL DEBUG] Auto-linked: {auto_count}, Manual-linked: {manual_count}")
         
         related_emails = []
         for link, email in email_links:
@@ -1693,6 +1732,7 @@ def alleged_subject_profile_detail(poi_id):
                 'link_confidence': link.confidence,
                 'link_created_by': link.created_by
             })
+            print(f"[PROFILE DETAIL DEBUG] Email {email.id} ({email.int_reference_number}) linked by: {link.created_by}")
         
         print(f"[PROFILE DETAIL] Showing profile {poi_id} with {len(related_emails)} related emails")
         
@@ -1994,11 +2034,11 @@ def login():
             "username": u,
             "ip_address": request.remote_addr,
             "user_agent": request.headers.get('User-Agent', '')[:200],
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": get_hk_time().isoformat()
         }
         if user and user.is_active and check_password_hash(user.password, p):
             # Update last login time
-            user.last_login = datetime.utcnow()
+            user.last_login = get_hk_time()
             db.session.commit()
             
             # Set session as permanent for better persistence
@@ -5361,7 +5401,7 @@ def assign_case_number(email_id):
         old_case = email.case_number
         email.case_number = case_number
         email.case_assigned_by = current_user.username
-        email.case_assigned_at = datetime.utcnow()
+        email.case_assigned_at = get_hk_time()
         
         try:
             db.session.commit()
@@ -5434,7 +5474,7 @@ def bulk_assign_case():
             old_case = email.case_number
             email.case_number = case_number
             email.case_assigned_by = current_user.username
-            email.case_assigned_at = datetime.utcnow()
+            email.case_assigned_at = get_hk_time()
             updated_count += 1
             
             # Log each assignment
@@ -5494,7 +5534,7 @@ def get_case_statistics():
         # Recent assignments (last 7 days)
         from datetime import timedelta
         recent_assignments = Email.query.filter(
-            Email.case_assigned_at >= datetime.utcnow() - timedelta(days=7)
+            Email.case_assigned_at >= get_hk_time() - timedelta(days=7)
         ).count()
         
         # Top assigners
@@ -5805,7 +5845,7 @@ def int_source_update_assessment(email_id):
 
     try:
         # Update timestamp
-        email.assessment_updated_at = datetime.utcnow()
+        email.assessment_updated_at = get_hk_time()
         
         db.session.commit()
         
@@ -6206,7 +6246,7 @@ def import_emails_from_exchange_ews(account, folder_name='Inbox', commit_to_db=T
                     source_reliability=None,
                     content_validity=None,
                     intelligence_case_opened=False,
-                    assessment_updated_at=datetime.utcnow(),
+                    assessment_updated_at=get_hk_time(),
                     alleged_subject=None,
                     preparer=None,
                     reviewer_name=None,
@@ -7140,7 +7180,7 @@ def ai_comprehensive_analyze_email(email_id):
     from datetime import datetime, timedelta
     
     lock = EmailAnalysisLock.query.get(email_id)
-    if lock and lock.expires_at > datetime.utcnow():
+    if lock and lock.expires_at > get_hk_time():
         print(f"[AI ANALYSIS] ⚠️ Email {email_id} is already being analyzed by {lock.locked_by}")
         return jsonify({
             'error': f'This email is currently being analyzed by {lock.locked_by}',
@@ -7157,8 +7197,8 @@ def ai_comprehensive_analyze_email(email_id):
     new_lock = EmailAnalysisLock(
         email_id=email_id,
         locked_by=current_user.username,
-        locked_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(minutes=5)
+        locked_at=get_hk_time(),
+        expires_at=get_hk_time() + timedelta(minutes=5)
     )
     db.session.add(new_lock)
     db.session.commit()
@@ -8330,15 +8370,15 @@ def security_admin():
         'total_audit_logs': AuditLog.query.count(),
         'failed_logins_24h': AuditLog.query.filter(
             AuditLog.action == 'login_failed',
-            AuditLog.timestamp >= datetime.utcnow() - timedelta(days=1)
+            AuditLog.timestamp >= get_hk_time() - timedelta(days=1)
         ).count(),
         'successful_logins_24h': AuditLog.query.filter(
             AuditLog.action == 'login_success',
-            AuditLog.timestamp >= datetime.utcnow() - timedelta(days=1)
+            AuditLog.timestamp >= get_hk_time() - timedelta(days=1)
         ).count(),
         'critical_events_24h': AuditLog.query.filter(
             AuditLog.severity == 'critical',
-            AuditLog.timestamp >= datetime.utcnow() - timedelta(days=1)
+            AuditLog.timestamp >= get_hk_time() - timedelta(days=1)
         ).count(),
         'encryption_enabled': SECURITY_MODULE_AVAILABLE,
         'encrypted_emails': 0,  # Placeholder - encryption columns not yet implemented in email table

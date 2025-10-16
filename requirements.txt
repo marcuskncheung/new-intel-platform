@@ -49,6 +49,9 @@ Pillow>=10.3.0
 # Optional: Exchange Web Services for direct Exchange server connection
 exchangelib==5.2.0
 
+# Timezone support - For Hong Kong timezone conversion
+pytz==2025.2
+
 # Optional: System monitoring
 # psutil==5.9.5
 
