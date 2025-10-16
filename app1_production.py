@@ -5180,6 +5180,19 @@ def add_whatsapp():
         db.session.add(entry)
         db.session.flush() # Flush to get the entry ID for the images
 
+        # 🔗 STAGE 2: Auto-generate unified INT reference
+        try:
+            case_profile = create_unified_intelligence_entry(
+                source_record=entry,
+                source_type="WHATSAPP",
+                created_by=f"USER-{current_user.username if current_user else 'SYSTEM'}"
+            )
+            if case_profile:
+                print(f"[UNIFIED INT] WhatsApp entry {entry.id} linked to {case_profile.index}")
+        except Exception as e:
+            print(f"[UNIFIED INT] Error linking WhatsApp entry: {e}")
+            # Continue anyway - entry will use fallback INT reference
+
         # Handle file uploads
         uploaded_files = request.files.getlist("upload_image")
         for file in uploaded_files:
@@ -5275,6 +5288,21 @@ def add_online_patrol():
             content_validity=int(content_validity) if content_validity else None
         )
         db.session.add(entry)
+        db.session.flush()  # Get entry.id before creating CaseProfile
+        
+        # 🔗 STAGE 2: Auto-generate unified INT reference
+        try:
+            case_profile = create_unified_intelligence_entry(
+                source_record=entry,
+                source_type="PATROL",
+                created_by=f"USER-{current_user.username if current_user else 'SYSTEM'}"
+            )
+            if case_profile:
+                print(f"[UNIFIED INT] Online Patrol entry {entry.id} linked to {case_profile.index}")
+        except Exception as e:
+            print(f"[UNIFIED INT] Error linking Online Patrol entry: {e}")
+            # Continue anyway - entry will use fallback INT reference
+        
         db.session.commit()
         flash("Online Patrol entry created", "success")
         return redirect(url_for("int_source"))
