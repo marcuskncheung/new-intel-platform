@@ -2039,10 +2039,7 @@
         <table id="whatsapp-table" class="table table-sm pro-table">
           <thead>
             <tr>
-              <th>
-                <input type="checkbox" id="whatsapp-select-all-checkbox" class="form-check-input">
-              </th>
-              <th>Index</th>
+              <th>INT Ref</th>
               <th>Received Time</th>
               <th>Complaint Name</th>
               <th>Phone Number</th>
@@ -2058,13 +2055,10 @@
             {% set combined_score = (w.source_reliability or 0) + (w.content_validity or 0) %}
             <tr>
               <td>
-                <input type="checkbox" class="form-check-input" data-whatsapp-id="{{ w.id }}">
-              </td>
-              <td>
-                {% if w.clean_index is defined %}
-                  {{ w.clean_index }}
+                {% if w.int_reference %}
+                  <span class="badge bg-primary">{{ w.int_reference }}</span>
                 {% else %}
-                  WT-{{ loop.index }}
+                  <span class="badge bg-secondary">WT-{{ loop.index }}</span>
                 {% endif %}
               </td>
               <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
@@ -2252,9 +2246,7 @@
         <table id="online-table" class="table table-sm pro-table">
           <thead>
             <tr>
-              <th>
-                <input type="checkbox" id="online-select-all-checkbox" class="form-check-input">
-              </th>
+              <th>INT Ref</th>
               <th>Sender</th>
               <th>Complaint Time</th>
               <th>Source</th>
@@ -2269,7 +2261,11 @@
             {% set combined_score = (o.source_reliability or 0) + (o.content_validity or 0) %}
             <tr>
               <td>
-                <input type="checkbox" class="form-check-input" data-online-id="{{ o.id }}">
+                {% if o.int_reference %}
+                  <span class="badge bg-primary">{{ o.int_reference }}</span>
+                {% else %}
+                  <span class="badge bg-secondary">OP-{{ loop.index }}</span>
+                {% endif %}
               </td>
               <td>{{ o.sender }}</td>
               <td>{{ o.complaint_time }}</td>
