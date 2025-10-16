@@ -1358,8 +1358,10 @@ def generate_next_int_id(date_of_receipt=None, source_type="EMAIL"):
     """
     Generate next INT-### reference number for ANY source
     
-    Mirrors generate_int_reference_for_new_email() but works for ALL sources
-    Ensures chronological ordering by receipt date
+    🔄 CHRONOLOGICAL INSERTION: Inserts INT based on receipt date, not sequential append
+    - Finds correct chronological position based on date_of_receipt
+    - Renumbers all subsequent entries automatically
+    - Maintains INT-001, INT-002, INT-003... in date order
     
     Args:
         date_of_receipt: Receipt timestamp (defaults to now)
@@ -1369,28 +1371,46 @@ def generate_next_int_id(date_of_receipt=None, source_type="EMAIL"):
         dict with index, index_order, date_of_receipt, source_type
     """
     try:
-        # Find highest existing order number across ALL CaseProfiles
-        max_order = db.session.query(db.func.max(CaseProfile.index_order)).scalar() or 0
-        
-        # Increment
-        next_order = max_order + 1
-        int_reference = f"INT-{next_order:03d}"
-        
         # Default receipt time
         if not date_of_receipt:
             date_of_receipt = get_hk_time()
         
-        print(f"[INT-GEN] Generated {int_reference} for {source_type}")
+        # 🔍 Find chronological position: Count entries with earlier receipt dates
+        earlier_entries_count = db.session.query(db.func.count(CaseProfile.id))\
+            .filter(CaseProfile.date_of_receipt < date_of_receipt)\
+            .scalar() or 0
+        
+        # New entry's order = number of earlier entries + 1
+        new_order = earlier_entries_count + 1
+        int_reference = f"INT-{new_order:03d}"
+        
+        # 🔄 Renumber all entries at or after this position
+        entries_to_renumber = CaseProfile.query\
+            .filter(CaseProfile.date_of_receipt >= date_of_receipt)\
+            .order_by(CaseProfile.date_of_receipt.asc())\
+            .all()
+        
+        if entries_to_renumber:
+            print(f"[INT-RENUMBER] Shifting {len(entries_to_renumber)} entries from position {new_order}")
+            for i, entry in enumerate(entries_to_renumber, start=new_order + 1):
+                old_index = entry.index
+                entry.index_order = i
+                entry.index = f"INT-{i:03d}"
+                print(f"[INT-RENUMBER]   {old_index} → {entry.index}")
+        
+        print(f"[INT-GEN] 📍 Generated {int_reference} for {source_type} (date: {date_of_receipt.strftime('%Y-%m-%d %H:%M')})")
         
         return {
             'index': int_reference,
-            'index_order': next_order,
+            'index_order': new_order,
             'date_of_receipt': date_of_receipt,
             'source_type': source_type
         }
         
     except Exception as e:
         print(f"[INT-GEN] ❌ Error generating INT reference: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def create_unified_intelligence_entry(source_record, source_type, created_by="SYSTEM"):
