@@ -5401,8 +5401,9 @@ def delete_online_patrol(entry_id):
     entry = OnlinePatrolEntry.query.get_or_404(entry_id)
     try:
         # Delete associated CaseProfile if exists
-        if entry.case_profile:
-            case_profile = entry.case_profile
+        # Query CaseProfile by patrol_id foreign key
+        case_profile = CaseProfile.query.filter_by(patrol_id=entry.id).first()
+        if case_profile:
             db.session.delete(case_profile)
         
         db.session.delete(entry)
@@ -5424,8 +5425,9 @@ def delete_whatsapp(entry_id):
     entry = WhatsAppEntry.query.get_or_404(entry_id)
     try:
         # Delete associated CaseProfile if exists
-        if entry.case_profile:
-            case_profile = entry.case_profile
+        # Query CaseProfile by whatsapp_id foreign key
+        case_profile = CaseProfile.query.filter_by(whatsapp_id=entry.id).first()
+        if case_profile:
             db.session.delete(case_profile)
         
         db.session.delete(entry)
