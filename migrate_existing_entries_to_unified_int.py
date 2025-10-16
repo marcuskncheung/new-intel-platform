@@ -67,13 +67,13 @@ def migrate_existing_entries():
                     
                     if case_profile:
                         created_profiles.append([
-                            case_profile.index,
+                            case_profile.int_reference,
                             "WHATSAPP",
                             entry.id,
                             entry.received_time.strftime("%Y-%m-%d %H:%M") if entry.received_time else "N/A",
                             entry.complaint_name or "N/A"
                         ])
-                        print(f"   ✅ Created {case_profile.index} for WhatsApp entry {entry.id}")
+                        print(f"   ✅ Created {case_profile.int_reference} for WhatsApp entry {entry.id}")
                     else:
                         print(f"   ❌ Failed to create CaseProfile for WhatsApp entry {entry.id}")
                         
@@ -93,7 +93,7 @@ def migrate_existing_entries():
                     
                     if case_profile:
                         created_profiles.append([
-                            case_profile.index,
+                            case_profile.int_reference,
                             "PATROL",
                             entry.id,
                             entry.complaint_time.strftime("%Y-%m-%d %H:%M") if entry.complaint_time else "N/A",

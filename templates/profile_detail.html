@@ -249,12 +249,17 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="bi bi-list-ul"></i> All Allegations ({{ allegations|length }})</h5>
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('all')">All</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('Email')">Email</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('WhatsApp')">WhatsApp</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('Surveillance')">Surveillance</button>
-                        <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('OnlinePatrol')">Online Patrol</button>
+                    <div>
+                        <button type="button" class="btn btn-success btn-sm me-2" onclick="showAddEmailModal()">
+                            <i class="bi bi-plus-circle"></i> Link Email Manually
+                        </button>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('all')">All</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('Email')">Email</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('WhatsApp')">WhatsApp</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('Surveillance')">Surveillance</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterAllegations('OnlinePatrol')">Online Patrol</button>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -262,6 +267,7 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-dark">
                                 <tr>
+                                    <th>INT Reference</th>
                                     <th>Date</th>
                                     <th>Source</th>
                                     <th>Type</th>
@@ -273,7 +279,14 @@
                             </thead>
                             <tbody>
                                 {% for allegation in allegations %}
-                                <tr class="allegation-row" data-source="{{ allegation.source_type }}">
+                                <tr class="allegation-row" data-source="{{ allegation.source_type }}" data-link-id="{{ allegation.link_id }}">
+                                    <td>
+                                        <a href="{{ url_for('int_source_email_detail', email_id=allegation.source_id) }}" 
+                                           class="text-decoration-none" target="_blank">
+                                            <strong>{{ allegation.source_reference }}</strong>
+                                            <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                        </a>
+                                    </td>
                                     <td>
                                         {% if allegation.allegation_date %}
                                             {{ allegation.allegation_date.strftime('%Y-%m-%d') }}
@@ -355,7 +368,12 @@
                                         <div class="btn-group btn-group-sm">
                                             <button type="button" class="btn btn-outline-primary btn-sm" 
                                                     onclick="viewSource('{{ allegation.source_type }}', {{ allegation.source_id }})">
-                                                <i class="bi bi-eye"></i> View Source
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                    onclick="unlinkEmail({{ allegation.link_id }}, '{{ allegation.source_reference }}')"
+                                                    title="Unlink this email from profile">
+                                                <i class="bi bi-x-circle"></i> Unlink
                                             </button>
                                         </div>
                                     </td>
@@ -421,6 +439,46 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           <i class="bi bi-x-circle"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Manual Link Email Modal -->
+<div class="modal fade" id="addEmailModal" tabindex="-1" aria-labelledby="addEmailModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="addEmailModalLabel">
+          <i class="bi bi-link-45deg"></i> Link Email to Profile
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted">Link an existing email (INT-XXX) to this profile manually.</p>
+        <div class="mb-3">
+          <label for="int-reference-input" class="form-label"><strong>INT Reference Number</strong></label>
+          <input type="text" class="form-control" id="int-reference-input" 
+                 placeholder="Enter INT-XXX (e.g., INT-003)" 
+                 pattern="INT-\d+"
+                 required>
+          <small class="text-muted">Format: INT-XXX (case-insensitive)</small>
+        </div>
+        <div id="email-preview" class="alert alert-info d-none">
+          <strong>Email Found:</strong>
+          <div id="email-preview-content"></div>
+        </div>
+        <div id="email-error" class="alert alert-danger d-none">
+          Email not found or already linked to this profile.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-success" id="confirm-link-btn" onclick="confirmLinkEmail()">
+          <i class="bi bi-check-circle"></i> Link Email
         </button>
       </div>
     </div>
@@ -551,5 +609,134 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Show Add Email Modal
+function showAddEmailModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addEmailModal'));
+    document.getElementById('int-reference-input').value = '';
+    document.getElementById('email-preview').classList.add('d-none');
+    document.getElementById('email-error').classList.add('d-none');
+    modal.show();
+    
+    // Add input validation
+    const input = document.getElementById('int-reference-input');
+    input.addEventListener('input', function() {
+        const value = this.value.toUpperCase();
+        this.value = value;
+        
+        // Auto-check email when format is correct
+        if (/^INT-\d+$/.test(value)) {
+            checkEmailExists(value);
+        }
+    });
+}
+
+// Check if email exists
+function checkEmailExists(intRef) {
+    fetch('/api/check_email_exists?int_ref=' + intRef)
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists && !data.already_linked) {
+                document.getElementById('email-preview').classList.remove('d-none');
+                document.getElementById('email-error').classList.add('d-none');
+                document.getElementById('email-preview-content').innerHTML = `
+                    <div><strong>Subject:</strong> ${data.subject}</div>
+                    <div><strong>From:</strong> ${data.sender}</div>
+                    <div><strong>Date:</strong> ${data.received}</div>
+                `;
+                document.getElementById('confirm-link-btn').disabled = false;
+            } else if (data.already_linked) {
+                document.getElementById('email-preview').classList.add('d-none');
+                document.getElementById('email-error').classList.remove('d-none');
+                document.getElementById('email-error').textContent = 'This email is already linked to this profile.';
+                document.getElementById('confirm-link-btn').disabled = true;
+            } else {
+                document.getElementById('email-preview').classList.add('d-none');
+                document.getElementById('email-error').classList.remove('d-none');
+                document.getElementById('email-error').textContent = 'Email not found. Please check the INT reference number.';
+                document.getElementById('confirm-link-btn').disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking email:', error);
+            document.getElementById('email-error').classList.remove('d-none');
+            document.getElementById('email-error').textContent = 'Error checking email. Please try again.';
+        });
+}
+
+// Confirm Link Email
+function confirmLinkEmail() {
+    const intRef = document.getElementById('int-reference-input').value.toUpperCase();
+    const profileId = {{ profile.id }};
+    
+    const btn = document.getElementById('confirm-link-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Linking...';
+    btn.disabled = true;
+    
+    fetch('/api/link_email_to_profile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            int_reference: intRef,
+            profile_id: profileId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Email linked successfully!');
+            location.reload(); // Refresh to show new link
+        } else {
+            alert('❌ Error: ' + data.error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error linking email:', error);
+        alert('❌ Error linking email. Please try again.');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+// Unlink Email
+function unlinkEmail(linkId, intRef) {
+    if (!confirm(`Are you sure you want to unlink ${intRef} from this profile?`)) {
+        return;
+    }
+    
+    fetch('/api/unlink_email_from_profile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            link_id: linkId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Email unlinked successfully!');
+            // Remove the row from table
+            const row = document.querySelector(`tr[data-link-id="${linkId}"]`);
+            if (row) {
+                row.remove();
+            }
+            // Optionally reload to update counts
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error unlinking email:', error);
+        alert('❌ Error unlinking email. Please try again.');
+    });
+}
 </script>
 {% endblock %}

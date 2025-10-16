@@ -966,7 +966,7 @@ class WhatsAppEntry(db.Model):
     def int_reference(self):
         """🔗 Get unified INT reference from CaseProfile"""
         if self.case_profile:
-            return self.case_profile.index
+            return self.case_profile.int_reference
         return None
     
     @property
@@ -1015,7 +1015,8 @@ class OnlinePatrolEntry(db.Model):
     def int_reference(self):
         """🔗 Get unified INT reference from CaseProfile"""
         if self.case_profile:
-            return self.case_profile.index
+            return self.case_profile.int_reference
+        return None
         return None
 
 class SurveillanceEntry(db.Model):
@@ -1074,7 +1075,7 @@ class CaseProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
     # ✅ Unified INT Reference System
-    index = db.Column(db.String(20), unique=True, nullable=False, index=True)  # INT-001, INT-002
+    int_reference = db.Column(db.String(20), unique=True, nullable=False, index=True)  # INT-001, INT-002
     index_order = db.Column(db.Integer, unique=True, nullable=False, index=True)  # 1, 2, 3...
     
     # ✅ Source Classification
@@ -1116,7 +1117,7 @@ class CaseProfile(db.Model):
                                  backref='master_case')
     
     def __repr__(self):
-        return f'<CaseProfile {self.index} ({self.source_type})>'
+        return f'<CaseProfile {self.int_reference} ({self.source_type})>'
 
 # ✅ CRITICAL FIX #2: Race condition protection for AI analysis
 class EmailAnalysisLock(db.Model):
@@ -1400,10 +1401,10 @@ def generate_next_int_id(date_of_receipt=None, source_type="EMAIL"):
         if entries_to_renumber:
             print(f"[INT-RENUMBER] Shifting {len(entries_to_renumber)} entries from position {new_order}")
             for i, entry in enumerate(entries_to_renumber, start=new_order + 1):
-                old_index = entry.index
+                old_int_ref = entry.int_reference
                 entry.index_order = i
-                entry.index = f"INT-{i:03d}"
-                print(f"[INT-RENUMBER]   {old_index} → {entry.index}")
+                entry.int_reference = f"INT-{i:03d}"
+                print(f"[INT-RENUMBER]   {old_int_ref} → {entry.int_reference}")
         
         print(f"[INT-GEN] 📍 Generated {int_reference} for {source_type} (date: {date_of_receipt.strftime('%Y-%m-%d %H:%M')})")
         
@@ -1472,7 +1473,7 @@ def create_unified_intelligence_entry(source_record, source_type, created_by="SY
         
         # Create CaseProfile
         case_profile = CaseProfile(
-            index=int_data['index'],
+            int_reference=int_data['index'],
             index_order=int_data['index_order'],
             date_of_receipt=date_of_receipt,
             source_type=source_type,
@@ -1702,16 +1703,16 @@ def migrate_access_to_sqlalchemy():
             return val.strftime("%Y-%m-%d %H:%M:%S")
         return str(val) if not isinstance(val, str) else val
 
-    # Avoid duplicate index values (UNIQUE constraint)
+    # Avoid duplicate int_reference values (UNIQUE constraint)
     existing_indexes = set(
-        i[0] for i in db.session.query(CaseProfile.index).all()
+        i[0] for i in db.session.query(CaseProfile.int_reference).all()
     )
     for _, row in df.iterrows():
         idx = row.get("Index", "")
         if idx in existing_indexes:
             continue  # Skip duplicate
         cp = CaseProfile(
-            index=idx,
+            int_reference=idx,
             date_of_receipt=to_str(row.get("Date of Receipt", "")),
             source_type=row.get("Source Type", ""),
             source=row.get("Source", ""),
@@ -2390,7 +2391,7 @@ def get_associated(idx):
     if not cp:
         return []
     subs = CaseProfile.query.filter(
-        (CaseProfile.index == cp.index) & (CaseProfile.id != idx)
+        (CaseProfile.int_reference == cp.int_reference) & (CaseProfile.id != idx)
     ).all()
     return [(s.alleged_subject_en, s.alleged_subject_cn, s.id) for s in subs]
 
