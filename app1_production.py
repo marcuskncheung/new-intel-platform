@@ -1017,7 +1017,6 @@ class OnlinePatrolEntry(db.Model):
         if self.case_profile:
             return self.case_profile.int_reference
         return None
-        return None
 
 class SurveillanceEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
