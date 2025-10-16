@@ -963,6 +963,13 @@ class WhatsAppEntry(db.Model):
     images = db.relationship('WhatsAppImage', backref='entry', lazy=True, cascade="all, delete-orphan")
     
     @property
+    def int_reference(self):
+        """🔗 Get unified INT reference from CaseProfile"""
+        if self.case_profile:
+            return self.case_profile.index
+        return None
+    
+    @property
     def received_time_formatted(self):
         """Get formatted received_time, handling both datetime objects and strings"""
         if not self.received_time:
