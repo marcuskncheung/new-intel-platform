@@ -6545,6 +6545,31 @@ def int_source_update_assessment(email_id):
 # INT REFERENCE NUMBER MANAGEMENT ROUTES
 # =============================================================================
 
+@app.route("/int_source/unified_int_reference/reorder_all", methods=["POST"])
+@login_required
+def reorder_all_unified_int_references():
+    """Manual trigger to reorder all unified INT references (CaseProfile system)"""
+    try:
+        # Call the reorder function directly
+        reorder_int_numbers_after_delete()
+        
+        # Count how many profiles were reordered
+        total_profiles = CaseProfile.query.count()
+        
+        flash(f"Successfully reordered {total_profiles} unified INT references chronologically", "success")
+        return jsonify({
+            'success': True, 
+            'message': f'Reordered {total_profiles} INT references',
+            'total_profiles': total_profiles
+        }), 200
+        
+    except Exception as e:
+        print(f"[UNIFIED INT-REF] Error in manual reorder: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error reordering unified INT references: {str(e)}", "error")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route("/int_source/email/<int:email_id>/update_int_reference", methods=["POST"])
 @login_required
 def update_int_reference(email_id):
