@@ -5470,6 +5470,7 @@ def reorder_int_numbers_after_delete():
     """
     Reorder all INT numbers chronologically after deletion
     This ensures no gaps and maintains chronological order
+    Uses two-phase update to avoid unique constraint violations
     """
     try:
         # Get all remaining CaseProfiles sorted by receipt date
@@ -5480,7 +5481,24 @@ def reorder_int_numbers_after_delete():
         if not all_profiles:
             return
         
-        # Renumber them chronologically
+        # PHASE 1: Temporarily rename all INT references to avoid conflicts
+        # Use TEMP- prefix to ensure no collision with final INT-XXX format
+        for idx, case_profile in enumerate(all_profiles):
+            temp_int_ref = f"TEMP-{idx:06d}"
+            case_profile.int_reference = temp_int_ref
+            case_profile.index_order = idx
+            
+            # Update linked Email if exists
+            if case_profile.email_id:
+                email = Email.query.get(case_profile.email_id)
+                if email:
+                    email.int_reference_number = temp_int_ref
+                    email.int_reference_order = idx
+        
+        # Commit phase 1 changes
+        db.session.commit()
+        
+        # PHASE 2: Assign final sequential INT numbers
         for new_order, case_profile in enumerate(all_profiles, 1):
             new_int_ref = f"INT-{new_order:03d}"
             
@@ -5495,6 +5513,7 @@ def reorder_int_numbers_after_delete():
                     email.int_reference_number = new_int_ref
                     email.int_reference_order = new_order
         
+        # Commit phase 2 changes
         db.session.commit()
         print(f"[DEBUG] Reordered {len(all_profiles)} INT numbers after deletion")
         
