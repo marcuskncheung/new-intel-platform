@@ -5308,6 +5308,79 @@ def add_online_patrol():
         return redirect(url_for("int_source"))
     return render_template("int_source_online_patrol_edit.html", entry=None)
 
+@app.route("/online_patrol/<int:entry_id>", methods=["GET", "POST"])
+@login_required
+def online_patrol_detail(entry_id):
+    entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+    is_edit = request.args.get('edit') == '1' or request.form.get('edit_mode') == '1'
+
+    if request.method == "POST":
+        if is_edit:
+            # Save complaint info edit (edit mode)
+            entry.sender = request.form.get("sender")
+            complaint_time = request.form.get("complaint_time")
+            if complaint_time:
+                try:
+                    entry.complaint_time = datetime.strptime(complaint_time, "%Y-%m-%dT%H:%M")
+                except Exception:
+                    pass
+            entry.source = request.form.get("source")
+            entry.status = request.form.get("status")
+            entry.details = request.form.get("details")
+            
+            from secure_logger import secure_log_debug
+            secure_log_debug(
+                "Saving online patrol information", 
+                sender=entry.sender,
+                source=entry.source, 
+                status=entry.status,
+                record_id=entry.id
+            )
+            
+            try:
+                db.session.commit()
+                flash("Online Patrol details updated.", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error saving patrol info: {e}", "danger")
+            return redirect(url_for("online_patrol_detail", entry_id=entry.id))
+        else:
+            # Save assessment form (view mode)
+            entry.source_reliability = int(request.form.get("source_reliability")) if request.form.get("source_reliability") else None
+            entry.content_validity = int(request.form.get("content_validity")) if request.form.get("content_validity") else None
+            
+            from secure_logger import secure_log_debug
+            secure_log_debug(
+                "Saving assessment information", 
+                source_reliability=entry.source_reliability,
+                content_validity=entry.content_validity,
+                record_id=entry.id
+            )
+            
+            try:
+                db.session.commit()
+                flash("Assessment updated successfully.", "success")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error saving assessment: {e}", "danger")
+            return redirect(url_for("online_patrol_detail", entry_id=entry.id))
+
+    # GET: show detail page
+    return render_template("int_source_online_patrol_edit.html", entry=entry)
+
+@app.route("/delete_online_patrol/<int:entry_id>", methods=["POST"])
+@login_required
+def delete_online_patrol(entry_id):
+    entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+    try:
+        db.session.delete(entry)
+        db.session.commit()
+        flash("Online Patrol entry deleted successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting entry: {e}", "danger")
+    return redirect(url_for("int_source"))
+
 # Add this route to fix url_for('surveillance_export', fmt=...) errors in your templates
 @app.route("/surveillance_export/<fmt>")
 @login_required
