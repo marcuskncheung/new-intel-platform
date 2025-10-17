@@ -13,9 +13,11 @@
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProfileModal">
                         <i class="bi bi-plus-lg"></i> Add Manual Profile
                     </button>
-                    <button type="button" class="btn btn-info" onclick="refreshProfiles()">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
+                    <form method="POST" action="{{ url_for('refresh_poi_profiles') }}" style="display: inline;">
+                        <button type="submit" class="btn btn-info">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh All Sources
+                        </button>
+                    </form>
                     <button type="button" class="btn btn-warning" onclick="processExistingData()">
                         <i class="bi bi-gear"></i> Process Existing Data
                     </button>

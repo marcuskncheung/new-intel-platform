@@ -2223,57 +2223,66 @@ def alleged_subject_profile_detail(poi_id):
                 wa = WhatsAppEntry.query.get(link.source_id)
                 if wa:
                     intel_data = {
-                        'type': 'WHATSAPP',
-                        'created_at': link.created_at,
-                        'last_activity': link.last_activity_date or link.created_at
-                    }
-                    intel_data.update({
+                        'link_id': link.link_id,
+                        'source_type': 'WHATSAPP',
+                        'confidence': link.confidence_score,
+                        'extraction_method': link.extraction_method,
+                        'case_name': link.case_name,
+                        'case_id': link.case_id,
+                        'date': link.link_created_at or wa.created_at,
+                        'date_str': (link.link_created_at or wa.created_at).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or wa.created_at) else 'N/A',
                         'id': wa.id,
                         'reference': f'WHATSAPP-{wa.id}',
                         'title': f'WhatsApp: {wa.contact_name or wa.phone_number or "Unknown"}',
                         'summary': wa.synopsis or wa.alleged_nature or 'WhatsApp conversation',
                         'phone': wa.phone_number,
                         'contact': wa.contact_name,
-                        'view_url': url_for('int_source_whatsapp_detail', entry_id=wa.id) if hasattr(wa, 'id') else '#'
-                    })
+                        'view_url': url_for('int_source_whatsapp_detail', entry_id=wa.id)
+                    }
                     whatsapp.append(intel_data)
                     all_intelligence.append(intel_data)
             
-            if link.source_type == 'PATROL':
+            elif link.source_type == 'PATROL':
                 pt = OnlinePatrolEntry.query.get(link.source_id)
                 if pt:
                     intel_data = {
-                        'type': 'PATROL',
-                        'created_at': link.created_at,
-                        'last_activity': link.last_activity_date or link.created_at
-                    }
-                    intel_data.update({
+                        'link_id': link.link_id,
+                        'source_type': 'PATROL',
+                        'confidence': link.confidence_score,
+                        'extraction_method': link.extraction_method,
+                        'case_name': link.case_name,
+                        'case_id': link.case_id,
+                        'date': link.link_created_at or pt.created_at,
+                        'date_str': (link.link_created_at or pt.created_at).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or pt.created_at) else 'N/A',
                         'id': pt.id,
                         'reference': f'PATROL-{pt.id}',
                         'title': pt.synopsis or 'Online Patrol Entry',
                         'summary': pt.action_taken or pt.details or 'Patrol observation',
                         'location': getattr(pt, 'location', None),
-                        'view_url': url_for('int_source_online_patrol_detail', entry_id=pt.id) if hasattr(pt, 'id') else '#'
-                    })
+                        'view_url': url_for('int_source_online_patrol_detail', entry_id=pt.id)
+                    }
                     patrol.append(intel_data)
                     all_intelligence.append(intel_data)
             
-            if link.source_type == 'SURVEILLANCE':
+            elif link.source_type == 'SURVEILLANCE':
                 sv = SurveillanceEntry.query.get(link.source_id)
                 if sv:
                     intel_data = {
-                        'type': 'SURVEILLANCE',
-                        'created_at': link.created_at,
-                        'last_activity': link.last_activity_date or link.created_at
-                    }
-                    intel_data.update({
+                        'link_id': link.link_id,
+                        'source_type': 'SURVEILLANCE',
+                        'confidence': link.confidence_score,
+                        'extraction_method': link.extraction_method,
+                        'case_name': link.case_name,
+                        'case_id': link.case_id,
+                        'date': link.link_created_at or sv.created_at,
+                        'date_str': (link.link_created_at or sv.created_at).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv.created_at) else 'N/A',
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
                         'title': sv.synopsis or 'Surveillance Entry',
                         'summary': sv.details or sv.action_taken or 'Surveillance observation',
                         'location': getattr(sv, 'location', None),
-                        'view_url': url_for('int_source_surveillance_detail', entry_id=sv.id) if hasattr(sv, 'id') else '#'
-                    })
+                        'view_url': url_for('int_source_surveillance_detail', entry_id=sv.id)
+                    }
                     surveillance.append(intel_data)
                     all_intelligence.append(intel_data)
         
