@@ -62,7 +62,7 @@
                                 </div>
                                 <div>
                                     <i class="bi bi-calendar-plus me-1"></i>
-                                    <strong>Created:</strong> {{ profile.created_at }}
+                                    <strong>Created:</strong> {{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}
                                 </div>
                             </div>
                         </div>
@@ -80,6 +80,135 @@
                             </form>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ⭐ ENHANCED STATISTICS DASHBOARD - NOW MORE PROMINENT (POI v2.0) ⭐ -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-primary border-0 shadow-sm mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-graph-up-arrow fs-1 me-3"></i>
+                    <div>
+                        <h4 class="alert-heading mb-1">Cross-Source Intelligence Statistics</h4>
+                        <p class="mb-0">Real-time intelligence mentions across all sources</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- Row 1: Intelligence Source Counts -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-3">
+                        <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.9;"></i>
+                    </div>
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        {{ email_count if email_count is defined else (profile.email_count or 0) }}
+                    </h1>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">📧 EMAILS</h5>
+                    <p class="small mb-0 mt-2" style="opacity: 0.8;">Intelligence from email sources</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-3">
+                        <i class="bi bi-whatsapp" style="font-size: 3rem; opacity: 0.9;"></i>
+                    </div>
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        {{ whatsapp_count if whatsapp_count is defined else (profile.whatsapp_count or 0) }}
+                    </h1>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">💬 WHATSAPP</h5>
+                    <p class="small mb-0 mt-2" style="opacity: 0.8;">WhatsApp conversations</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #ff9800 0%, #e65100 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-3">
+                        <i class="bi bi-shield-fill-check" style="font-size: 3rem; opacity: 0.9;"></i>
+                    </div>
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        {{ patrol_count if patrol_count is defined else (profile.patrol_count or 0) }}
+                    </h1>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">� PATROL</h5>
+                    <p class="small mb-0 mt-2" style="opacity: 0.8;">Online patrol entries</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-3">
+                        <i class="bi bi-camera-video-fill" style="font-size: 3rem; opacity: 0.9;"></i>
+                    </div>
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        {{ surveillance_count if surveillance_count is defined else (profile.surveillance_count or 0) }}
+                    </h1>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">� SURVEILLANCE</h5>
+                    <p class="small mb-0 mt-2" style="opacity: 0.8;">Surveillance observations</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Row 2: Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #6610f2 0%, #520dc2 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-2">
+                        <i class="bi bi-bar-chart-fill" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                    </div>
+                    <h1 class="display-4 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        {{ total_intelligence_count if total_intelligence_count is defined else (profile.total_mentions or 0) }}
+                    </h1>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">� TOTAL MENTIONS</h5>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-2">
+                        <i class="bi bi-folder-fill" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                    </div>
+                    <h1 class="display-4 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        {{ profile.case_count or 0 }}
+                    </h1>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">�️ CASES INVOLVED</h5>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-3">
+            <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #20c997 0%, #17a589 100%) !important;">
+                <div class="card-body text-center p-4 text-white">
+                    <div class="mb-2">
+                        <i class="bi bi-clock-history" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                    </div>
+                    <h5 class="mb-2 fw-bold" style="color: white !important;">
+                        {% if profile.last_activity_date %}
+                            {{ profile.last_activity_date.strftime('%Y-%m-%d') }}
+                        {% elif profile.last_mentioned_date %}
+                            {{ profile.last_mentioned_date.strftime('%Y-%m-%d') }}
+                        {% else %}
+                            No Activity Yet
+                        {% endif %}
+                    </h5>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">⏱️ LAST ACTIVITY</h5>
                 </div>
             </div>
         </div>
@@ -137,95 +266,6 @@
                             </td>
                         </tr>
                     </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Enhanced Cross-Source Statistics Dashboard (POI v2.0) -->
-    <div class="row mb-4">
-        <!-- Row 1: Intelligence Source Counts -->
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-email" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: white !important;">
-                        <i class="bi bi-envelope-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2" style="color: white !important;">{{ email_count or profile.email_count or 0 }}</h2>
-                    <p class="stat-label mb-0" style="color: white !important;">📧 Emails</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-whatsapp" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important; color: white !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: white !important;">
-                        <i class="bi bi-whatsapp"></i>
-                    </div>
-                    <h2 class="stat-number mb-2" style="color: white !important;">{{ whatsapp_count or profile.whatsapp_count or 0 }}</h2>
-                    <p class="stat-label mb-0" style="color: white !important;">💬 WhatsApp</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-patrol" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important; color: #212529 !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #212529 !important;">
-                        <i class="bi bi-shield-fill-check"></i>
-                    </div>
-                    <h2 class="stat-number mb-2" style="color: #212529 !important;">{{ patrol_count or profile.patrol_count or 0 }}</h2>
-                    <p class="stat-label mb-0" style="color: #212529 !important;">🚨 Patrol</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-surveillance" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important; color: white !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: white !important;">
-                        <i class="bi bi-camera-video-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2" style="color: white !important;">{{ surveillance_count or profile.surveillance_count or 0 }}</h2>
-                    <p class="stat-label mb-0" style="color: white !important;">📹 Surveillance</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Row 2: Summary Statistics -->
-        <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-total" style="background: linear-gradient(135deg, #6610f2 0%, #5a0fc8 100%) !important; color: white !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: white !important;">
-                        <i class="bi bi-bar-chart-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2" style="color: white !important;">{{ total_intelligence_count or 0 }}</h2>
-                    <p class="stat-label mb-0" style="color: white !important;">📊 Total Mentions</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-cases" style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%) !important; color: white !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: white !important;">
-                        <i class="bi bi-folder-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2" style="color: white !important;">{{ profile.case_count or 0 }}</h2>
-                    <p class="stat-label mb-0" style="color: white !important;">🗂️ Cases Involved</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-activity" style="background: linear-gradient(135deg, #20c997 0%, #17a589 100%) !important; color: white !important;">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: white !important;">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <h6 class="stat-date mb-2" style="color: white !important;">{{ profile.last_activity_date or profile.last_mentioned_date or 'N/A' }}</h6>
-                    <p class="stat-label mb-0" style="color: white !important;">⏱️ Last Activity</p>
                 </div>
             </div>
         </div>
