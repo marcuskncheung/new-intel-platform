@@ -104,60 +104,60 @@
         <!-- Row 1: Intelligence Source Counts -->
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-3">
-                        <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4" style="color: white !important;">
+                    <div class="mb-3" style="color: white !important;">
+                        <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.9; color: white !important;"></i>
                     </div>
-                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: 700 !important;">
                         {{ email_count if email_count is defined else (profile.email_count or 0) }}
                     </h1>
-                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">📧 EMAILS</h5>
-                    <p class="small mb-0 mt-2" style="opacity: 0.8;">Intelligence from email sources</p>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px; font-weight: 600 !important;">📧 EMAILS</h5>
+                    <p class="small mb-0 mt-2" style="opacity: 0.9; color: white !important;">Intelligence from email sources</p>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-3">
-                        <i class="bi bi-whatsapp" style="font-size: 3rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4" style="color: white !important;">
+                    <div class="mb-3" style="color: white !important;">
+                        <i class="bi bi-whatsapp" style="font-size: 3rem; opacity: 0.9; color: white !important;"></i>
                     </div>
-                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: 700 !important;">
                         {{ whatsapp_count if whatsapp_count is defined else (profile.whatsapp_count or 0) }}
                     </h1>
-                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">💬 WHATSAPP</h5>
-                    <p class="small mb-0 mt-2" style="opacity: 0.8;">WhatsApp conversations</p>
+                    <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px; font-weight: 600 !important;">💬 WHATSAPP</h5>
+                    <p class="small mb-0 mt-2" style="opacity: 0.9; color: white !important;">WhatsApp conversations</p>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #ff9800 0%, #e65100 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-3">
-                        <i class="bi bi-shield-fill-check" style="font-size: 3rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4 style="color: white !important;"">
+                    <div class="mb-3" style="color: white !important;"
+                        <i class="bi bi-shield-fill-check" style="font-size: 3rem; opacity: 0.9; color: white !important;"></i>
                     </div>
-                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: 700 !important;">
                         {{ patrol_count if patrol_count is defined else (profile.patrol_count or 0) }}
                     </h1>
                     <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">� PATROL</h5>
-                    <p class="small mb-0 mt-2" style="opacity: 0.8;">Online patrol entries</p>
+                    <p class="small mb-0 mt-2" style="opacity: 0.9; color: white !important;">Online patrol entries</p>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-3">
-                        <i class="bi bi-camera-video-fill" style="font-size: 3rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4 style="color: white !important;"">
+                    <div class="mb-3" style="color: white !important;"
+                        <i class="bi bi-camera-video-fill" style="font-size: 3rem; opacity: 0.9; color: white !important;"></i>
                     </div>
-                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    <h1 class="display-3 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: 700 !important;">
                         {{ surveillance_count if surveillance_count is defined else (profile.surveillance_count or 0) }}
                     </h1>
                     <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">� SURVEILLANCE</h5>
-                    <p class="small mb-0 mt-2" style="opacity: 0.8;">Surveillance observations</p>
+                    <p class="small mb-0 mt-2" style="opacity: 0.9; color: white !important;">Surveillance observations</p>
                 </div>
             </div>
         </div>
@@ -167,11 +167,11 @@
     <div class="row mb-4">
         <div class="col-lg-4 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #6610f2 0%, #520dc2 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-2">
-                        <i class="bi bi-bar-chart-fill" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4 style="color: white !important;"">
+                    <div class="mb-2" style="color: white !important;"
+                        <i class="bi bi-bar-chart-fill" style="font-size: 2.5rem; opacity: 0.9; color: white !important;"></i>
                     </div>
-                    <h1 class="display-4 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    <h1 class="display-4 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: 700 !important;">
                         {{ total_intelligence_count if total_intelligence_count is defined else (profile.total_mentions or 0) }}
                     </h1>
                     <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">� TOTAL MENTIONS</h5>
@@ -181,11 +181,11 @@
         
         <div class="col-lg-4 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-2">
-                        <i class="bi bi-folder-fill" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4 style="color: white !important;"">
+                    <div class="mb-2" style="color: white !important;"
+                        <i class="bi bi-folder-fill" style="font-size: 2.5rem; opacity: 0.9; color: white !important;"></i>
                     </div>
-                    <h1 class="display-4 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    <h1 class="display-4 mb-2 fw-bold" style="color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: 700 !important;">
                         {{ profile.case_count or 0 }}
                     </h1>
                     <h5 class="mb-0 fw-semibold" style="color: white !important; letter-spacing: 1px;">�️ CASES INVOLVED</h5>
@@ -195,9 +195,9 @@
         
         <div class="col-lg-4 mb-3">
             <div class="card border-0 shadow stat-card h-100" style="background: linear-gradient(135deg, #20c997 0%, #17a589 100%) !important;">
-                <div class="card-body text-center p-4 text-white">
-                    <div class="mb-2">
-                        <i class="bi bi-clock-history" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                <div class="card-body text-center p-4 style="color: white !important;"">
+                    <div class="mb-2" style="color: white !important;"
+                        <i class="bi bi-clock-history" style="font-size: 2.5rem; opacity: 0.9; color: white !important;"></i>
                     </div>
                     <h5 class="mb-2 fw-bold" style="color: white !important;">
                         {% if profile.last_activity_date %}
