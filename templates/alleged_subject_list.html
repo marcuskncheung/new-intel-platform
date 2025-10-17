@@ -1,15 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Alleged Subjects Dashboard</h2>
-<p>
-  {% if automation_enabled %}
-    {# New automated profile system #}
-    <a href="{{ url_for('create_alleged_person_profile') }}" class="btn btn-success">+ New POI Profile</a>
-  {% else %}
-    {# Old legacy profile system #}
-    <a href="{{ url_for('create') }}" class="btn btn-success">+ New Profile</a>
-  {% endif %}
-</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Alleged Subjects Dashboard</h2>
+  <div class="btn-group" role="group">
+    {% if automation_enabled %}
+      {# New automated profile system #}
+      <a href="{{ url_for('create_alleged_person_profile') }}" class="btn btn-success">
+        <i class="bi bi-plus-lg"></i> New POI Profile
+      </a>
+    {% else %}
+      {# Old legacy profile system #}
+      <a href="{{ url_for('create') }}" class="btn btn-success">+ New Profile</a>
+    {% endif %}
+    <form method="POST" action="{{ url_for('refresh_poi_profiles') }}" style="display: inline;">
+      <button type="submit" class="btn btn-info">
+        <i class="bi bi-arrow-clockwise"></i> Refresh All Sources
+      </button>
+    </form>
+  </div>
+</div>
 <div class="row">
   {% for t in targets %}
   <div class="col-md-4 mb-3">

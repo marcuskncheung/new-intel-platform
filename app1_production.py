@@ -1921,16 +1921,35 @@ def alleged_subject_list():
                                  automation_enabled=False)
 
 @app.route("/alleged_person_profile/<int:profile_id>")
-@login_required  
+@login_required
 def view_alleged_person_profile(profile_id):
     """
-    View details of an automated alleged person profile by database ID
-    Shows: POI ID, names, agent info, and all emails alleging this person
+    REDIRECT TO POI v2.0 CROSS-SOURCE VIEW
+    
+    This route is kept for backward compatibility but redirects to the new
+    alleged_subject_profile_detail() which shows ALL intelligence sources.
     """
     try:
         profile = AllegedPersonProfile.query.get_or_404(profile_id)
-        
-        # Get all emails linked to this profile
+        # Redirect to the POI v2.0 cross-source detail view using POI ID
+        return redirect(url_for('alleged_subject_profile_detail', poi_id=profile.poi_id))
+    except Exception as e:
+        print(f"[PROFILE REDIRECT] Error: {e}")
+        flash(f"Error loading profile: {str(e)}", "error")
+        return redirect(url_for('alleged_subject_list'))
+
+@app.route("/alleged_person_profile_old/<int:profile_id>")
+@login_required
+def view_alleged_person_profile_old(profile_id):
+    """
+    OLD VERSION - View details of an automated alleged person profile by database ID
+    Shows: POI ID, names, agent info, and all emails alleging this person
+    
+    NOTE: This is the OLD function that only shows emails. Kept for reference.
+    Use alleged_subject_profile_detail() instead for cross-source intelligence.
+    """
+    try:
+        profile = AllegedPersonProfile.query.get_or_404(profile_id)        # Get all emails linked to this profile
         links = EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile_id).all()
         linked_emails = []
         email_dates = []  # Collect email dates for first/last calculation
