@@ -1255,6 +1255,14 @@ class EmailAllegedPersonLink(db.Model):
     def __repr__(self):
         return f'<EmailAllegedPersonLink email_id={self.email_id} person_id={self.alleged_person_id}>'
 
+# 🆕 POI v2.0: Import universal cross-source linking model
+try:
+    from models_poi_enhanced import POIIntelligenceLink
+    print("✅ POI v2.0: POIIntelligenceLink model loaded")
+except ImportError as e:
+    print(f"⚠️ Warning: Could not import POIIntelligenceLink: {e}")
+    POIIntelligenceLink = None
+
 # --- INT Reference Number Management Functions ---
 def generate_int_reference_for_new_email(email):
     """
@@ -2156,7 +2164,7 @@ def alleged_subject_profile_detail(poi_id):
                 pil.confidence_score,
                 pil.created_at as link_created_at,
                 pil.extraction_method,
-                cp.case_name,
+                cp.case_number as case_name,
                 cp.id as case_id
             FROM poi_intelligence_link pil
             LEFT JOIN case_profile cp ON pil.case_profile_id = cp.id
@@ -3481,6 +3489,9 @@ def refresh_poi_profiles():
     """
     try:
         print("[POI REFRESH] 🔄 Manual refresh triggered by user:", current_user.username if current_user else 'Unknown')
+        
+        # Import POIIntelligenceLink model from this file
+        from app1_production import POIIntelligenceLink
         
         # Import refresh function
         from poi_refresh_system import refresh_poi_from_all_sources
