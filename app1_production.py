@@ -1697,6 +1697,12 @@ with app.app_context():
 
     # 🆕 POI v2.0: Import models from models_poi_enhanced AFTER app context is ready
     try:
+        # First, inject the real db instance into models_poi_enhanced
+        import models_poi_enhanced
+        models_poi_enhanced.set_db(db)
+        print("✅ Injected db instance into models_poi_enhanced")
+        
+        # Now import the models - they will use the real db instance
         from models_poi_enhanced import (
             POIIntelligenceLink, 
             AllegedPersonProfile as POIProfile,

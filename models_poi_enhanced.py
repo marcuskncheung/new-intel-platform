@@ -12,22 +12,23 @@ This module contains the enhanced database models for the POI tracking system:
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSONB
 
-# Get db reference - this must be called AFTER app1_production has initialized db
-_db = None
+# Global db instance - MUST be set by app1_production before importing models
+db = None
 
-def _get_db():
-    global _db
-    if _db is None:
-        from app1_production import db as app_db
-        _db = app_db
-    return _db
+def set_db(db_instance):
+    """
+    Called by app1_production to inject the Flask-SQLAlchemy db instance.
+    MUST be called before importing any model classes from this module.
+    """
+    global db
+    db = db_instance
+    print(f"✅ models_poi_enhanced: db instance injected (type: {type(db_instance)})")
 
-# Make db available at module level for backward compatibility
-class _LazyDB:
-    def __getattr__(self, name):
-        return getattr(_get_db(), name)
-
-db = _LazyDB()
+def get_db():
+    """Get the db instance, raises error if not set"""
+    if db is None:
+        raise RuntimeError("db instance not set! Call set_db(db) before importing models from models_poi_enhanced")
+    return db
 
 
 class AllegedPersonProfile(db.Model):
