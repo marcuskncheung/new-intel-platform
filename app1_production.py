@@ -1695,38 +1695,6 @@ with app.app_context():
     db.create_all()
     print(f"✅ Database tables initialized for {get_db_info()}")
 
-    # 🆕 POI v2.0: Import models from models_poi_enhanced AFTER app context is ready
-    try:
-        # CRITICAL: Set db in models_poi_enhanced BEFORE Python executes class definitions
-        # We do this by modifying the module's globals before importing model classes
-        import models_poi_enhanced
-        models_poi_enhanced.db = db  # Set db instance in module's global namespace
-        print(f"✅ Injected db instance into models_poi_enhanced.db: {type(db)}")
-        
-        # Now force a module reload to execute class definitions with db set
-        import importlib
-        importlib.reload(models_poi_enhanced)
-        print("✅ Reloaded models_poi_enhanced with db instance")
-        
-        # Now import the model classes - db.Model will work
-        from models_poi_enhanced import (
-            POIIntelligenceLink, 
-            AllegedPersonProfile as POIProfile,
-            EmailAllegedPersonLink as EmailPOILink
-        )
-        # Update the global variables
-        globals()['AllegedPersonProfile'] = POIProfile
-        globals()['POIIntelligenceLink'] = POIIntelligenceLink
-        globals()['EmailAllegedPersonLink'] = EmailPOILink
-        print("✅ POI v2.0: All POI models loaded (AllegedPersonProfile, POIIntelligenceLink, EmailAllegedPersonLink)")
-    except Exception as e:
-        print(f"⚠️ Warning: Could not import POI models: {e}")
-        import traceback
-        traceback.print_exc()
-        POIIntelligenceLink = None
-        EmailAllegedPersonLink = None
-        AllegedPersonProfile = None
-
     # --- Secure Dynamic migration for Target licensing columns ---
     try:
         # Use secure database manager for migrations
@@ -9731,6 +9699,40 @@ def setup_production_environment():
     print(f"   • Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     
     return config
+
+# 🆕 POI v2.0: Import models from models_poi_enhanced at module level
+# This must run AFTER db is initialized but OUTSIDE app context
+try:
+    print("[POI MODELS] Starting import of enhanced POI models...")
+    # Set db instance in models_poi_enhanced module BEFORE importing classes
+    import models_poi_enhanced
+    models_poi_enhanced.db = db
+    print(f"[POI MODELS] ✅ Injected db into models_poi_enhanced: {type(db)}")
+    
+    # Reload module to execute class definitions with db set
+    import importlib
+    importlib.reload(models_poi_enhanced)
+    print("[POI MODELS] ✅ Reloaded models_poi_enhanced module")
+    
+    # Now import model classes
+    from models_poi_enhanced import (
+        POIIntelligenceLink,
+        AllegedPersonProfile as POIProfile,
+        EmailAllegedPersonLink as EmailPOILink
+    )
+    # Make available globally
+    globals()['AllegedPersonProfile'] = POIProfile
+    globals()['POIIntelligenceLink'] = POIIntelligenceLink
+    globals()['EmailAllegedPersonLink'] = EmailPOILink
+    print(f"[POI MODELS] ✅ Successfully loaded: AllegedPersonProfile={POIProfile}, POIIntelligenceLink={POIIntelligenceLink}")
+except Exception as e:
+    print(f"[POI MODELS] ❌ FAILED to import POI models: {e}")
+    import traceback
+    traceback.print_exc()
+    # Set to None so code can handle gracefully
+    AllegedPersonProfile = None
+    POIIntelligenceLink = None
+    EmailAllegedPersonLink = None
 
 # --- Main entry ---
 if __name__ == "__main__":
