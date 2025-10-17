@@ -3523,7 +3523,7 @@ def refresh_poi_profiles():
         traceback.print_exc()
         flash(f"❌ Error refreshing POI profiles: {str(e)}", "danger")
     
-    return redirect(url_for("alleged_subject_profiles"))
+    return redirect(url_for("alleged_subject_list"))
 
 @app.route("/alleged_subject_profiles/<int:profile_id>")
 @login_required
