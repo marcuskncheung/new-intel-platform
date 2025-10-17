@@ -1167,37 +1167,15 @@ class EmailAnalysisLock(db.Model):
 # This avoids duplicate table definition error
 # Will be imported after db initialization (see line ~1781)
 AllegedPersonProfile = None  # Placeholder, will be imported from models_poi_enhanced.py
-
-class EmailAllegedPersonLink(db.Model):
-    """
-    Many-to-many relationship between emails and alleged persons
-    
-    Allows tracking which emails mention which alleged persons
-    and enables profile pages to show all related emails.
-    """
-    __tablename__ = 'email_alleged_person_link'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
-    alleged_person_id = db.Column(db.Integer, db.ForeignKey('alleged_person_profile.id'), nullable=False)
-    
-    # Link metadata
-    created_at = db.Column(db.DateTime, nullable=False, default=get_hk_time)
-    created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT
-    confidence = db.Column(db.Float)  # AI confidence score (0.0 to 1.0)
-    
-    # Relationships
-    email = db.relationship('Email', backref='alleged_person_links')
-    alleged_person = db.relationship('AllegedPersonProfile', backref='email_links')
-    
-    # Ensure unique email-person combinations
-    __table_args__ = (db.UniqueConstraint('email_id', 'alleged_person_id', name='unique_email_person_link'),)
-    
-    def __repr__(self):
-        return f'<EmailAllegedPersonLink email_id={self.email_id} person_id={self.alleged_person_id}>'
+# ✅ REMOVED: AllegedPersonProfile and EmailAllegedPersonLink now in models_poi_enhanced.py
+# This avoids duplicate table definition error
+# Will be imported after db initialization (see line ~1720)
+AllegedPersonProfile = None  # Placeholder, will be imported from models_poi_enhanced.py
+EmailAllegedPersonLink = None  # Placeholder, will be imported from models_poi_enhanced.py
 
 # 🆕 POI v2.0: Import universal cross-source linking model
 # NOTE: This import MUST happen after db is initialized
+POIIntelligenceLink = None  # Will be imported later after app context is ready
 POIIntelligenceLink = None  # Will be imported later after app context is ready
 
 # --- INT Reference Number Management Functions ---
@@ -1719,14 +1697,20 @@ with app.app_context():
 
     # 🆕 POI v2.0: Import models from models_poi_enhanced AFTER app context is ready
     try:
-        from models_poi_enhanced import POIIntelligenceLink, AllegedPersonProfile as POIProfile
-        # Update the global AllegedPersonProfile variable
+        from models_poi_enhanced import (
+            POIIntelligenceLink, 
+            AllegedPersonProfile as POIProfile,
+            EmailAllegedPersonLink as EmailPOILink
+        )
+        # Update the global variables
         globals()['AllegedPersonProfile'] = POIProfile
         globals()['POIIntelligenceLink'] = POIIntelligenceLink
-        print("✅ POI v2.0: POIIntelligenceLink and AllegedPersonProfile models loaded")
+        globals()['EmailAllegedPersonLink'] = EmailPOILink
+        print("✅ POI v2.0: All POI models loaded (AllegedPersonProfile, POIIntelligenceLink, EmailAllegedPersonLink)")
     except ImportError as e:
         print(f"⚠️ Warning: Could not import POI models: {e}")
         POIIntelligenceLink = None
+        EmailAllegedPersonLink = None
 
     # --- Secure Dynamic migration for Target licensing columns ---
     try:

@@ -345,3 +345,34 @@ class POIAssessmentHistory(db.Model):
             'new_risk_score': self.new_risk_score,
             'assessment_reason': self.assessment_reason
         }
+
+
+# ✅ BACKWARD COMPATIBILITY: Legacy Email-POI linking table
+class EmailAllegedPersonLink(db.Model):
+    """
+    Many-to-many relationship between emails and alleged persons (POI v1.0 compatibility)
+    
+    NOTE: This is the legacy linking table. New code should use POIIntelligenceLink.
+    This is kept for backward compatibility with existing code that queries this table.
+    """
+    __tablename__ = 'email_alleged_person_link'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
+    alleged_person_id = db.Column(db.Integer, db.ForeignKey('alleged_person_profile.id'), nullable=False)
+    
+    # Link metadata
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT
+    confidence = db.Column(db.Float)  # AI confidence score (0.0 to 1.0)
+    
+    # Relationships - using direct class references (not strings) since classes are in same file
+    # Note: Email is in app1_production.py, so we use string reference
+    email = db.relationship('Email', backref='alleged_person_links')
+    alleged_person = db.relationship('AllegedPersonProfile', backref='email_links')
+    
+    # Ensure unique email-person combinations
+    __table_args__ = (db.UniqueConstraint('email_id', 'alleged_person_id', name='unique_email_person_link'),)
+    
+    def __repr__(self):
+        return f'<EmailAllegedPersonLink email_id={self.email_id} person_id={self.alleged_person_id}>'
