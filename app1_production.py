@@ -1750,21 +1750,32 @@ try:
     globals()['POIAssessmentHistory'] = POIAssessmentHistory
     
     print(f"[POI MODELS] ✅ Successfully loaded POI models at module level")
-    print(f"[POI MODELS] 🎯 AllegedPersonProfile is now: {AllegedPersonProfile}")
-    print(f"[POI MODELS] 🎯 Has .query attribute: {hasattr(AllegedPersonProfile, 'query')}")
+    print(f"[POI MODELS] 🎯 AllegedPersonProfile: {AllegedPersonProfile}")
+    print(f"[POI MODELS] 🎯 POIIntelligenceLink: {POIIntelligenceLink}")
+    print(f"[POI MODELS] 🎯 EmailAllegedPersonLink: {EmailAllegedPersonLink}")
 except Exception as e:
-    print(f"[POI MODELS] ❌ FAILED: {e}")
-    import traceback
-    traceback.print_exc()
-    AllegedPersonProfile = None
-    POIIntelligenceLink = None
-    EmailAllegedPersonLink = None
-    POIExtractionQueue = None
-    POIAssessmentHistory = None
-    print(f"[POI MODELS] ⚠️ Set all POI models to None due to error")
+    # Check if this is just the "Working outside of application context" error from hasattr check
+    error_msg = str(e)
+    if "Working outside of application context" in error_msg:
+        # This is OK - models are created, just can't access .query yet
+        print(f"[POI MODELS] ⚠️ Models created successfully, query attribute will be available in routes")
+    else:
+        # Real error - models failed to initialize
+        print(f"[POI MODELS] ❌ FAILED: {e}")
+        import traceback
+        traceback.print_exc()
+        AllegedPersonProfile = None
+        POIIntelligenceLink = None
+        EmailAllegedPersonLink = None
+        POIExtractionQueue = None
+        POIAssessmentHistory = None
+        print(f"[POI MODELS] ⚠️ Set all POI models to None due to error")
 
 print("=" * 80)
-print(f"🔍 DEBUG: After POI init, AllegedPersonProfile = {globals().get('AllegedPersonProfile', 'NOT FOUND')}")
+if AllegedPersonProfile is not None:
+    print(f"🔍 DEBUG: POI models initialized successfully!")
+else:
+    print(f"🔍 DEBUG: POI models initialization FAILED - AllegedPersonProfile = None")
 print("=" * 80)
 
 @login_mgr.user_loader
