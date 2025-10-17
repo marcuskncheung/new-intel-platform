@@ -1163,69 +1163,10 @@ class EmailAnalysisLock(db.Model):
     def __repr__(self):
         return f'<EmailAnalysisLock email_id={self.email_id} locked_by={self.locked_by}>'
 
-# ✅ NEW: Alleged Person Profile System for Automated Profile Creation
-class AllegedPersonProfile(db.Model):
-    """
-    Automated alleged person profile system
-    
-    Auto-creates profiles when AI analysis or manual input identifies alleged persons.
-    Assigns unique POI IDs (POI-001, POI-002) and links to related emails.
-    """
-    __tablename__ = 'alleged_person_profile'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    poi_id = db.Column(db.String(20), unique=True, nullable=False, index=True)  # POI-001, POI-002, etc.
-    
-    # Name information
-    name_english = db.Column(db.String(255), index=True)
-    name_chinese = db.Column(db.String(255), index=True)
-    name_normalized = db.Column(db.String(500), index=True)  # For duplicate detection
-    
-    # Professional information
-    agent_number = db.Column(db.String(100), index=True)
-    license_number = db.Column(db.String(100))
-    company = db.Column(db.String(255))
-    role = db.Column(db.String(100))  # Agent, Broker, etc.
-    
-    # Profile metadata
-    created_at = db.Column(db.DateTime, nullable=False, default=get_hk_time)
-    created_by = db.Column(db.String(100))  # AI_ANALYSIS, MANUAL_INPUT, IMPORT
-    updated_at = db.Column(db.DateTime, nullable=False, default=get_hk_time, onupdate=get_hk_time)
-    
-    # Statistics
-    email_count = db.Column(db.Integer, default=0)  # How many emails mention this person
-    first_mentioned_date = db.Column(db.DateTime)
-    last_mentioned_date = db.Column(db.DateTime)
-    
-    # Status
-    status = db.Column(db.String(50), default='ACTIVE')  # ACTIVE, MERGED, ARCHIVED
-    merged_into_poi_id = db.Column(db.String(20))  # If merged into another profile
-    
-    # Additional notes
-    notes = db.Column(db.Text)
-    
-    def __repr__(self):
-        return f'<AllegedPersonProfile {self.poi_id}: {self.name_english or self.name_chinese}>'
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'poi_id': self.poi_id,
-            'name_english': self.name_english,
-            'name_chinese': self.name_chinese,
-            'agent_number': self.agent_number,
-            'license_number': self.license_number,
-            'company': self.company,
-            'role': self.role,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'created_by': self.created_by,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'email_count': self.email_count,
-            'first_mentioned_date': self.first_mentioned_date.isoformat() if self.first_mentioned_date else None,
-            'last_mentioned_date': self.last_mentioned_date.isoformat() if self.last_mentioned_date else None,
-            'status': self.status,
-            'notes': self.notes
-        }
+# ✅ REMOVED: AllegedPersonProfile is now in models_poi_enhanced.py
+# This avoids duplicate table definition error
+# Will be imported after db initialization (see line ~1781)
+AllegedPersonProfile = None  # Placeholder, will be imported from models_poi_enhanced.py
 
 class EmailAllegedPersonLink(db.Model):
     """
@@ -1776,12 +1717,15 @@ with app.app_context():
     db.create_all()
     print(f"✅ Database tables initialized for {get_db_info()}")
 
-    # 🆕 POI v2.0: Import POIIntelligenceLink model AFTER app context is ready
+    # 🆕 POI v2.0: Import models from models_poi_enhanced AFTER app context is ready
     try:
-        from models_poi_enhanced import POIIntelligenceLink
-        print("✅ POI v2.0: POIIntelligenceLink model loaded")
+        from models_poi_enhanced import POIIntelligenceLink, AllegedPersonProfile as POIProfile
+        # Update the global AllegedPersonProfile variable
+        globals()['AllegedPersonProfile'] = POIProfile
+        globals()['POIIntelligenceLink'] = POIIntelligenceLink
+        print("✅ POI v2.0: POIIntelligenceLink and AllegedPersonProfile models loaded")
     except ImportError as e:
-        print(f"⚠️ Warning: Could not import POIIntelligenceLink: {e}")
+        print(f"⚠️ Warning: Could not import POI models: {e}")
         POIIntelligenceLink = None
 
     # --- Secure Dynamic migration for Target licensing columns ---
