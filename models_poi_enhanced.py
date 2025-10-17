@@ -10,8 +10,56 @@ This module contains the enhanced database models for the POI tracking system:
 """
 
 from datetime import datetime
-from models import db
 from sqlalchemy.dialects.postgresql import JSONB
+
+# Lazy import of db to avoid circular import
+def get_db():
+    from app1_production import db
+    return db
+
+# Use lazy loading for db
+class _DBProxy:
+    @property
+    def Model(self):
+        return get_db().Model
+    
+    @property
+    def Column(self):
+        return get_db().Column
+    
+    @property
+    def Integer(self):
+        return get_db().Integer
+    
+    @property
+    def String(self):
+        return get_db().String
+    
+    @property
+    def Text(self):
+        return get_db().Text
+    
+    @property
+    def Float(self):
+        return get_db().Float
+    
+    @property
+    def DateTime(self):
+        return get_db().DateTime
+    
+    @property
+    def Boolean(self):
+        return get_db().Boolean
+    
+    @property
+    def ForeignKey(self):
+        return get_db().ForeignKey
+    
+    @property
+    def relationship(self):
+        return get_db().relationship
+
+db = _DBProxy()
 
 
 class AllegedPersonProfile(db.Model):
