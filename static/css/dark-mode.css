@@ -70,6 +70,12 @@
     box-shadow: 0 2px 8px var(--shadow-color);
 }
 
+/* EXCEPTION: Stat cards should keep their gradient backgrounds */
+[data-bs-theme="dark"] .stat-card {
+    background-color: transparent !important;
+    background: inherit !important;
+}
+
 [data-bs-theme="dark"] .card:hover {
     border-color: var(--border-subtle);
     box-shadow: 0 4px 12px var(--shadow-hover);
@@ -84,6 +90,12 @@
 [data-bs-theme="dark"] .card-body {
     background-color: var(--card-bg);
     color: var(--text-color);
+}
+
+/* EXCEPTION: Stat card bodies should not override inline colors */
+[data-bs-theme="dark"] .stat-card .card-body {
+    background: transparent !important;
+    color: inherit !important;
 }
 
 [data-bs-theme="dark"] .card-footer {
@@ -473,6 +485,18 @@
 [data-bs-theme="dark"] h3, [data-bs-theme="dark"] h4, 
 [data-bs-theme="dark"] h5, [data-bs-theme="dark"] h6 {
     color: var(--text-color);
+}
+
+/* EXCEPTION: Stat card text should keep inline colors */
+[data-bs-theme="dark"] .stat-card h2,
+[data-bs-theme="dark"] .stat-card h6,
+[data-bs-theme="dark"] .stat-card p,
+[data-bs-theme="dark"] .stat-card i,
+[data-bs-theme="dark"] .stat-card .stat-number,
+[data-bs-theme="dark"] .stat-card .stat-label,
+[data-bs-theme="dark"] .stat-card .stat-icon,
+[data-bs-theme="dark"] .stat-card .stat-date {
+    color: inherit !important;
 }
 
 [data-bs-theme="dark"] p {
