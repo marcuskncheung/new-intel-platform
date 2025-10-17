@@ -3502,7 +3502,8 @@ def refresh_poi_profiles():
         
         # Run the refresh within current app context (already have it from @login_required)
         result = refresh_poi_from_all_sources(
-            db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink
+            db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink,
+            Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target
         )
         
         if result['success']:

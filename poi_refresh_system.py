@@ -13,7 +13,7 @@ Features:
 6. Create missing POI links
 """
 
-def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink):
+def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink, Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target):
     """
     Rescan all intelligence sources and update POI profiles
     
@@ -23,7 +23,6 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
     - Creates universal links in poi_intelligence_link table
     - Updates statistics and counts
     """
-    from app1_production import Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target
     from alleged_person_automation import create_or_update_alleged_person_profile
     import re
     
