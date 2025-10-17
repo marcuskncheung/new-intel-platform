@@ -142,209 +142,80 @@
         </div>
     </div>
     
-    <!-- Enhanced Cross-Source Statistics Dashboard (POI v2.0) -->
+    <!-- Statistics Dashboard -->
     <div class="row mb-4">
-        <!-- Row 1: Intelligence Source Counts -->
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-email">
+            <div class="card border-0 shadow-sm stat-card stat-card-primary">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #0d6efd;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-envelope-fill"></i>
                     </div>
-                    <h2 class="stat-number mb-2">{{ email_count or profile.email_count or 0 }}</h2>
-                    <p class="stat-label mb-0">📧 Emails</p>
+                    <h2 class="stat-number mb-2">{{ profile.email_count }}</h2>
+                    <p class="stat-label mb-0">Linked Complaints</p>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-whatsapp">
+            <div class="card border-0 shadow-sm stat-card stat-card-success">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #25d366;">
-                        <i class="bi bi-whatsapp"></i>
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-calendar-check"></i>
                     </div>
-                    <h2 class="stat-number mb-2">{{ whatsapp_count or profile.whatsapp_count or 0 }}</h2>
-                    <p class="stat-label mb-0">💬 WhatsApp</p>
+                    <h6 class="stat-date mb-2">{{ profile.first_mentioned_date }}</h6>
+                    <p class="stat-label mb-0">First Allegation</p>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-patrol">
+            <div class="card border-0 shadow-sm stat-card stat-card-warning">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #ffc107;">
-                        <i class="bi bi-shield-fill-check"></i>
+                    <div class="stat-icon mb-3">
+                        <i class="bi bi-calendar-event"></i>
                     </div>
-                    <h2 class="stat-number mb-2">{{ patrol_count or profile.patrol_count or 0 }}</h2>
-                    <p class="stat-label mb-0">🚨 Patrol</p>
+                    <h6 class="stat-date mb-2">{{ profile.last_mentioned_date }}</h6>
+                    <p class="stat-label mb-0">Latest Allegation</p>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-surveillance">
+            <div class="card border-0 shadow-sm stat-card stat-card-info">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #dc3545;">
-                        <i class="bi bi-camera-video-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2">{{ surveillance_count or profile.surveillance_count or 0 }}</h2>
-                    <p class="stat-label mb-0">📹 Surveillance</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Row 2: Summary Statistics -->
-        <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-total">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #6610f2;">
-                        <i class="bi bi-bar-chart-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2">{{ total_intelligence_count or 0 }}</h2>
-                    <p class="stat-label mb-0">📊 Total Mentions</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-cases">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #0dcaf0;">
-                        <i class="bi bi-folder-fill"></i>
-                    </div>
-                    <h2 class="stat-number mb-2">{{ profile.case_count or 0 }}</h2>
-                    <p class="stat-label mb-0">🗂️ Cases Involved</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm stat-card stat-card-activity">
-                <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #20c997;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-clock-history"></i>
                     </div>
-                    <h6 class="stat-date mb-2">{{ profile.last_activity_date or profile.last_mentioned_date or 'N/A' }}</h6>
-                    <p class="stat-label mb-0">⏱️ Last Activity</p>
+                    <h6 class="stat-date mb-2">{{ profile.created_at }}</h6>
+                    <p class="stat-label mb-0">Profile Created</p>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Cross-Source Intelligence Timeline (POI v2.0) -->
+    <!-- Allegations Timeline -->
     <div class="row">
         <div class="col-12">
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-gradient-primary text-white py-3">
+                <div class="card-header bg-gradient-danger text-white py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h4 class="mb-0">
-                                <i class="bi bi-diagram-3-fill me-2"></i>
-                                Cross-Source Intelligence Timeline
-                                <span class="badge bg-white text-primary ms-2">{{ total_intelligence_count or 0 }}</span>
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Allegations Against This Person
+                                <span class="badge bg-white text-danger ms-2">{{ related_emails|length }}</span>
                             </h4>
                             <p class="mb-0 mt-2 opacity-90 small">
-                                Unified view of all mentions across Email, WhatsApp, Online Patrol, and Surveillance sources
+                                Comprehensive timeline of all allegations, complaints, and mentions in intelligence sources
                             </p>
                         </div>
                         <button type="button" class="btn btn-light" onclick="showLinkEmailModal()">
-                            <i class="bi bi-plus-circle me-1"></i> Link Intelligence
+                            <i class="bi bi-plus-circle me-1"></i> Link Email Manually
                         </button>
                     </div>
                 </div>
-                
-                <!-- Intelligence Source Tabs -->
-                <div class="card-header border-bottom-0 pb-0" style="background-color: inherit;">
-                    <ul class="nav nav-tabs card-header-tabs intelligence-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all-sources-tab" type="button" role="tab">
-                                <i class="bi bi-grid-3x3-gap-fill me-1"></i> All Sources <span class="badge bg-secondary ms-1">{{ total_intelligence_count or 0 }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#email-tab" type="button" role="tab">
-                                <i class="bi bi-envelope-fill me-1"></i> Emails <span class="badge bg-primary ms-1">{{ email_count or 0 }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#whatsapp-tab" type="button" role="tab">
-                                <i class="bi bi-whatsapp me-1"></i> WhatsApp <span class="badge bg-success ms-1">{{ whatsapp_count or 0 }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#patrol-tab" type="button" role="tab">
-                                <i class="bi bi-shield-fill-check me-1"></i> Patrol <span class="badge bg-warning ms-1">{{ patrol_count or 0 }}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#surveillance-tab" type="button" role="tab">
-                                <i class="bi bi-camera-video-fill me-1"></i> Surveillance <span class="badge bg-danger ms-1">{{ surveillance_count or 0 }}</span>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                
-                <!-- Tab Content -->
                 <div class="card-body p-0">
-                    <div class="tab-content">
-                        <!-- ALL SOURCES TAB -->
-                        <div class="tab-pane fade show active" id="all-sources-tab" role="tabpanel">
-                            {% if all_intelligence %}
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th width="10%" class="ps-4">Source</th>
-                                                <th width="12%">Reference</th>
-                                                <th width="10%">Date</th>
-                                                <th width="40%">Details</th>
-                                                <th width="15%">Case</th>
-                                                <th width="13%" class="text-center pe-4">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for intel in all_intelligence %}
-                                            <tr class="intelligence-row">
-                                                <td class="ps-4">
-                                                    {% if intel.source_type == 'EMAIL' %}
-                                                        <span class="badge bg-primary"><i class="bi bi-envelope-fill"></i> Email</span>
-                                                    {% elif intel.source_type == 'WHATSAPP' %}
-                                                        <span class="badge bg-success"><i class="bi bi-whatsapp"></i> WhatsApp</span>
-                                                    {% elif intel.source_type == 'PATROL' %}
-                                                        <span class="badge bg-warning text-dark"><i class="bi bi-shield-fill-check"></i> Patrol</span>
-                                                    {% elif intel.source_type == 'SURVEILLANCE' %}
-                                                        <span class="badge bg-danger"><i class="bi bi-camera-video-fill"></i> Surveillance</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td><strong>{{ intel.reference }}</strong></td>
-                                                <td><small>{{ intel.date_str }}</small></td>
-                                                <td>
-                                                    <div><strong>{{ intel.title|truncate(60) }}</strong></div>
-                                                    <small class="text-muted">{{ intel.summary|truncate(100) }}</small>
-                                                </td>
-                                                <td><small>{{ intel.case_name or 'N/A' }}</small></td>
-                                                <td class="text-center pe-4">
-                                                    <a href="{{ intel.view_url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                        <i class="bi bi-eye"></i> View
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="p-5 text-center">
-                                    <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
-                                    <h5 class="text-muted mt-3">No Intelligence Records</h5>
-                                    <p class="text-muted">This POI hasn't been mentioned in any intelligence source yet.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- EMAIL TAB -->
-                        <div class="tab-pane fade" id="email-tab" role="tabpanel">
-                    {% if emails %}
+                    {% if related_emails %}
                         <div class="table-responsive">
                             <table class="table table-hover allegations-table mb-0">
                                 <thead class="table-light">
@@ -427,143 +298,15 @@
                             <div class="mb-4">
                                 <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
                             </div>
-                            <h5 class="text-muted mb-3">No Email Records</h5>
+                            <h5 class="text-muted mb-3">No Allegations Recorded</h5>
                             <p class="text-muted mb-0">
-                                This POI hasn't been mentioned in any email intelligence yet.
+                                This profile has been created but no complaints or allegations have been linked yet.
+                            </p>
+                            <p class="text-muted small mt-2">
+                                Allegations will appear here automatically when AI analysis identifies this person in intelligence sources.
                             </p>
                         </div>
                     {% endif %}
-                        </div>
-                        
-                        <!-- WHATSAPP TAB -->
-                        <div class="tab-pane fade" id="whatsapp-tab" role="tabpanel">
-                            {% if whatsapp %}
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th width="15%" class="ps-4">Reference</th>
-                                                <th width="15%">Date</th>
-                                                <th width="45%">Details</th>
-                                                <th width="15%">Case</th>
-                                                <th width="10%" class="text-center pe-4">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for wa in whatsapp %}
-                                            <tr>
-                                                <td class="ps-4"><strong>{{ wa.reference }}</strong></td>
-                                                <td><small>{{ wa.date_str }}</small></td>
-                                                <td>
-                                                    <div><strong>{{ wa.title }}</strong></div>
-                                                    <small class="text-muted">{{ wa.summary|truncate(150) }}</small>
-                                                </td>
-                                                <td><small>{{ wa.case_name or 'N/A' }}</small></td>
-                                                <td class="text-center pe-4">
-                                                    <a href="{{ wa.view_url }}" class="btn btn-sm btn-outline-success" target="_blank">
-                                                        <i class="bi bi-eye"></i> View
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="p-5 text-center">
-                                    <i class="bi bi-whatsapp" style="font-size: 4rem; color: #dee2e6;"></i>
-                                    <h5 class="text-muted mt-3">No WhatsApp Records</h5>
-                                    <p class="text-muted">This POI hasn't been mentioned in WhatsApp intelligence yet.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- PATROL TAB -->
-                        <div class="tab-pane fade" id="patrol-tab" role="tabpanel">
-                            {% if patrol %}
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th width="15%" class="ps-4">Reference</th>
-                                                <th width="15%">Date</th>
-                                                <th width="45%">Details</th>
-                                                <th width="15%">Case</th>
-                                                <th width="10%" class="text-center pe-4">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for pt in patrol %}
-                                            <tr>
-                                                <td class="ps-4"><strong>{{ pt.reference }}</strong></td>
-                                                <td><small>{{ pt.date_str }}</small></td>
-                                                <td>
-                                                    <div><strong>{{ pt.title }}</strong></div>
-                                                    <small class="text-muted">{{ pt.summary|truncate(150) }}</small>
-                                                </td>
-                                                <td><small>{{ pt.case_name or 'N/A' }}</small></td>
-                                                <td class="text-center pe-4">
-                                                    <a href="{{ pt.view_url }}" class="btn btn-sm btn-outline-warning" target="_blank">
-                                                        <i class="bi bi-eye"></i> View
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="p-5 text-center">
-                                    <i class="bi bi-shield-fill-check" style="font-size: 4rem; color: #dee2e6;"></i>
-                                    <h5 class="text-muted mt-3">No Patrol Records</h5>
-                                    <p class="text-muted">This POI hasn't been mentioned in Online Patrol intelligence yet.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- SURVEILLANCE TAB -->
-                        <div class="tab-pane fade" id="surveillance-tab" role="tabpanel">
-                            {% if surveillance %}
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th width="15%" class="ps-4">Reference</th>
-                                                <th width="15%">Date</th>
-                                                <th width="45%">Details</th>
-                                                <th width="15%">Case</th>
-                                                <th width="10%" class="text-center pe-4">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for sv in surveillance %}
-                                            <tr>
-                                                <td class="ps-4"><strong>{{ sv.reference }}</strong></td>
-                                                <td><small>{{ sv.date_str }}</small></td>
-                                                <td>
-                                                    <div><strong>{{ sv.title }}</strong></div>
-                                                    <small class="text-muted">{{ sv.summary|truncate(150) }}</small>
-                                                </td>
-                                                <td><small>{{ sv.case_name or 'N/A' }}</small></td>
-                                                <td class="text-center pe-4">
-                                                    <a href="{{ sv.view_url }}" class="btn btn-sm btn-outline-danger" target="_blank">
-                                                        <i class="bi bi-eye"></i> View
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="p-5 text-center">
-                                    <i class="bi bi-camera-video-fill" style="font-size: 4rem; color: #dee2e6;"></i>
-                                    <h5 class="text-muted mt-3">No Surveillance Records</h5>
-                                    <p class="text-muted">This POI hasn't been mentioned in Surveillance intelligence yet.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -681,43 +424,6 @@
     box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
 }
 
-/* Source-specific stat cards (POI v2.0) */
-.stat-card-email {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.stat-card-whatsapp {
-    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-    color: white;
-}
-
-.stat-card-patrol {
-    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-    color: #212529;
-}
-
-.stat-card-surveillance {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-}
-
-.stat-card-total {
-    background: linear-gradient(135deg, #6610f2 0%, #5a0fc8 100%);
-    color: white;
-}
-
-.stat-card-cases {
-    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%);
-    color: white;
-}
-
-.stat-card-activity {
-    background: linear-gradient(135deg, #20c997 0%, #17a589 100%);
-    color: white;
-}
-
-/* Legacy stat cards (for backward compatibility) */
 .stat-card-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -758,48 +464,6 @@
     font-size: 0.9rem;
     opacity: 0.85;
     font-weight: 500;
-}
-
-/* Intelligence Tabs (POI v2.0) */
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.intelligence-tabs {
-    border-bottom: 2px solid #dee2e6;
-}
-
-.intelligence-tabs .nav-link {
-    color: #6c757d;
-    border: none;
-    border-bottom: 3px solid transparent;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.intelligence-tabs .nav-link:hover {
-    color: #495057;
-    border-bottom-color: #dee2e6;
-}
-
-.intelligence-tabs .nav-link.active {
-    color: #0d6efd;
-    border-bottom-color: #0d6efd;
-    background-color: transparent;
-}
-
-.intelligence-tabs .badge {
-    font-size: 0.75rem;
-}
-
-/* Intelligence Rows */
-.intelligence-row {
-    transition: background-color 0.2s ease;
-}
-
-.intelligence-row:hover {
-    background-color: #f8f9fa;
 }
 
 /* Allegations Table */

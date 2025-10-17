@@ -2077,12 +2077,12 @@ def delete_alleged_person_profile(profile_id):
 @login_required
 def alleged_subject_profile_detail(poi_id):
     """
-    Show detailed profile for a specific alleged person (POI)
+    POI v2.0: Cross-source intelligence detail view
     
     Displays:
     - Profile information (names, agent number, company, etc.)
-    - All emails alleging this person
-    - Profile history and statistics
+    - ALL intelligence from Email, WhatsApp, Online Patrol, Surveillance
+    - Cross-source statistics and unified timeline
     """
     try:
         # Get the profile
@@ -2092,43 +2092,131 @@ def alleged_subject_profile_detail(poi_id):
             flash(f"Profile {poi_id} not found", "error")
             return redirect(url_for("alleged_subject_list"))
         
-        # Get all emails linked to this profile (both auto-linked AND manually-linked)
-        email_links = db.session.query(EmailAllegedPersonLink, Email).join(
-            Email, EmailAllegedPersonLink.email_id == Email.id
-        ).filter(
-            EmailAllegedPersonLink.alleged_person_id == profile.id
-        ).order_by(Email.received.desc()).all()
+        print(f"[PROFILE DETAIL] Loading cross-source intelligence for {poi_id}")
         
-        print(f"[PROFILE DETAIL DEBUG] Profile {poi_id} (ID: {profile.id}) has {len(email_links)} total email links in database")
+        # Fetch ALL intelligence from universal linking table (POI v2.0)
+        links = db.session.execute(db.text("""
+            SELECT 
+                pil.id as link_id,
+                pil.source_type,
+                pil.source_id,
+                pil.confidence_score,
+                pil.created_at as link_created_at,
+                pil.extraction_method,
+                cp.case_name,
+                cp.id as case_id
+            FROM poi_intelligence_link pil
+            LEFT JOIN case_profile cp ON pil.case_profile_id = cp.id
+            WHERE pil.poi_id = :poi_id
+            ORDER BY pil.created_at DESC
+        """), {'poi_id': poi_id}).fetchall()
         
-        # Count auto vs manual links
-        auto_count = sum(1 for link, _ in email_links if link.created_by in ['AI', 'AI_ANALYSIS', 'MANUAL_INPUT', 'System'])
-        manual_count = sum(1 for link, _ in email_links if link.created_by == 'Manual')
-        print(f"[PROFILE DETAIL DEBUG] Auto-linked: {auto_count}, Manual-linked: {manual_count}")
+        print(f"[PROFILE DETAIL] Found {len(links)} total intelligence links")
         
-        related_emails = []
-        for link, email in email_links:
-            related_emails.append({
-                'id': email.id,  # Email ID for linking
-                'link_id': link.id,  # Link ID for unlinking
-                'int_reference_number': email.int_reference_number,  # INT-XXX
-                'subject': email.subject,
-                'sender': email.sender,
-                'received': email.received,
-                'alleged_nature': email.alleged_nature,
-                'allegation_summary': email.allegation_summary,
-                'link_created_at': link.created_at,
-                'link_confidence': link.confidence,
-                'link_created_by': link.created_by
-            })
-            print(f"[PROFILE DETAIL DEBUG] Email {email.id} ({email.int_reference_number}) linked by: {link.created_by}")
+        # Organize intelligence by source type
+        emails = []
+        whatsapp = []
+        patrol = []
+        surveillance = []
+        all_intelligence = []
         
-        print(f"[PROFILE DETAIL] Showing profile {poi_id} with {len(related_emails)} related emails")
+        for link in links:
+            intel_data = {
+                'link_id': link.link_id,
+                'source_type': link.source_type,
+                'confidence': link.confidence_score,
+                'extraction_method': link.extraction_method,
+                'case_name': link.case_name,
+                'case_id': link.case_id,
+                'date': link.link_created_at,
+                'date_str': link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A'
+            }
+            
+            if link.source_type == 'EMAIL':
+                email = Email.query.get(link.source_id)
+                if email:
+                    intel_data.update({
+                        'id': email.id,
+                        'reference': email.int_reference_number or f'EMAIL-{email.id}',
+                        'title': email.subject,
+                        'summary': email.allegation_summary or email.alleged_nature,
+                        'sender': email.sender,
+                        'received': email.received,
+                        'alleged_nature': email.alleged_nature,
+                        'view_url': url_for('int_source_email_detail', email_id=email.id)
+                    })
+                    emails.append(intel_data)
+                    all_intelligence.append(intel_data)
+            
+            elif link.source_type == 'WHATSAPP':
+                wa = WhatsAppEntry.query.get(link.source_id)
+                if wa:
+                    intel_data.update({
+                        'id': wa.id,
+                        'reference': f'WHATSAPP-{wa.id}',
+                        'title': f'WhatsApp: {wa.contact_name or wa.phone_number or "Unknown"}',
+                        'summary': wa.synopsis or wa.alleged_nature or 'WhatsApp conversation',
+                        'phone': wa.phone_number,
+                        'contact': wa.contact_name,
+                        'view_url': url_for('int_source_whatsapp_detail', entry_id=wa.id) if hasattr(wa, 'id') else '#'
+                    })
+                    whatsapp.append(intel_data)
+                    all_intelligence.append(intel_data)
+            
+            elif link.source_type == 'PATROL':
+                pt = OnlinePatrolEntry.query.get(link.source_id)
+                if pt:
+                    intel_data.update({
+                        'id': pt.id,
+                        'reference': f'PATROL-{pt.id}',
+                        'title': pt.synopsis or 'Online Patrol Entry',
+                        'summary': pt.action_taken or pt.details or 'Patrol observation',
+                        'location': getattr(pt, 'location', None),
+                        'view_url': url_for('int_source_online_patrol_detail', entry_id=pt.id) if hasattr(pt, 'id') else '#'
+                    })
+                    patrol.append(intel_data)
+                    all_intelligence.append(intel_data)
+            
+            elif link.source_type == 'SURVEILLANCE':
+                sv = SurveillanceEntry.query.get(link.source_id)
+                if sv:
+                    intel_data.update({
+                        'id': sv.id,
+                        'reference': f'SURV-{sv.id}',
+                        'title': sv.synopsis or 'Surveillance Entry',
+                        'summary': sv.details or sv.action_taken or 'Surveillance observation',
+                        'location': getattr(sv, 'location', None),
+                        'view_url': url_for('int_source_surveillance_detail', entry_id=sv.id) if hasattr(sv, 'id') else '#'
+                    })
+                    surveillance.append(intel_data)
+                    all_intelligence.append(intel_data)
+        
+        # Calculate statistics
+        total_intelligence = len(all_intelligence)
+        email_count = len(emails)
+        whatsapp_count = len(whatsapp)
+        patrol_count = len(patrol)
+        surveillance_count = len(surveillance)
+        
+        print(f"[PROFILE DETAIL] Intelligence breakdown: Email={email_count}, WhatsApp={whatsapp_count}, Patrol={patrol_count}, Surveillance={surveillance_count}")
+        
+        # For backward compatibility, also keep related_emails for old template parts
+        related_emails = emails  # Alias for compatibility
         
         return render_template("poi_profile_detail.html",
                              profile=profile,
-                             related_emails=related_emails,
-                             total_emails=len(related_emails))
+                             emails=emails,
+                             whatsapp=whatsapp,
+                             patrol=patrol,
+                             surveillance=surveillance,
+                             all_intelligence=all_intelligence,
+                             total_intelligence_count=total_intelligence,
+                             email_count=email_count,
+                             whatsapp_count=whatsapp_count,
+                             patrol_count=patrol_count,
+                             surveillance_count=surveillance_count,
+                             related_emails=related_emails,  # Backward compatibility
+                             total_emails=len(related_emails))  # Backward compatibility
     
     except Exception as e:
         print(f"[PROFILE DETAIL] ❌ Error loading profile {poi_id}: {e}")
