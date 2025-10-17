@@ -148,7 +148,7 @@
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-email">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #0d6efd;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-envelope-fill"></i>
                     </div>
                     <h2 class="stat-number mb-2">{{ email_count or profile.email_count or 0 }}</h2>
@@ -160,7 +160,7 @@
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-whatsapp">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #25d366;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-whatsapp"></i>
                     </div>
                     <h2 class="stat-number mb-2">{{ whatsapp_count or profile.whatsapp_count or 0 }}</h2>
@@ -172,7 +172,7 @@
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-patrol">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #ffc107;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-shield-fill-check"></i>
                     </div>
                     <h2 class="stat-number mb-2">{{ patrol_count or profile.patrol_count or 0 }}</h2>
@@ -184,7 +184,7 @@
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-surveillance">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #dc3545;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-camera-video-fill"></i>
                     </div>
                     <h2 class="stat-number mb-2">{{ surveillance_count or profile.surveillance_count or 0 }}</h2>
@@ -197,7 +197,7 @@
         <div class="col-lg-4 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-total">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #6610f2;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-bar-chart-fill"></i>
                     </div>
                     <h2 class="stat-number mb-2">{{ total_intelligence_count or 0 }}</h2>
@@ -209,7 +209,7 @@
         <div class="col-lg-4 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-cases">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #0dcaf0;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-folder-fill"></i>
                     </div>
                     <h2 class="stat-number mb-2">{{ profile.case_count or 0 }}</h2>
@@ -221,7 +221,7 @@
         <div class="col-lg-4 col-md-6 mb-3">
             <div class="card border-0 shadow-sm stat-card stat-card-activity">
                 <div class="card-body text-center p-4">
-                    <div class="stat-icon mb-3" style="color: #20c997;">
+                    <div class="stat-icon mb-3">
                         <i class="bi bi-clock-history"></i>
                     </div>
                     <h6 class="stat-date mb-2">{{ profile.last_activity_date or profile.last_mentioned_date or 'N/A' }}</h6>
@@ -684,37 +684,79 @@
 /* Source-specific stat cards (POI v2.0) */
 .stat-card-email {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: white !important;
+}
+
+.stat-card-email .stat-icon,
+.stat-card-email .stat-number,
+.stat-card-email .stat-label {
+    color: white !important;
 }
 
 .stat-card-whatsapp {
     background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-    color: white;
+    color: white !important;
+}
+
+.stat-card-whatsapp .stat-icon,
+.stat-card-whatsapp .stat-number,
+.stat-card-whatsapp .stat-label {
+    color: white !important;
 }
 
 .stat-card-patrol {
     background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-    color: #212529;
+    color: #212529 !important;
+}
+
+.stat-card-patrol .stat-icon,
+.stat-card-patrol .stat-number,
+.stat-card-patrol .stat-label {
+    color: #212529 !important;
 }
 
 .stat-card-surveillance {
     background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
+    color: white !important;
+}
+
+.stat-card-surveillance .stat-icon,
+.stat-card-surveillance .stat-number,
+.stat-card-surveillance .stat-label {
+    color: white !important;
 }
 
 .stat-card-total {
     background: linear-gradient(135deg, #6610f2 0%, #5a0fc8 100%);
-    color: white;
+    color: white !important;
+}
+
+.stat-card-total .stat-icon,
+.stat-card-total .stat-number,
+.stat-card-total .stat-label {
+    color: white !important;
 }
 
 .stat-card-cases {
     background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%);
-    color: white;
+    color: white !important;
+}
+
+.stat-card-cases .stat-icon,
+.stat-card-cases .stat-number,
+.stat-card-cases .stat-label {
+    color: white !important;
 }
 
 .stat-card-activity {
     background: linear-gradient(135deg, #20c997 0%, #17a589 100%);
-    color: white;
+    color: white !important;
+}
+
+.stat-card-activity .stat-icon,
+.stat-card-activity .stat-number,
+.stat-card-activity .stat-label {
+    color: white !important;
 }
 
 /* Legacy stat cards (for backward compatibility) */

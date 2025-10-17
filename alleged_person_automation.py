@@ -558,7 +558,7 @@ def link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile,
             print(f"[EMAIL-PROFILE LINKING] ℹ️ Link already exists: email {email_id} to profile {poi_id}")
             return True
         
-        # Create new link
+        # Create new link in old table (POI v1.0 - for backward compatibility)
         new_link = EmailAllegedPersonLink(
             email_id=email_id,
             alleged_person_id=profile_id,
@@ -567,6 +567,38 @@ def link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile,
         )
         
         db.session.add(new_link)
+        
+        # 🆕 POI v2.0: Also create link in universal poi_intelligence_link table
+        try:
+            # Import POIIntelligenceLink model dynamically to avoid circular imports
+            from app1_production import POIIntelligenceLink, Email
+            
+            # Check if universal link already exists
+            existing_universal_link = db.session.query(POIIntelligenceLink).filter_by(
+                poi_id=profile_id,
+                source_type='EMAIL',
+                source_id=email_id
+            ).first()
+            
+            if not existing_universal_link:
+                # Get email to extract case info
+                email = Email.query.get(email_id)
+                
+                # Create universal link
+                universal_link = POIIntelligenceLink(
+                    poi_id=profile_id,
+                    source_type='EMAIL',
+                    source_id=email_id,
+                    case_id=email.caseprofile_id if email else None,
+                    confidence_score=0.95,
+                    extraction_method='AUTOMATION',
+                    created_by='AUTOMATION'
+                )
+                db.session.add(universal_link)
+                print(f"[POI v2.0] ✅ Created universal link: email {email_id} to POI {poi_id}")
+        except Exception as e:
+            print(f"[POI v2.0] ⚠️ Could not create universal link (may not be available yet): {e}")
+            # Don't fail if POI v2.0 table doesn't exist yet
         
         # Update profile counters
         profile = AllegedPersonProfile.query.get(profile_id)

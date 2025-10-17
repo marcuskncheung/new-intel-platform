@@ -957,6 +957,15 @@ class WhatsAppEntry(db.Model):
     reviewer_decision = db.Column(db.String(16))  # agree/disagree
     intelligence_case_opened = db.Column(db.Boolean, default=False)
     
+    # 🆕 STANDARDIZED ASSESSMENT FIELDS (aligned with Email)
+    alleged_subject_english = db.Column(db.Text)
+    alleged_subject_chinese = db.Column(db.Text)
+    alleged_nature = db.Column(db.Text)
+    allegation_summary = db.Column(db.Text)
+    license_numbers_json = db.Column(db.Text)
+    intermediary_types_json = db.Column(db.Text)
+    license_number = db.Column(db.String(64))
+    
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
@@ -1004,9 +1013,24 @@ class OnlinePatrolEntry(db.Model):
     source = db.Column(db.String(255))
     status = db.Column(db.String(64))
     details = db.Column(db.Text)
+    alleged_person = db.Column(db.String(255))  # 🆕 Added for POI automation
     source_reliability = db.Column(db.Integer)
     content_validity = db.Column(db.Integer)
     assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
+    
+    # 🆕 STANDARDIZED ASSESSMENT FIELDS (aligned with Email)
+    alleged_subject_english = db.Column(db.Text)
+    alleged_subject_chinese = db.Column(db.Text)
+    alleged_nature = db.Column(db.Text)
+    allegation_summary = db.Column(db.Text)
+    license_numbers_json = db.Column(db.Text)
+    intermediary_types_json = db.Column(db.Text)
+    license_number = db.Column(db.String(64))
+    preparer = db.Column(db.String(255))
+    reviewer_name = db.Column(db.String(255))
+    reviewer_comment = db.Column(db.Text)
+    reviewer_decision = db.Column(db.String(16))
+    intelligence_case_opened = db.Column(db.Boolean, default=False)
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
@@ -1029,6 +1053,16 @@ class SurveillanceEntry(db.Model):
     # target = db.Column(db.String(255))  # Removed: now using Target model
     source_reliability = db.Column(db.Integer)
     targets = db.relationship('Target', backref='surveillance_entry', cascade='all, delete-orphan')
+    
+    # 🆕 STANDARDIZED ASSESSMENT FIELDS (aligned with Email)
+    alleged_nature = db.Column(db.Text)
+    allegation_summary = db.Column(db.Text)
+    preparer = db.Column(db.String(255))
+    reviewer_name = db.Column(db.String(255))
+    reviewer_comment = db.Column(db.Text)
+    reviewer_decision = db.Column(db.String(16))
+    intelligence_case_opened = db.Column(db.Boolean, default=False)
+    assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
 
 class Target(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -2111,7 +2145,16 @@ def alleged_subject_profile_detail(poi_id):
             ORDER BY pil.created_at DESC
         """), {'poi_id': poi_id}).fetchall()
         
-        print(f"[PROFILE DETAIL] Found {len(links)} total intelligence links")
+        print(f"[PROFILE DETAIL] Found {len(links)} intelligence links in poi_intelligence_link table")
+        
+        # FALLBACK: Also check old email_alleged_person_link table (POI v1.0 compatibility)
+        old_email_links = db.session.query(EmailAllegedPersonLink, Email).join(
+            Email, EmailAllegedPersonLink.email_id == Email.id
+        ).filter(
+            EmailAllegedPersonLink.alleged_person_id == profile.id
+        ).all()
+        
+        print(f"[PROFILE DETAIL] Found {len(old_email_links)} email links in old email_alleged_person_link table")
         
         # Organize intelligence by source type
         emails = []
@@ -2147,10 +2190,43 @@ def alleged_subject_profile_detail(poi_id):
                     })
                     emails.append(intel_data)
                     all_intelligence.append(intel_data)
-            
-            elif link.source_type == 'WHATSAPP':
+        
+        # Process old email links (POI v1.0 compatibility) - Add any emails not already in new table
+        email_ids_already_added = {email['id'] for email in emails}
+        for old_link, email in old_email_links:
+            if email.id not in email_ids_already_added:
+                intel_data = {
+                    'link_id': old_link.id,
+                    'source_type': 'EMAIL',
+                    'confidence': old_link.confidence or 1.0,
+                    'extraction_method': old_link.created_by,
+                    'case_name': email.case_profile.case_name if email.case_profile else None,
+                    'case_id': email.caseprofile_id,
+                    'date': old_link.created_at,
+                    'date_str': old_link.created_at.strftime('%Y-%m-%d %H:%M') if old_link.created_at else 'N/A',
+                    'id': email.id,
+                    'reference': email.int_reference_number or f'EMAIL-{email.id}',
+                    'title': email.subject,
+                    'summary': email.allegation_summary or email.alleged_nature,
+                    'sender': email.sender,
+                    'received': email.received,
+                    'alleged_nature': email.alleged_nature,
+                    'view_url': url_for('int_source_email_detail', email_id=email.id)
+                }
+                emails.append(intel_data)
+                all_intelligence.append(intel_data)
+                print(f"[PROFILE DETAIL] Added email {email.id} from old table")
+        
+        # Continue processing other source types from poi_intelligence_link
+        for link in links:
+            if link.source_type == 'WHATSAPP':
                 wa = WhatsAppEntry.query.get(link.source_id)
                 if wa:
+                    intel_data = {
+                        'type': 'WHATSAPP',
+                        'created_at': link.created_at,
+                        'last_activity': link.last_activity_date or link.created_at
+                    }
                     intel_data.update({
                         'id': wa.id,
                         'reference': f'WHATSAPP-{wa.id}',
@@ -2163,9 +2239,14 @@ def alleged_subject_profile_detail(poi_id):
                     whatsapp.append(intel_data)
                     all_intelligence.append(intel_data)
             
-            elif link.source_type == 'PATROL':
+            if link.source_type == 'PATROL':
                 pt = OnlinePatrolEntry.query.get(link.source_id)
                 if pt:
+                    intel_data = {
+                        'type': 'PATROL',
+                        'created_at': link.created_at,
+                        'last_activity': link.last_activity_date or link.created_at
+                    }
                     intel_data.update({
                         'id': pt.id,
                         'reference': f'PATROL-{pt.id}',
@@ -2177,9 +2258,14 @@ def alleged_subject_profile_detail(poi_id):
                     patrol.append(intel_data)
                     all_intelligence.append(intel_data)
             
-            elif link.source_type == 'SURVEILLANCE':
+            if link.source_type == 'SURVEILLANCE':
                 sv = SurveillanceEntry.query.get(link.source_id)
                 if sv:
+                    intel_data = {
+                        'type': 'SURVEILLANCE',
+                        'created_at': link.created_at,
+                        'last_activity': link.last_activity_date or link.created_at
+                    }
                     intel_data.update({
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
@@ -3355,6 +3441,46 @@ def alleged_subject_profiles():
             }
         ]
         return render_template('alleged_subject_profiles.html', stats=demo_stats, profiles=demo_profiles)
+
+@app.route("/alleged_subject_profiles/refresh", methods=["POST"])
+@login_required
+def refresh_poi_profiles():
+    """
+    🔄 REFRESH POI PROFILES FROM ALL SOURCES
+    
+    Rescans all intelligence sources (Email, WhatsApp, Patrol, Surveillance)
+    and updates POI profiles with latest information
+    """
+    try:
+        print("[POI REFRESH] 🔄 Manual refresh triggered by user:", current_user.username if current_user else 'Unknown')
+        
+        # Import refresh function
+        from poi_refresh_system import refresh_poi_from_all_sources
+        
+        # Run the refresh
+        result = refresh_poi_from_all_sources(
+            db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink
+        )
+        
+        if result['success']:
+            summary = result['summary']
+            flash(
+                f"✅ POI Profiles Refreshed! Scanned: {summary['total_scanned']} records | "
+                f"Created: {summary['total_created']} profiles | "
+                f"Updated: {summary['total_updated']} profiles | "
+                f"Links: {summary['total_links']} created",
+                "success"
+            )
+        else:
+            flash(f"⚠️ POI refresh encountered errors: {result.get('error', 'Unknown error')}", "warning")
+        
+    except Exception as e:
+        print(f"[POI REFRESH] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Error refreshing POI profiles: {str(e)}", "danger")
+    
+    return redirect(url_for("alleged_subject_profiles"))
 
 @app.route("/alleged_subject_profiles/<int:profile_id>")
 @login_required
@@ -5321,7 +5447,64 @@ def add_whatsapp():
                 db.session.add(new_image)
 
         db.session.commit()
-        flash("WhatsApp entry created with images.", "success")
+        
+        # 🤖 AUTO-CREATE POI PROFILES FOR WHATSAPP ALLEGED PERSONS
+        if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+            try:
+                print(f"[WHATSAPP AUTOMATION] 🚀 Auto-creating POI profiles for WhatsApp entry {entry.id}")
+                
+                # Split alleged persons by comma
+                alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                
+                # Process each alleged person
+                for person_name in alleged_persons:
+                    # Try to determine if it's English or Chinese name
+                    is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=None if is_chinese else person_name,
+                        name_chinese=person_name if is_chinese else None,
+                        email_id=None,  # Not from email
+                        source="WHATSAPP",
+                        update_mode="merge"
+                    )
+                    
+                    if result.get('profile_id'):
+                        # Create universal link in POI v2.0 table
+                        try:
+                            from app1_production import POIIntelligenceLink
+                            
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['profile_id'],
+                                source_type='WHATSAPP',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                universal_link = POIIntelligenceLink(
+                                    poi_id=result['profile_id'],
+                                    source_type='WHATSAPP',
+                                    source_id=entry.id,
+                                    case_id=entry.caseprofile_id,
+                                    confidence_score=0.90,
+                                    extraction_method='AUTOMATION',
+                                    created_by=f"USER-{current_user.username}"
+                                )
+                                db.session.add(universal_link)
+                                db.session.commit()
+                                print(f"[WHATSAPP AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                        except Exception as link_error:
+                            print(f"[WHATSAPP AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                    
+                flash(f"WhatsApp entry created and {len(alleged_persons)} POI profile(s) processed.", "success")
+                
+            except Exception as automation_error:
+                print(f"[WHATSAPP AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                flash("WhatsApp entry created, but POI automation had an error.", "warning")
+        else:
+            flash("WhatsApp entry created with images.", "success")
+        
         return redirect(url_for("int_source"))
         
     return render_template("int_source_whatsapp_edit.html", entry=None, images=[])
@@ -5384,6 +5567,10 @@ def add_online_patrol():
         source = request.form.get("source")
         status = request.form.get("status")
         details = request.form.get("details")
+        alleged_person = request.form.getlist("alleged_person[]")  # Support multiple persons
+        # Filter out empty persons and join with commas
+        filtered_persons = [person.strip() for person in alleged_person if person.strip()]
+        alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
         source_reliability = request.form.get("source_reliability")
         content_validity = request.form.get("content_validity")
         # Convert complaint_time to datetime if present
@@ -5399,6 +5586,7 @@ def add_online_patrol():
             source=source,
             status=status,
             details=details,
+            alleged_person=alleged_person_str,  # 🆕 Added
             source_reliability=int(source_reliability) if source_reliability else None,
             content_validity=int(content_validity) if content_validity else None
         )
@@ -5419,7 +5607,64 @@ def add_online_patrol():
             # Continue anyway - entry will use fallback INT reference
         
         db.session.commit()
-        flash("Online Patrol entry created", "success")
+        
+        # 🤖 AUTO-CREATE POI PROFILES FOR PATROL ALLEGED PERSONS
+        if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+            try:
+                print(f"[PATROL AUTOMATION] 🚀 Auto-creating POI profiles for Patrol entry {entry.id}")
+                
+                # Split alleged persons by comma
+                alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                
+                # Process each alleged person
+                for person_name in alleged_persons:
+                    # Try to determine if it's English or Chinese name
+                    is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=None if is_chinese else person_name,
+                        name_chinese=person_name if is_chinese else None,
+                        email_id=None,
+                        source="PATROL",
+                        update_mode="merge"
+                    )
+                    
+                    if result.get('profile_id'):
+                        # Create universal link in POI v2.0 table
+                        try:
+                            from app1_production import POIIntelligenceLink
+                            
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['profile_id'],
+                                source_type='PATROL',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                universal_link = POIIntelligenceLink(
+                                    poi_id=result['profile_id'],
+                                    source_type='PATROL',
+                                    source_id=entry.id,
+                                    case_id=entry.caseprofile_id,
+                                    confidence_score=0.90,
+                                    extraction_method='AUTOMATION',
+                                    created_by=f"USER-{current_user.username}"
+                                )
+                                db.session.add(universal_link)
+                                db.session.commit()
+                                print(f"[PATROL AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                        except Exception as link_error:
+                            print(f"[PATROL AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                
+                flash(f"Online Patrol entry created and {len(alleged_persons)} POI profile(s) processed.", "success")
+                
+            except Exception as automation_error:
+                print(f"[PATROL AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                flash("Online Patrol entry created, but POI automation had an error.", "warning")
+        else:
+            flash("Online Patrol entry created", "success")
+        
         return redirect(url_for("int_source"))
     return render_template("int_source_online_patrol_edit.html", entry=None)
 
@@ -5442,6 +5687,11 @@ def online_patrol_detail(entry_id):
             entry.source = request.form.get("source")
             entry.status = request.form.get("status")
             entry.details = request.form.get("details")
+            alleged_person = request.form.getlist("alleged_person[]")
+            # Filter out empty persons and join with commas
+            filtered_persons = [person.strip() for person in alleged_person if person.strip()]
+            alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
+            entry.alleged_person = alleged_person_str
             
             from secure_logger import secure_log_debug
             secure_log_debug(
@@ -5454,7 +5704,64 @@ def online_patrol_detail(entry_id):
             
             try:
                 db.session.commit()
-                flash("Online Patrol details updated.", "success")
+                
+                # 🤖 AUTO-UPDATE POI PROFILES WHEN PATROL DETAILS CHANGE
+                if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+                    try:
+                        print(f"[PATROL AUTOMATION] 🚀 Auto-updating POI profiles for Patrol entry {entry.id}")
+                        
+                        # Split alleged persons by comma
+                        alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                        
+                        # Process each alleged person
+                        for person_name in alleged_persons:
+                            # Try to determine if it's English or Chinese name
+                            is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                            
+                            result = create_or_update_alleged_person_profile(
+                                db, AllegedPersonProfile, EmailAllegedPersonLink,
+                                name_english=None if is_chinese else person_name,
+                                name_chinese=person_name if is_chinese else None,
+                                email_id=None,
+                                source="PATROL",
+                                update_mode="merge"
+                            )
+                            
+                            if result.get('profile_id'):
+                                # Create universal link in POI v2.0 table
+                                try:
+                                    from app1_production import POIIntelligenceLink
+                                    
+                                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                        poi_id=result['profile_id'],
+                                        source_type='PATROL',
+                                        source_id=entry.id
+                                    ).first()
+                                    
+                                    if not existing_link:
+                                        universal_link = POIIntelligenceLink(
+                                            poi_id=result['profile_id'],
+                                            source_type='PATROL',
+                                            source_id=entry.id,
+                                            case_id=entry.caseprofile_id,
+                                            confidence_score=0.90,
+                                            extraction_method='MANUAL_UPDATE',
+                                            created_by=f"USER-{current_user.username}"
+                                        )
+                                        db.session.add(universal_link)
+                                        db.session.commit()
+                                        print(f"[PATROL AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                                except Exception as link_error:
+                                    print(f"[PATROL AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                        
+                        flash(f"Online Patrol details updated and {len(alleged_persons)} POI profile(s) processed.", "success")
+                        
+                    except Exception as automation_error:
+                        print(f"[PATROL AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                        flash("Online Patrol details updated, but POI automation had an error.", "warning")
+                else:
+                    flash("Online Patrol details updated.", "success")
+                    
             except Exception as e:
                 db.session.rollback()
                 flash(f"Error saving patrol info: {e}", "danger")
@@ -5710,7 +6017,80 @@ def add_surveillance():
                                   license_type=(lt or None), license_number=(ln or None),
                                   content_validity=int(content_validity) if content_validity else None))
         db.session.commit()
-        flash("Surveillance entry created", "success")
+        
+        # 🤖 AUTO-CREATE POI PROFILES FOR SURVEILLANCE TARGETS
+        if ALLEGED_PERSON_AUTOMATION and target_names:
+            try:
+                print(f"[SURVEILLANCE AUTOMATION] 🚀 Auto-creating POI profiles for Surveillance entry {entry.id}")
+                
+                # Process each target
+                processed_count = 0
+                for idx, name in enumerate(target_names):
+                    name = name.strip()
+                    if not name:
+                        continue
+                    
+                    # Try to determine if it's English or Chinese name
+                    is_chinese = bool(re.search(r'[\u4e00-\u9fff]', name))
+                    
+                    # Get license info for this target
+                    license_type = license_types[idx] if idx < len(license_types) else None
+                    license_number = license_numbers[idx] if idx < len(license_numbers) else None
+                    
+                    # Prepare additional info
+                    additional_info = {}
+                    if license_number:
+                        additional_info['license_number'] = license_number
+                        additional_info['agent_number'] = license_number
+                    if license_type:
+                        additional_info['role'] = license_type
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=None if is_chinese else name,
+                        name_chinese=name if is_chinese else None,
+                        email_id=None,
+                        source="SURVEILLANCE",
+                        update_mode="merge",
+                        additional_info=additional_info
+                    )
+                    
+                    if result.get('profile_id'):
+                        processed_count += 1
+                        # Create universal link in POI v2.0 table
+                        try:
+                            from app1_production import POIIntelligenceLink
+                            
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['profile_id'],
+                                source_type='SURVEILLANCE',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                universal_link = POIIntelligenceLink(
+                                    poi_id=result['profile_id'],
+                                    source_type='SURVEILLANCE',
+                                    source_id=entry.id,
+                                    case_id=None,  # Surveillance doesn't have case_id
+                                    confidence_score=0.95,  # High confidence - physical surveillance
+                                    extraction_method='AUTOMATION',
+                                    created_by=f"USER-{current_user.username}"
+                                )
+                                db.session.add(universal_link)
+                                db.session.commit()
+                                print(f"[SURVEILLANCE AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                        except Exception as link_error:
+                            print(f"[SURVEILLANCE AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                
+                flash(f"Surveillance entry created and {processed_count} POI profile(s) processed.", "success")
+                
+            except Exception as automation_error:
+                print(f"[SURVEILLANCE AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                flash("Surveillance entry created, but POI automation had an error.", "warning")
+        else:
+            flash("Surveillance entry created", "success")
+        
         return redirect(url_for("int_source"))
     return render_template("int_source_surveillance_edit.html", entry=None)
 
@@ -6314,7 +6694,64 @@ def whatsapp_detail(entry_id):
             try:
                 db.session.commit()
                 print(f"[DEBUG] After commit, entry: {entry}", file=sys.stderr)
-                flash("Complaint details and images updated.", "success")
+                
+                # 🤖 AUTO-UPDATE POI PROFILES WHEN COMPLAINT DETAILS CHANGE
+                if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+                    try:
+                        print(f"[WHATSAPP AUTOMATION] 🚀 Auto-updating POI profiles for WhatsApp entry {entry.id}")
+                        
+                        # Split alleged persons by comma
+                        alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                        
+                        # Process each alleged person
+                        for person_name in alleged_persons:
+                            # Try to determine if it's English or Chinese name
+                            is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                            
+                            result = create_or_update_alleged_person_profile(
+                                db, AllegedPersonProfile, EmailAllegedPersonLink,
+                                name_english=None if is_chinese else person_name,
+                                name_chinese=person_name if is_chinese else None,
+                                email_id=None,
+                                source="WHATSAPP",
+                                update_mode="merge"
+                            )
+                            
+                            if result.get('profile_id'):
+                                # Create universal link in POI v2.0 table
+                                try:
+                                    from app1_production import POIIntelligenceLink
+                                    
+                                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                        poi_id=result['profile_id'],
+                                        source_type='WHATSAPP',
+                                        source_id=entry.id
+                                    ).first()
+                                    
+                                    if not existing_link:
+                                        universal_link = POIIntelligenceLink(
+                                            poi_id=result['profile_id'],
+                                            source_type='WHATSAPP',
+                                            source_id=entry.id,
+                                            case_id=entry.caseprofile_id,
+                                            confidence_score=0.90,
+                                            extraction_method='MANUAL_UPDATE',
+                                            created_by=f"USER-{current_user.username}"
+                                        )
+                                        db.session.add(universal_link)
+                                        db.session.commit()
+                                        print(f"[WHATSAPP AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                                except Exception as link_error:
+                                    print(f"[WHATSAPP AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                        
+                        flash(f"Complaint details updated and {len(alleged_persons)} POI profile(s) processed.", "success")
+                        
+                    except Exception as automation_error:
+                        print(f"[WHATSAPP AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                        flash("Complaint details updated, but POI automation had an error.", "warning")
+                else:
+                    flash("Complaint details and images updated.", "success")
+                    
             except Exception as e:
                 db.session.rollback()
                 print(f"[ERROR] Commit failed: {e}", file=sys.stderr)
