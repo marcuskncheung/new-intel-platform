@@ -1724,31 +1724,34 @@ with app.app_context():
     except Exception as e:
         print(f"Case management database migration failed: {e}")
 
-# 🆕 POI v2.0: Import models at module level AFTER app context initialization
+# 🆕 POI v2.0: Initialize models using factory pattern AFTER app context initialization
 # CRITICAL: This must run at module load time, NOT inside if __name__ == "__main__"
 print("=" * 80)
-print("🔍 DEBUG: About to import POI models - this line MUST appear in logs!")
+print("🔍 DEBUG: About to initialize POI models using factory pattern")
 print("=" * 80)
 try:
-    print("[POI MODELS] Starting import of enhanced POI models...")
+    print("[POI MODELS] Calling init_models() factory function...")
     import models_poi_enhanced
-    models_poi_enhanced.db = db
-    print(f"[POI MODELS] ✅ Injected db into models_poi_enhanced: {type(db)}")
+    model_classes = models_poi_enhanced.init_models(db)
+    print(f"[POI MODELS] ✅ Factory returned: {list(model_classes.keys())}")
     
-    import importlib
-    importlib.reload(models_poi_enhanced)
-    print("[POI MODELS] ✅ Reloaded models_poi_enhanced module")
+    # Import the initialized classes from the module globals
+    AllegedPersonProfile = models_poi_enhanced.AllegedPersonProfile
+    POIIntelligenceLink = models_poi_enhanced.POIIntelligenceLink
+    EmailAllegedPersonLink = models_poi_enhanced.EmailAllegedPersonLink
+    POIExtractionQueue = models_poi_enhanced.POIExtractionQueue
+    POIAssessmentHistory = models_poi_enhanced.POIAssessmentHistory
     
-    from models_poi_enhanced import (
-        POIIntelligenceLink,
-        AllegedPersonProfile as POIProfile,
-        EmailAllegedPersonLink as EmailPOILink
-    )
-    globals()['AllegedPersonProfile'] = POIProfile
+    # Set them in global scope
+    globals()['AllegedPersonProfile'] = AllegedPersonProfile
     globals()['POIIntelligenceLink'] = POIIntelligenceLink
-    globals()['EmailAllegedPersonLink'] = EmailPOILink
+    globals()['EmailAllegedPersonLink'] = EmailAllegedPersonLink
+    globals()['POIExtractionQueue'] = POIExtractionQueue
+    globals()['POIAssessmentHistory'] = POIAssessmentHistory
+    
     print(f"[POI MODELS] ✅ Successfully loaded POI models at module level")
     print(f"[POI MODELS] 🎯 AllegedPersonProfile is now: {AllegedPersonProfile}")
+    print(f"[POI MODELS] 🎯 Has .query attribute: {hasattr(AllegedPersonProfile, 'query')}")
 except Exception as e:
     print(f"[POI MODELS] ❌ FAILED: {e}")
     import traceback
@@ -1756,10 +1759,12 @@ except Exception as e:
     AllegedPersonProfile = None
     POIIntelligenceLink = None
     EmailAllegedPersonLink = None
-    print(f"[POI MODELS] ⚠️ Set AllegedPersonProfile to None due to error")
+    POIExtractionQueue = None
+    POIAssessmentHistory = None
+    print(f"[POI MODELS] ⚠️ Set all POI models to None due to error")
 
 print("=" * 80)
-print(f"🔍 DEBUG: After POI import attempt, AllegedPersonProfile = {globals().get('AllegedPersonProfile', 'NOT FOUND')}")
+print(f"🔍 DEBUG: After POI init, AllegedPersonProfile = {globals().get('AllegedPersonProfile', 'NOT FOUND')}")
 print("=" * 80)
 
 @login_mgr.user_loader
