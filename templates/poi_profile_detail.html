@@ -335,15 +335,13 @@
                                     <td><code>{{ intel.get('int_reference_number') or 'N/A' }}</code></td>
                                     <td>{{ intel.get('subject', '') or (intel.get('content', '')[:100] if intel.get('content') else '') or 'No content' }}</td>
                                     <td class="text-center">
-                                        {% if intel.get('source_type') == 'EMAIL' %}
-                                            <a href="{{ url_for('view_email', int_reference=intel.get('int_reference_number')) }}" 
+                                        {% if intel.get('source_type') == 'EMAIL' and intel.get('source_id') %}
+                                            <a href="{{ url_for('email_detail', email_id=intel.get('source_id')) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
                                         {% else %}
-                                            <button class="btn btn-sm btn-outline-secondary" disabled>
-                                                <i class="bi bi-eye-slash"></i> N/A
-                                            </button>
+                                            <span class="text-muted small">—</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -378,10 +376,14 @@
                                     <td><code>{{ email.get('int_reference_number') }}</code></td>
                                     <td>{{ email.get('subject') or 'No subject' }}</td>
                                     <td class="text-center">
-                                        <a href="{{ url_for('view_email', int_reference=email.get('int_reference_number')) }}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> View
-                                        </a>
+                                        {% if email.get('source_id') %}
+                                            <a href="{{ url_for('email_detail', email_id=email.get('source_id')) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">—</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
