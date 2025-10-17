@@ -34,13 +34,11 @@
     <div class="collapse navbar-collapse" id="nav">
       {% if current_user.is_authenticated %}
       <ul class="navbar-nav me-auto">
-        <!-- HIDDEN: Intel Source Dashboard
         <li class="nav-item">
           <a class="nav-link{% if request.endpoint == 'int_source' %} active{% endif %}" href="{{ url_for('int_source') }}">
             <i class="bi bi-database-fill-gear"></i> Intel Source
           </a>
         </li>
-        -->
         <li class="nav-item">
           <a class="nav-link{% if request.endpoint == 'alleged_subject_list' %} active{% endif %}" href="{{ url_for('alleged_subject_list') }}">
             <i class="bi bi-people-fill"></i> Alleged Subject List
