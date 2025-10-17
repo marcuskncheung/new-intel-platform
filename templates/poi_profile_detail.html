@@ -336,7 +336,7 @@
                                     <td>{{ intel.get('title') or intel.get('subject') or intel.get('summary') or intel.get('content', '')[:100] or 'No content' }}</td>
                                     <td class="text-center">
                                         {% if intel.get('source_type') == 'EMAIL' and intel.get('id') %}
-                                            <a href="{{ url_for('email_detail', email_id=intel.get('id')) }}" 
+                                            <a href="{{ url_for('int_source_email_detail', email_id=intel.get('id')) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
@@ -377,7 +377,7 @@
                                     <td>{{ email.get('title') or email.get('subject') or email.get('summary') or 'No subject' }}</td>
                                     <td class="text-center">
                                         {% if email.get('id') %}
-                                            <a href="{{ url_for('email_detail', email_id=email.get('id')) }}" 
+                                            <a href="{{ url_for('int_source_email_detail', email_id=email.get('id')) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
