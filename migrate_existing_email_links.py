@@ -98,31 +98,66 @@ try:
         final_count = result.scalar()
         print(f"📊 Total email links in poi_intelligence_link: {final_count}")
         
-        # Update POI statistics
+        # Update POI statistics (only update columns that exist)
         print()
         print("📊 Updating POI statistics...")
-        db.session.execute(db.text("""
-            UPDATE alleged_person_profile ap
-            SET 
-                email_count = (
+        
+        # Check which columns exist
+        result = db.session.execute(db.text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'alleged_person_profile' 
+            AND column_name IN ('email_count', 'total_mentions', 'case_count', 'whatsapp_count', 'patrol_count', 'surveillance_count')
+        """))
+        existing_columns = [row[0] for row in result.fetchall()]
+        print(f"📋 Found POI columns: {', '.join(existing_columns)}")
+        
+        if 'email_count' in existing_columns:
+            # Update email_count (this column exists in v1.0)
+            db.session.execute(db.text("""
+                UPDATE alleged_person_profile ap
+                SET email_count = (
                     SELECT COUNT(*) 
                     FROM poi_intelligence_link 
                     WHERE poi_id = ap.poi_id AND source_type = 'EMAIL'
-                ),
-                total_mentions = (
+                )
+                WHERE poi_id IS NOT NULL
+            """))
+            db.session.commit()
+            print("✅ email_count updated")
+        
+        if 'total_mentions' in existing_columns:
+            # Update total_mentions (POI v2.0 column)
+            db.session.execute(db.text("""
+                UPDATE alleged_person_profile ap
+                SET total_mentions = (
                     SELECT COUNT(*) 
                     FROM poi_intelligence_link 
                     WHERE poi_id = ap.poi_id
-                ),
-                case_count = (
+                )
+                WHERE poi_id IS NOT NULL
+            """))
+            db.session.commit()
+            print("✅ total_mentions updated")
+        
+        if 'case_count' in existing_columns:
+            # Update case_count (POI v2.0 column)
+            db.session.execute(db.text("""
+                UPDATE alleged_person_profile ap
+                SET case_count = (
                     SELECT COUNT(DISTINCT case_profile_id) 
                     FROM poi_intelligence_link 
                     WHERE poi_id = ap.poi_id
                 )
-            WHERE poi_id IS NOT NULL
-        """))
-        db.session.commit()
-        print("✅ POI statistics updated")
+                WHERE poi_id IS NOT NULL
+            """))
+            db.session.commit()
+            print("✅ case_count updated")
+        
+        if not existing_columns:
+            print("⚠️  No statistics columns found to update")
+        
+        print("✅ POI statistics update completed")
         
         print()
         print("=" * 70)
@@ -143,5 +178,8 @@ except Exception as e:
     print("❌ ERROR during migration:")
     print(f"   {str(e)}")
     print()
-    db.session.rollback()
+    try:
+        db.session.rollback()
+    except:
+        pass  # Ignore rollback errors if outside app context
     sys.exit(1)
