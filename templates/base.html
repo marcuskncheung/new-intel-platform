@@ -9,16 +9,18 @@
   <!-- LOCAL Bootstrap Icons - NO EXTERNAL CDN -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  <!-- Dark Mode Support -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+  <!-- Dark Mode Support - DISABLED TO FIX STAT CARD VISIBILITY -->
+  <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}"> -->
   
   <!-- Initialize theme before page render to prevent flash -->
   <script>
     (function() {
-      const theme = localStorage.getItem('intelligence-theme') || 'light';
-      if (theme === 'dark') {
-        document.documentElement.setAttribute('data-bs-theme', 'dark');
-      }
+      // Force light mode - dark mode disabled
+      document.documentElement.setAttribute('data-bs-theme', 'light');
+      // const theme = localStorage.getItem('intelligence-theme') || 'light';
+      // if (theme === 'dark') {
+      //   document.documentElement.setAttribute('data-bs-theme', 'dark');
+      // }
     })();
   </script>
 </head>
