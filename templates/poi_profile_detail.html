@@ -332,11 +332,11 @@
                                             <span class="badge bg-danger"><i class="bi bi-camera-video"></i> Surveillance</span>
                                         {% endif %}
                                     </td>
-                                    <td><code>{{ intel.get('int_reference_number') or 'N/A' }}</code></td>
-                                    <td>{{ intel.get('subject', '') or (intel.get('content', '')[:100] if intel.get('content') else '') or 'No content' }}</td>
+                                    <td><code>{{ intel.get('int_reference_number') or intel.get('reference') or 'N/A' }}</code></td>
+                                    <td>{{ intel.get('title') or intel.get('subject') or intel.get('summary') or intel.get('content', '')[:100] or 'No content' }}</td>
                                     <td class="text-center">
-                                        {% if intel.get('source_type') == 'EMAIL' and intel.get('source_id') %}
-                                            <a href="{{ url_for('email_detail', email_id=intel.get('source_id')) }}" 
+                                        {% if intel.get('source_type') == 'EMAIL' and intel.get('id') %}
+                                            <a href="{{ url_for('email_detail', email_id=intel.get('id')) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
@@ -373,11 +373,11 @@
                                 {% for email in emails %}
                                 <tr>
                                     <td>{{ email.get('date').strftime('%Y-%m-%d') if email.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ email.get('int_reference_number') }}</code></td>
-                                    <td>{{ email.get('subject') or 'No subject' }}</td>
+                                    <td><code>{{ email.get('int_reference_number') or email.get('reference') }}</code></td>
+                                    <td>{{ email.get('title') or email.get('subject') or email.get('summary') or 'No subject' }}</td>
                                     <td class="text-center">
-                                        {% if email.get('source_id') %}
-                                            <a href="{{ url_for('email_detail', email_id=email.get('source_id')) }}" 
+                                        {% if email.get('id') %}
+                                            <a href="{{ url_for('email_detail', email_id=email.get('id')) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
