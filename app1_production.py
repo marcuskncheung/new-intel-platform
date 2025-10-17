@@ -1256,12 +1256,8 @@ class EmailAllegedPersonLink(db.Model):
         return f'<EmailAllegedPersonLink email_id={self.email_id} person_id={self.alleged_person_id}>'
 
 # 🆕 POI v2.0: Import universal cross-source linking model
-try:
-    from models_poi_enhanced import POIIntelligenceLink
-    print("✅ POI v2.0: POIIntelligenceLink model loaded")
-except ImportError as e:
-    print(f"⚠️ Warning: Could not import POIIntelligenceLink: {e}")
-    POIIntelligenceLink = None
+# NOTE: This import MUST happen after db is initialized
+POIIntelligenceLink = None  # Will be imported later after app context is ready
 
 # --- INT Reference Number Management Functions ---
 def generate_int_reference_for_new_email(email):
@@ -1779,6 +1775,14 @@ with app.app_context():
     # Now create tables
     db.create_all()
     print(f"✅ Database tables initialized for {get_db_info()}")
+
+    # 🆕 POI v2.0: Import POIIntelligenceLink model AFTER app context is ready
+    try:
+        from models_poi_enhanced import POIIntelligenceLink
+        print("✅ POI v2.0: POIIntelligenceLink model loaded")
+    except ImportError as e:
+        print(f"⚠️ Warning: Could not import POIIntelligenceLink: {e}")
+        POIIntelligenceLink = None
 
     # --- Secure Dynamic migration for Target licensing columns ---
     try:
@@ -3490,13 +3494,13 @@ def refresh_poi_profiles():
     try:
         print("[POI REFRESH] 🔄 Manual refresh triggered by user:", current_user.username if current_user else 'Unknown')
         
-        # Import POIIntelligenceLink model from this file
-        from app1_production import POIIntelligenceLink
+        # Import POIIntelligenceLink model (already loaded in app context)
+        from models_poi_enhanced import POIIntelligenceLink
         
         # Import refresh function
         from poi_refresh_system import refresh_poi_from_all_sources
         
-        # Run the refresh
+        # Run the refresh within current app context (already have it from @login_required)
         result = refresh_poi_from_all_sources(
             db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink
         )
