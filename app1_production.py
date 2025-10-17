@@ -1697,12 +1697,18 @@ with app.app_context():
 
     # 🆕 POI v2.0: Import models from models_poi_enhanced AFTER app context is ready
     try:
-        # First, inject the real db instance into models_poi_enhanced
+        # CRITICAL: Set db in models_poi_enhanced BEFORE Python executes class definitions
+        # We do this by modifying the module's globals before importing model classes
         import models_poi_enhanced
-        models_poi_enhanced.set_db(db)
-        print("✅ Injected db instance into models_poi_enhanced")
+        models_poi_enhanced.db = db  # Set db instance in module's global namespace
+        print(f"✅ Injected db instance into models_poi_enhanced.db: {type(db)}")
         
-        # Now import the models - they will use the real db instance
+        # Now force a module reload to execute class definitions with db set
+        import importlib
+        importlib.reload(models_poi_enhanced)
+        print("✅ Reloaded models_poi_enhanced with db instance")
+        
+        # Now import the model classes - db.Model will work
         from models_poi_enhanced import (
             POIIntelligenceLink, 
             AllegedPersonProfile as POIProfile,
@@ -1713,10 +1719,13 @@ with app.app_context():
         globals()['POIIntelligenceLink'] = POIIntelligenceLink
         globals()['EmailAllegedPersonLink'] = EmailPOILink
         print("✅ POI v2.0: All POI models loaded (AllegedPersonProfile, POIIntelligenceLink, EmailAllegedPersonLink)")
-    except ImportError as e:
+    except Exception as e:
         print(f"⚠️ Warning: Could not import POI models: {e}")
+        import traceback
+        traceback.print_exc()
         POIIntelligenceLink = None
         EmailAllegedPersonLink = None
+        AllegedPersonProfile = None
 
     # --- Secure Dynamic migration for Target licensing columns ---
     try:

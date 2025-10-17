@@ -7,28 +7,17 @@ This module contains the enhanced database models for the POI tracking system:
 - POIIntelligenceLink (Universal cross-source linking)
 - POIExtractionQueue (Automation queue)
 - POIAssessmentHistory (Audit trail)
+
+IMPORTANT: This module uses late binding for db instance.
+The db global is set by app1_production.py after Flask app initialization.
 """
 
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSONB
 
-# Global db instance - MUST be set by app1_production before importing models
+# Global db instance - will be set by app1_production.py BEFORE classes are defined
+# This is initialized as None but MUST be set before any model is used
 db = None
-
-def set_db(db_instance):
-    """
-    Called by app1_production to inject the Flask-SQLAlchemy db instance.
-    MUST be called before importing any model classes from this module.
-    """
-    global db
-    db = db_instance
-    print(f"✅ models_poi_enhanced: db instance injected (type: {type(db_instance)})")
-
-def get_db():
-    """Get the db instance, raises error if not set"""
-    if db is None:
-        raise RuntimeError("db instance not set! Call set_db(db) before importing models from models_poi_enhanced")
-    return db
 
 
 class AllegedPersonProfile(db.Model):
