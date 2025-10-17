@@ -1726,6 +1726,9 @@ with app.app_context():
 
 # 🆕 POI v2.0: Import models at module level AFTER app context initialization
 # CRITICAL: This must run at module load time, NOT inside if __name__ == "__main__"
+print("=" * 80)
+print("🔍 DEBUG: About to import POI models - this line MUST appear in logs!")
+print("=" * 80)
 try:
     print("[POI MODELS] Starting import of enhanced POI models...")
     import models_poi_enhanced
@@ -1745,6 +1748,7 @@ try:
     globals()['POIIntelligenceLink'] = POIIntelligenceLink
     globals()['EmailAllegedPersonLink'] = EmailPOILink
     print(f"[POI MODELS] ✅ Successfully loaded POI models at module level")
+    print(f"[POI MODELS] 🎯 AllegedPersonProfile is now: {AllegedPersonProfile}")
 except Exception as e:
     print(f"[POI MODELS] ❌ FAILED: {e}")
     import traceback
@@ -1752,6 +1756,11 @@ except Exception as e:
     AllegedPersonProfile = None
     POIIntelligenceLink = None
     EmailAllegedPersonLink = None
+    print(f"[POI MODELS] ⚠️ Set AllegedPersonProfile to None due to error")
+
+print("=" * 80)
+print(f"🔍 DEBUG: After POI import attempt, AllegedPersonProfile = {globals().get('AllegedPersonProfile', 'NOT FOUND')}")
+print("=" * 80)
 
 @login_mgr.user_loader
 def load_user(uid):
