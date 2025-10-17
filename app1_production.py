@@ -1724,6 +1724,35 @@ with app.app_context():
     except Exception as e:
         print(f"Case management database migration failed: {e}")
 
+# 🆕 POI v2.0: Import models at module level AFTER app context initialization
+# CRITICAL: This must run at module load time, NOT inside if __name__ == "__main__"
+try:
+    print("[POI MODELS] Starting import of enhanced POI models...")
+    import models_poi_enhanced
+    models_poi_enhanced.db = db
+    print(f"[POI MODELS] ✅ Injected db into models_poi_enhanced: {type(db)}")
+    
+    import importlib
+    importlib.reload(models_poi_enhanced)
+    print("[POI MODELS] ✅ Reloaded models_poi_enhanced module")
+    
+    from models_poi_enhanced import (
+        POIIntelligenceLink,
+        AllegedPersonProfile as POIProfile,
+        EmailAllegedPersonLink as EmailPOILink
+    )
+    globals()['AllegedPersonProfile'] = POIProfile
+    globals()['POIIntelligenceLink'] = POIIntelligenceLink
+    globals()['EmailAllegedPersonLink'] = EmailPOILink
+    print(f"[POI MODELS] ✅ Successfully loaded POI models at module level")
+except Exception as e:
+    print(f"[POI MODELS] ❌ FAILED: {e}")
+    import traceback
+    traceback.print_exc()
+    AllegedPersonProfile = None
+    POIIntelligenceLink = None
+    EmailAllegedPersonLink = None
+
 @login_mgr.user_loader
 def load_user(uid):
     return db.session.get(User, int(uid))
@@ -9699,40 +9728,6 @@ def setup_production_environment():
     print(f"   • Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     
     return config
-
-# 🆕 POI v2.0: Import models from models_poi_enhanced at module level
-# This must run AFTER db is initialized but OUTSIDE app context
-try:
-    print("[POI MODELS] Starting import of enhanced POI models...")
-    # Set db instance in models_poi_enhanced module BEFORE importing classes
-    import models_poi_enhanced
-    models_poi_enhanced.db = db
-    print(f"[POI MODELS] ✅ Injected db into models_poi_enhanced: {type(db)}")
-    
-    # Reload module to execute class definitions with db set
-    import importlib
-    importlib.reload(models_poi_enhanced)
-    print("[POI MODELS] ✅ Reloaded models_poi_enhanced module")
-    
-    # Now import model classes
-    from models_poi_enhanced import (
-        POIIntelligenceLink,
-        AllegedPersonProfile as POIProfile,
-        EmailAllegedPersonLink as EmailPOILink
-    )
-    # Make available globally
-    globals()['AllegedPersonProfile'] = POIProfile
-    globals()['POIIntelligenceLink'] = POIIntelligenceLink
-    globals()['EmailAllegedPersonLink'] = EmailPOILink
-    print(f"[POI MODELS] ✅ Successfully loaded: AllegedPersonProfile={POIProfile}, POIIntelligenceLink={POIIntelligenceLink}")
-except Exception as e:
-    print(f"[POI MODELS] ❌ FAILED to import POI models: {e}")
-    import traceback
-    traceback.print_exc()
-    # Set to None so code can handle gracefully
-    AllegedPersonProfile = None
-    POIIntelligenceLink = None
-    EmailAllegedPersonLink = None
 
 # --- Main entry ---
 if __name__ == "__main__":
