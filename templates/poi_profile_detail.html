@@ -320,23 +320,23 @@
                             <tbody>
                                 {% for intel in all_intelligence %}
                                 <tr>
-                                    <td>{{ intel.date.strftime('%Y-%m-%d') if intel.date else 'N/A' }}</td>
+                                    <td>{{ intel.get('date').strftime('%Y-%m-%d') if intel.get('date') else 'N/A' }}</td>
                                     <td>
-                                        {% if intel.source_type == 'EMAIL' %}
+                                        {% if intel.get('source_type') == 'EMAIL' %}
                                             <span class="badge bg-primary"><i class="bi bi-envelope"></i> Email</span>
-                                        {% elif intel.source_type == 'WHATSAPP' %}
+                                        {% elif intel.get('source_type') == 'WHATSAPP' %}
                                             <span class="badge bg-success"><i class="bi bi-whatsapp"></i> WhatsApp</span>
-                                        {% elif intel.source_type == 'PATROL' %}
+                                        {% elif intel.get('source_type') == 'PATROL' %}
                                             <span class="badge bg-warning text-dark"><i class="bi bi-shield"></i> Patrol</span>
-                                        {% elif intel.source_type == 'SURVEILLANCE' %}
+                                        {% elif intel.get('source_type') == 'SURVEILLANCE' %}
                                             <span class="badge bg-danger"><i class="bi bi-camera-video"></i> Surveillance</span>
                                         {% endif %}
                                     </td>
-                                    <td><code>{{ intel.int_reference_number or 'N/A' }}</code></td>
-                                    <td>{{ intel.subject or intel.content[:100] or 'No content' }}</td>
+                                    <td><code>{{ intel.get('int_reference_number') or 'N/A' }}</code></td>
+                                    <td>{{ intel.get('subject', '') or (intel.get('content', '')[:100] if intel.get('content') else '') or 'No content' }}</td>
                                     <td class="text-center">
-                                        {% if intel.source_type == 'EMAIL' %}
-                                            <a href="{{ url_for('view_email', int_reference=intel.int_reference_number) }}" 
+                                        {% if intel.get('source_type') == 'EMAIL' %}
+                                            <a href="{{ url_for('view_email', int_reference=intel.get('int_reference_number')) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
@@ -374,11 +374,11 @@
                             <tbody>
                                 {% for email in emails %}
                                 <tr>
-                                    <td>{{ email.date.strftime('%Y-%m-%d') if email.date else 'N/A' }}</td>
-                                    <td><code>{{ email.int_reference_number }}</code></td>
-                                    <td>{{ email.subject or 'No subject' }}</td>
+                                    <td>{{ email.get('date').strftime('%Y-%m-%d') if email.get('date') else 'N/A' }}</td>
+                                    <td><code>{{ email.get('int_reference_number') }}</code></td>
+                                    <td>{{ email.get('subject') or 'No subject' }}</td>
                                     <td class="text-center">
-                                        <a href="{{ url_for('view_email', int_reference=email.int_reference_number) }}" 
+                                        <a href="{{ url_for('view_email', int_reference=email.get('int_reference_number')) }}" 
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye"></i> View
                                         </a>
@@ -410,9 +410,9 @@
                             <tbody>
                                 {% for msg in whatsapp %}
                                 <tr>
-                                    <td>{{ msg.date.strftime('%Y-%m-%d') if msg.date else 'N/A' }}</td>
-                                    <td><code>{{ msg.int_reference_number }}</code></td>
-                                    <td>{{ msg.content[:100] if msg.content else 'No content' }}</td>
+                                    <td>{{ msg.get('date').strftime('%Y-%m-%d') if msg.get('date') else 'N/A' }}</td>
+                                    <td><code>{{ msg.get('int_reference_number') }}</code></td>
+                                    <td>{{ (msg.get('content', '')[:100] if msg.get('content') else 'No content') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -440,9 +440,9 @@
                             <tbody>
                                 {% for entry in patrol %}
                                 <tr>
-                                    <td>{{ entry.date.strftime('%Y-%m-%d') if entry.date else 'N/A' }}</td>
-                                    <td><code>{{ entry.int_reference_number }}</code></td>
-                                    <td>{{ entry.content[:100] if entry.content else 'No content' }}</td>
+                                    <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
+                                    <td><code>{{ entry.get('int_reference_number') }}</code></td>
+                                    <td>{{ (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -470,9 +470,9 @@
                             <tbody>
                                 {% for entry in surveillance %}
                                 <tr>
-                                    <td>{{ entry.date.strftime('%Y-%m-%d') if entry.date else 'N/A' }}</td>
-                                    <td><code>{{ entry.int_reference_number }}</code></td>
-                                    <td>{{ entry.content[:100] if entry.content else 'No content' }}</td>
+                                    <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
+                                    <td><code>{{ entry.get('int_reference_number') }}</code></td>
+                                    <td>{{ (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
