@@ -1555,6 +1555,34 @@ def calculate_text_similarity(text1, text2):
     
     return len(intersection) / len(union)
 
+def get_linked_poi_for_intelligence(source_type, source_id):
+    """
+    Find POI profile linked to an intelligence entry
+    
+    Args:
+        source_type: "EMAIL", "WHATSAPP", "PATROL", "SURVEILLANCE"
+        source_id: Database ID of the intelligence entry
+        
+    Returns:
+        POI ID string (e.g., "POI-069") or None if not found
+    """
+    try:
+        link = POIIntelligenceLink.query.filter_by(
+            source_type=source_type,
+            source_id=source_id
+        ).first()
+        
+        if link:
+            print(f"[REDIRECT] Found linked POI: {link.poi_id} for {source_type}-{source_id}")
+            return link.poi_id
+        
+        print(f"[REDIRECT] No POI linked to {source_type}-{source_id}")
+        return None
+        
+    except Exception as e:
+        print(f"[REDIRECT] Error finding linked POI: {e}")
+        return None
+
 def update_int_reference_unified(case_profile_id, new_int_number, updated_by):
     """
     Manually update INT reference for any source
@@ -5774,7 +5802,16 @@ def online_patrol_detail(entry_id):
             except Exception as e:
                 db.session.rollback()
                 flash(f"Error saving patrol info: {e}", "danger")
-            return redirect(url_for("online_patrol_detail", entry_id=entry.id))
+                
+            # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+            linked_poi = get_linked_poi_for_intelligence('PATROL', entry.id)
+            if linked_poi:
+                flash(f'Patrol details saved. Viewing POI profile: {linked_poi}', 'success')
+                return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+            else:
+                # No linked POI, go to alleged subject list
+                return redirect(url_for('alleged_subject_list'))
+                
         else:
             # Save assessment form (view mode)
             entry.source_reliability = int(request.form.get("source_reliability")) if request.form.get("source_reliability") else None
@@ -5794,7 +5831,15 @@ def online_patrol_detail(entry_id):
             except Exception as e:
                 db.session.rollback()
                 flash(f"Error saving assessment: {e}", "danger")
-            return redirect(url_for("online_patrol_detail", entry_id=entry.id))
+                
+            # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+            linked_poi = get_linked_poi_for_intelligence('PATROL', entry.id)
+            if linked_poi:
+                flash(f'Assessment saved. Viewing POI profile: {linked_poi}', 'success')
+                return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+            else:
+                # No linked POI, go to alleged subject list
+                return redirect(url_for('alleged_subject_list'))
 
     # GET: show detail page
     return render_template("int_source_online_patrol_edit.html", entry=entry)
@@ -6124,6 +6169,16 @@ def int_source_email_detail(email_id):
             email.intelligence_case_opened = False
         db.session.commit()
         flash('Assessment updated.', 'success')
+        
+        # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+        linked_poi = get_linked_poi_for_intelligence('EMAIL', email_id)
+        if linked_poi:
+            flash(f'Assessment saved. Viewing POI profile: {linked_poi}', 'success')
+            return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+        else:
+            # No linked POI, go to alleged subject list
+            return redirect(url_for('alleged_subject_list'))
+            
     # --- Enhanced HTML detection and processing ---
     import re
     def is_html_body(text):
@@ -6765,7 +6820,16 @@ def whatsapp_detail(entry_id):
                 db.session.rollback()
                 print(f"[ERROR] Commit failed: {e}", file=sys.stderr)
                 flash(f"Error saving complaint info: {e}", "danger")
-            return redirect(url_for("whatsapp_detail", entry_id=entry.id))
+                
+            # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+            linked_poi = get_linked_poi_for_intelligence('WHATSAPP', entry.id)
+            if linked_poi:
+                flash(f'Complaint details saved. Viewing POI profile: {linked_poi}', 'success')
+                return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+            else:
+                # No linked POI, go to alleged subject list
+                return redirect(url_for('alleged_subject_list'))
+                
         else:
             # Save assessment form (view mode)
             entry.preparer = request.form.get("preparer")
@@ -6801,7 +6865,15 @@ def whatsapp_detail(entry_id):
                 db.session.rollback()
                 print(f"[ERROR] Commit failed: {e}", file=sys.stderr)
                 flash(f"Error saving assessment: {e}", "danger")
-            return redirect(url_for("whatsapp_detail", entry_id=entry.id))
+                
+            # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+            linked_poi = get_linked_poi_for_intelligence('WHATSAPP', entry.id)
+            if linked_poi:
+                flash(f'Assessment saved. Viewing POI profile: {linked_poi}', 'success')
+                return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+            else:
+                # No linked POI, go to alleged subject list
+                return redirect(url_for('alleged_subject_list'))
 
     # GET: show detail page
     return render_template("whatsapp_detail_test.html", entry=entry, images=images)
@@ -6877,7 +6949,15 @@ def surveillance_detail(entry_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving entry: {e}', 'danger')
-        return redirect(url_for('surveillance_detail', entry_id=entry_id))
+            
+        # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+        linked_poi = get_linked_poi_for_intelligence('SURVEILLANCE', entry_id)
+        if linked_poi:
+            flash(f'Surveillance entry saved. Viewing POI profile: {linked_poi}', 'success')
+            return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+        else:
+            # No linked POI, go to alleged subject list
+            return redirect(url_for('alleged_subject_list'))
 
     # --- Render appropriate template ---
     template = "int_source_surveillance_edit.html" if is_edit else "surveillance_detail_note.html"
