@@ -140,6 +140,7 @@ def init_models(db_instance):
         def to_dict(self):
             """Convert to dictionary for JSON serialization"""
             return {
+                'id': self.id,  # ✅ CRITICAL: Add database ID for merge logic
                 'poi_id': self.poi_id,
                 'name_english': self.name_english,
                 'name_chinese': self.name_chinese,
@@ -179,7 +180,8 @@ def init_models(db_instance):
         # Source Reference (Polymorphic)
         source_type = db_instance.Column(db_instance.String(20), nullable=False, index=True)  # EMAIL/WHATSAPP/PATROL/SURVEILLANCE
         source_id = db_instance.Column(db_instance.Integer, nullable=False, index=True)  # ID of the source record
-        source_table = db_instance.Column(db_instance.String(50))  # Table name: email/whatsapp_entry/online_patrol_entry
+        # NOTE: source_table column removed - not present in database schema
+        # source_type is sufficient to identify the source
         
         # Extraction Metadata
         extraction_method = db_instance.Column(db_instance.String(20))  # MANUAL/AI/REGEX/NER
