@@ -132,7 +132,9 @@ def init_models(db_instance):
         
         # Relationships
         intelligence_links = db_instance.relationship('_POIIntelligenceLink', backref='poi_profile', lazy='dynamic', cascade='all, delete-orphan')
-        assessment_history = db_instance.relationship('_POIAssessmentHistory', backref='poi_profile', lazy='dynamic', cascade='all, delete-orphan')
+        # TEMPORARILY DISABLED: assessment_history relationship causes errors because table schema doesn't match model
+        # Re-enable once poi_assessment_history table is properly created with all columns
+        # assessment_history = db_instance.relationship('_POIAssessmentHistory', backref='poi_profile', lazy='dynamic', cascade='all, delete-orphan')
         
         def __repr__(self):
             return f'<POI {self.poi_id}: {self.name_english or self.name_chinese}>'
@@ -308,18 +310,20 @@ def init_models(db_instance):
         assessment_date = db_instance.Column(db_instance.DateTime, default=datetime.utcnow, index=True)
         
         # Assessment Changes
+        # NOTE: Commented out columns that don't exist in database yet
+        # Uncomment when poi_assessment_history table is properly created
         previous_risk_level = db_instance.Column(db_instance.String(20))
         new_risk_level = db_instance.Column(db_instance.String(20))
-        previous_risk_score = db_instance.Column(db_instance.Integer)
-        new_risk_score = db_instance.Column(db_instance.Integer)
-        assessment_reason = db_instance.Column(db_instance.Text)  # Why changed
-        supporting_evidence = db_instance.Column(JSONB)  # Array of case references
-        assessment_notes = db_instance.Column(db_instance.Text)  # Encrypted
+        # previous_risk_score = db_instance.Column(db_instance.Integer)  # ❌ Not in DB
+        # new_risk_score = db_instance.Column(db_instance.Integer)  # ❌ Not in DB
+        # assessment_reason = db_instance.Column(db_instance.Text)  # ❌ Not in DB
+        # supporting_evidence = db_instance.Column(JSONB)  # ❌ Not in DB
+        # assessment_notes = db_instance.Column(db_instance.Text)  # ❌ Not in DB
         
         # Related Intelligence
-        related_case_profiles = db_instance.Column(JSONB)  # Array of INT-### references
-        trigger_source_type = db_instance.Column(db_instance.String(20))  # What prompted reassessment
-        trigger_source_id = db_instance.Column(db_instance.Integer)
+        # related_case_profiles = db_instance.Column(JSONB)  # ❌ Not in DB
+        # trigger_source_type = db_instance.Column(db_instance.String(20))  # ❌ Not in DB
+        # trigger_source_id = db_instance.Column(db_instance.Integer)  # ❌ Not in DB
         
         def __repr__(self):
             return f'<Assessment {self.poi_id}: {self.previous_risk_level}→{self.new_risk_level}>'
