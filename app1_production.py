@@ -7153,7 +7153,14 @@ def int_source_update_assessment(email_id):
         import traceback
         traceback.print_exc()
     
-    return redirect(url_for("int_source_email_detail", email_id=email.id))
+    # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+    linked_poi = get_linked_poi_for_intelligence('EMAIL', email_id)
+    if linked_poi:
+        flash(f'Assessment updated. Viewing POI profile: {linked_poi}', 'success')
+        return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+    else:
+        # No linked POI, go to alleged subject list
+        return redirect(url_for('alleged_subject_list'))
 
 # =============================================================================
 # INT REFERENCE NUMBER MANAGEMENT ROUTES

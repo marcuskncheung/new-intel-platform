@@ -297,11 +297,93 @@ def create_or_update_alleged_person_profile(
                     'message': f'Profile {poi_id} already exists, skipped'
                 }
             
-            # Update existing profile with new information
+            # 🔄 MERGE LOGIC: Update existing profile with new information
             updated_fields = []
+            profile = db.session.query(AllegedPersonProfile).get(profile_id)
             
-            # Merge logic would go here
-            # For now, just return the existing profile info
+            if not profile:
+                print(f"[ALLEGED PERSON AUTOMATION] ❌ Profile {profile_id} not found in database")
+                return {
+                    'success': False,
+                    'action': 'error',
+                    'message': f'Profile {poi_id} not found in database'
+                }
+            
+            # Update fields if new data provided
+            if name_english and not profile.name_english:
+                profile.name_english = name_english.strip()
+                updated_fields.append('name_english')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added English name: {name_english}")
+            
+            if name_chinese and not profile.name_chinese:
+                profile.name_chinese = name_chinese.strip()
+                updated_fields.append('name_chinese')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added Chinese name: {name_chinese}")
+            
+            if agent_number and not profile.agent_number:
+                profile.agent_number = agent_number.strip()
+                updated_fields.append('agent_number')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added agent number: {agent_number}")
+            elif agent_number and profile.agent_number and agent_number.strip() != profile.agent_number:
+                # Agent number conflict - log warning but don't override
+                print(f"[ALLEGED PERSON AUTOMATION] ⚠️ Agent number mismatch: existing '{profile.agent_number}' vs new '{agent_number}'")
+            
+            if license_number and not profile.license_number:
+                profile.license_number = license_number.strip()
+                updated_fields.append('license_number')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added license number: {license_number}")
+            elif license_number and profile.license_number and license_number.strip() != profile.license_number:
+                # License number provided but different - update it (could be renewal/correction)
+                old_license = profile.license_number
+                profile.license_number = license_number.strip()
+                updated_fields.append('license_number')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Updated license number: {old_license} → {license_number}")
+            
+            if company and not profile.company:
+                profile.company = company.strip()
+                updated_fields.append('company')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added company: {company}")
+            
+            if role and not profile.role:
+                profile.role = role.strip()
+                updated_fields.append('role')
+                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added role: {role}")
+            
+            # Update last mentioned date
+            profile.last_mentioned_date = datetime.now(timezone.utc)
+            updated_fields.append('last_mentioned_date')
+            
+            # Update normalized name if names changed
+            if 'name_english' in updated_fields or 'name_chinese' in updated_fields:
+                name_parts = []
+                if profile.name_english:
+                    name_parts.append(normalize_name_for_matching(profile.name_english))
+                if profile.name_chinese:
+                    name_parts.append(normalize_name_for_matching(profile.name_chinese))
+                profile.name_normalized = ' | '.join(name_parts)
+                updated_fields.append('name_normalized')
+            
+            # Link email if provided and not already linked
+            if email_id:
+                existing_link = db.session.query(EmailAllegedPersonLink).filter_by(
+                    email_id=email_id,
+                    alleged_person_id=profile_id
+                ).first()
+                
+                if not existing_link:
+                    link_created = link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile,
+                                                         email_id, poi_id, profile_id)
+                    if link_created:
+                        profile.email_count = (profile.email_count or 0) + 1
+                        updated_fields.append('email_count')
+                        print(f"[ALLEGED PERSON AUTOMATION] 🔗 Linked email {email_id} to profile {poi_id}")
+            
+            # Commit changes
+            if updated_fields:
+                db.session.commit()
+                print(f"[ALLEGED PERSON AUTOMATION] ✅ Updated profile {poi_id}: {', '.join(updated_fields)}")
+            else:
+                print(f"[ALLEGED PERSON AUTOMATION] ℹ️ No new information to update for {poi_id}")
             
             return {
                 'success': True,
@@ -309,7 +391,7 @@ def create_or_update_alleged_person_profile(
                 'poi_id': poi_id,
                 'profile_id': profile_id,
                 'updated_fields': updated_fields,
-                'message': f'Updated existing profile {poi_id}'
+                'message': f'Updated existing profile {poi_id} ({len(updated_fields)} fields)'
             }
         
         else:
