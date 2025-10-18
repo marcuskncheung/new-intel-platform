@@ -180,19 +180,17 @@ def init_models(db_instance):
         # Source Reference (Polymorphic)
         source_type = db_instance.Column(db_instance.String(20), nullable=False, index=True)  # EMAIL/WHATSAPP/PATROL/SURVEILLANCE
         source_id = db_instance.Column(db_instance.Integer, nullable=False, index=True)  # ID of the source record
-        # NOTE: source_table column removed - not present in database schema
-        # source_type is sufficient to identify the source
         
-        # Metadata columns - REMOVED to match actual database schema
-        # The actual database only has: id, poi_id, case_profile_id, source_type, source_id, 
-        # confidence_score, created_by, created_at, updated_at
-        # All other columns below are NOT in the database and cause errors!
+        # Extraction metadata
+        extraction_method = db_instance.Column(db_instance.String(20))  # Method used to extract the link
         
-        # Keep only columns that exist in database:
+        # Metadata columns - ONLY columns that exist in actual database schema
+        # Actual database has: id, poi_id, case_profile_id, source_type, source_id, 
+        # extraction_method, confidence_score, created_at
+        # NOTE: created_by and updated_at DO NOT EXIST in database - removed to prevent errors
+        
         confidence_score = db_instance.Column(db_instance.Float)  # 0.0-1.0
-        created_by = db_instance.Column(db_instance.String(100))  # Username who created link
         created_at = db_instance.Column(db_instance.DateTime, default=datetime.utcnow)
-        updated_at = db_instance.Column(db_instance.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
         
         # Unique constraint: one POI per source record
         __table_args__ = (

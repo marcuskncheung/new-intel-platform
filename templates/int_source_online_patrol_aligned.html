@@ -99,9 +99,7 @@
                   <td><strong>Case Profile:</strong></td>
                   <td>
                     {% if entry.case_profile %}
-                      <a href="{{ url_for('case_profile_detail', case_id=entry.caseprofile_id) }}">
-                        {{ entry.case_profile.case_number or entry.case_profile.case_name }}
-                      </a>
+                      {{ entry.case_profile.case_number or entry.case_profile.case_name }}
                     {% else %}
                       N/A
                     {% endif %}
