@@ -7089,22 +7089,20 @@ def int_source_whatsapp_update_assessment(entry_id):
                     if not english_name and not chinese_name:
                         continue
                     
-                    # Prepare additional info
-                    person_info = {}
-                    if i < len(license_info) and license_info[i]:
-                        person_info['license_number'] = license_info[i]
-                        person_info['agent_number'] = license_info[i]
-                    if i < len(intermediary_info) and intermediary_info[i]:
-                        person_info['role'] = intermediary_info[i]
+                    # Extract license info for this person
+                    license_num = license_info[i] if i < len(license_info) else ""
+                    intermediary_type = intermediary_info[i] if i < len(intermediary_info) else ""
                     
                     result = create_or_update_alleged_person_profile(
                         db, AllegedPersonProfile, EmailAllegedPersonLink,
                         name_english=english_name if english_name else None,
                         name_chinese=chinese_name if chinese_name else None,
+                        license_number=license_num,
+                        agent_number=license_num,  # Same as license for compatibility
+                        role=intermediary_type,
                         email_id=None,
                         source="WHATSAPP",
-                        update_mode="overwrite",  # Allow updating existing POI names from manual edits
-                        additional_info=person_info
+                        update_mode="overwrite"  # Allow updating existing POI names from manual edits
                     )
                     
                     if result.get('profile_id'):
@@ -7252,22 +7250,20 @@ def int_source_patrol_update_assessment(entry_id):
                     if not english_name and not chinese_name:
                         continue
                     
-                    # Prepare additional info
-                    person_info = {}
-                    if i < len(license_info) and license_info[i]:
-                        person_info['license_number'] = license_info[i]
-                        person_info['agent_number'] = license_info[i]
-                    if i < len(intermediary_info) and intermediary_info[i]:
-                        person_info['role'] = intermediary_info[i]
+                    # Extract license info for this person
+                    license_num = license_info[i] if i < len(license_info) else ""
+                    intermediary_type = intermediary_info[i] if i < len(intermediary_info) else ""
                     
                     result = create_or_update_alleged_person_profile(
                         db, AllegedPersonProfile, EmailAllegedPersonLink,
                         name_english=english_name if english_name else None,
                         name_chinese=chinese_name if chinese_name else None,
+                        license_number=license_num,
+                        agent_number=license_num,  # Same as license for compatibility
+                        role=intermediary_type,
                         email_id=None,
                         source="PATROL",
-                        update_mode="overwrite",  # Allow updating existing POI names from manual edits
-                        additional_info=person_info
+                        update_mode="overwrite"  # Allow updating existing POI names from manual edits
                     )
                     
                     if result.get('profile_id'):
