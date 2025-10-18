@@ -2160,7 +2160,6 @@ def alleged_subject_profile_detail(poi_id):
                 pil.source_id,
                 pil.confidence_score,
                 pil.created_at as link_created_at,
-                pil.extraction_method,
                 cp.case_number as case_name,
                 cp.id as case_id
             FROM poi_intelligence_link pil
@@ -2192,7 +2191,6 @@ def alleged_subject_profile_detail(poi_id):
                 'link_id': link.link_id,
                 'source_type': link.source_type,
                 'confidence': link.confidence_score,
-                'extraction_method': link.extraction_method,
                 'case_name': link.case_name,
                 'case_id': link.case_id,
                 'date': link.link_created_at,
@@ -2223,7 +2221,6 @@ def alleged_subject_profile_detail(poi_id):
                     'link_id': old_link.id,
                     'source_type': 'EMAIL',
                     'confidence': old_link.confidence or 1.0,
-                    'extraction_method': old_link.created_by,
                     'case_name': email.case_profile.case_name if email.case_profile else None,
                     'case_id': email.caseprofile_id,
                     'date': old_link.created_at,
@@ -2250,7 +2247,6 @@ def alleged_subject_profile_detail(poi_id):
                         'link_id': link.link_id,
                         'source_type': 'WHATSAPP',
                         'confidence': link.confidence_score,
-                        'extraction_method': link.extraction_method,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
                         'date': link.link_created_at or wa.created_at,
@@ -2273,7 +2269,6 @@ def alleged_subject_profile_detail(poi_id):
                         'link_id': link.link_id,
                         'source_type': 'PATROL',
                         'confidence': link.confidence_score,
-                        'extraction_method': link.extraction_method,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
                         'date': link.link_created_at or pt.created_at,
@@ -2295,7 +2290,6 @@ def alleged_subject_profile_detail(poi_id):
                         'link_id': link.link_id,
                         'source_type': 'SURVEILLANCE',
                         'confidence': link.confidence_score,
-                        'extraction_method': link.extraction_method,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
                         'date': link.link_created_at or sv.created_at,
@@ -5523,9 +5517,8 @@ def add_whatsapp():
                                     poi_id=result['profile_id'],
                                     source_type='WHATSAPP',
                                     source_id=entry.id,
-                                    case_id=entry.caseprofile_id,
+                                    case_profile_id=entry.caseprofile_id,
                                     confidence_score=0.90,
-                                    extraction_method='AUTOMATION',
                                     created_by=f"USER-{current_user.username}"
                                 )
                                 db.session.add(universal_link)
@@ -5683,9 +5676,8 @@ def add_online_patrol():
                                     poi_id=result['profile_id'],
                                     source_type='PATROL',
                                     source_id=entry.id,
-                                    case_id=entry.caseprofile_id,
+                                    case_profile_id=entry.caseprofile_id,
                                     confidence_score=0.90,
-                                    extraction_method='AUTOMATION',
                                     created_by=f"USER-{current_user.username}"
                                 )
                                 db.session.add(universal_link)
@@ -5780,9 +5772,8 @@ def online_patrol_detail(entry_id):
                                             poi_id=result['profile_id'],
                                             source_type='PATROL',
                                             source_id=entry.id,
-                                            case_id=entry.caseprofile_id,
+                                            case_profile_id=entry.caseprofile_id,
                                             confidence_score=0.90,
-                                            extraction_method='MANUAL_UPDATE',
                                             created_by=f"USER-{current_user.username}"
                                         )
                                         db.session.add(universal_link)
@@ -6126,9 +6117,8 @@ def add_surveillance():
                                     poi_id=result['profile_id'],
                                     source_type='SURVEILLANCE',
                                     source_id=entry.id,
-                                    case_id=None,  # Surveillance doesn't have case_id
+                                    case_profile_id=None,  # Surveillance doesn't have case_profile_id
                                     confidence_score=0.95,  # High confidence - physical surveillance
-                                    extraction_method='AUTOMATION',
                                     created_by=f"USER-{current_user.username}"
                                 )
                                 db.session.add(universal_link)
@@ -6797,9 +6787,8 @@ def whatsapp_detail(entry_id):
                                             poi_id=result['profile_id'],
                                             source_type='WHATSAPP',
                                             source_id=entry.id,
-                                            case_id=entry.caseprofile_id,
+                                            case_profile_id=entry.caseprofile_id,
                                             confidence_score=0.90,
-                                            extraction_method='MANUAL_UPDATE',
                                             created_by=f"USER-{current_user.username}"
                                         )
                                         db.session.add(universal_link)

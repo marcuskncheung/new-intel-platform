@@ -95,11 +95,6 @@
                         <i class="bi bi-briefcase"></i> {{ profile.role }}
                     </span>
                     {% endif %}
-                    {% if profile.agent_number %}
-                    <span class="badge bg-light text-dark px-3 py-2" style="font-size: 0.9rem;">
-                        <i class="bi bi-person-vcard"></i> Agent: {{ profile.agent_number }}
-                    </span>
-                    {% endif %}
                     {% if profile.license_number %}
                     <span class="badge bg-light text-dark px-3 py-2" style="font-size: 0.9rem;">
                         <i class="bi bi-card-checklist"></i> License: {{ profile.license_number }}
@@ -229,10 +224,6 @@
                         <tr>
                             <th class="text-muted">Chinese Name:</th>
                             <td><strong>{{ profile.name_chinese or "N/A" }}</strong></td>
-                        </tr>
-                        <tr>
-                            <th class="text-muted">Agent Number:</th>
-                            <td>{{ profile.agent_number or "N/A" }}</td>
                         </tr>
                         <tr>
                             <th class="text-muted">License Number:</th>

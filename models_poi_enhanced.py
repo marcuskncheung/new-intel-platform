@@ -183,27 +183,14 @@ def init_models(db_instance):
         # NOTE: source_table column removed - not present in database schema
         # source_type is sufficient to identify the source
         
-        # Extraction Metadata
-        extraction_method = db_instance.Column(db_instance.String(20))  # MANUAL/AI/REGEX/NER
-        extraction_tool = db_instance.Column(db_instance.String(50))  # GPT4/CLAUDE/SPACY/MANUAL
+        # Metadata columns - REMOVED to match actual database schema
+        # The actual database only has: id, poi_id, case_profile_id, source_type, source_id, 
+        # confidence_score, created_by, created_at, updated_at
+        # All other columns below are NOT in the database and cause errors!
+        
+        # Keep only columns that exist in database:
         confidence_score = db_instance.Column(db_instance.Float)  # 0.0-1.0
-        extraction_timestamp = db_instance.Column(db_instance.DateTime, default=datetime.utcnow)
-        extracted_by_user = db_instance.Column(db_instance.String(100))  # NULL if automated
-        validation_status = db_instance.Column(db_instance.String(20), default='PENDING', index=True)  # PENDING/VERIFIED/REJECTED
-        
-        # Context Information
-        mention_context = db_instance.Column(db_instance.Text)  # Text snippet where POI mentioned
-        role_in_case = db_instance.Column(db_instance.String(50))  # COMPLAINANT/SUBJECT/WITNESS/OTHER
-        mention_count = db_instance.Column(db_instance.Integer, default=1)
-        is_primary_subject = db_instance.Column(db_instance.Boolean, default=False)
-        
-        # Quality Assurance
-        verified_by = db_instance.Column(db_instance.String(100))
-        verified_at = db_instance.Column(db_instance.DateTime)
-        verification_notes = db_instance.Column(db_instance.Text)
-        needs_review = db_instance.Column(db_instance.Boolean, default=False, index=True)
-        
-        # Audit Trail
+        created_by = db_instance.Column(db_instance.String(100))  # Username who created link
         created_at = db_instance.Column(db_instance.DateTime, default=datetime.utcnow)
         updated_at = db_instance.Column(db_instance.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
         
@@ -224,10 +211,8 @@ def init_models(db_instance):
                 'case_profile_id': self.case_profile_id,
                 'source_type': self.source_type,
                 'source_id': self.source_id,
-                'extraction_method': self.extraction_method,
                 'confidence_score': self.confidence_score,
-                'validation_status': self.validation_status,
-                'role_in_case': self.role_in_case,
+                'created_by': self.created_by,
                 'created_at': self.created_at.isoformat() if self.created_at else None
             }
 

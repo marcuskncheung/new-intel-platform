@@ -4280,7 +4280,6 @@ AI Services: ${data.ai_available ? 'Available' : 'Not Available'}`;
         if (person.name_chinese) html += '<strong>Chinese Name:</strong> ' + person.name_chinese + '<br>';
         html += '</div>';
         html += '<div class="col-md-6">';
-        if (person.agent_number) html += '<strong>Agent Number:</strong> ' + person.agent_number + '<br>';
         if (person.license_number) html += '<strong>License Number:</strong> ' + person.license_number + '<br>';
         if (person.company || person.agent_company_broker) html += '<strong>Company:</strong> ' + (person.company || person.agent_company_broker) + '<br>';
         if (person.role) html += '<strong>Role:</strong> ' + person.role + '<br>';
