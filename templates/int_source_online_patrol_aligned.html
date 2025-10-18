@@ -37,7 +37,7 @@
                   <input type="text" 
                          class="form-control form-control-lg" 
                          name="int_reference_number" 
-                         value="{{ entry.int_reference_number or '' }}"
+                         value="{{ entry.int_reference or entry.case_profile.int_reference if entry.case_profile else '' }}"
                          placeholder="INT-001, INT-123, etc."
                          pattern="INT-\d{1,4}"
                          title="Format: INT-001, INT-123"
