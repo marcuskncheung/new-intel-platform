@@ -72,7 +72,7 @@
                   <input type="text" 
                          class="form-control form-control-lg" 
                          name="int_reference_number" 
-                         value="{{ email.int_reference_number or '' }}"
+                         value="{{ email.int_reference or email.case_profile.int_reference if email.case_profile else email.int_reference_number or '' }}"
                          placeholder="INT-001, INT-123, etc."
                          pattern="INT-\d{1,4}"
                          title="Format: INT-001, INT-123"
