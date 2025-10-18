@@ -297,7 +297,7 @@ def create_or_update_alleged_person_profile(
                     'message': f'Profile {poi_id} already exists, skipped'
                 }
             
-            # 🔄 MERGE LOGIC: Update existing profile with new information
+            # 🔄 UPDATE LOGIC: Different behavior based on update_mode
             updated_fields = []
             profile = db.session.query(AllegedPersonProfile).get(profile_id)
             
@@ -309,17 +309,33 @@ def create_or_update_alleged_person_profile(
                     'message': f'Profile {poi_id} not found in database'
                 }
             
-            # Update fields if new data provided
-            if name_english and not profile.name_english:
-                profile.name_english = name_english.strip()
-                updated_fields.append('name_english')
-                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added English name: {name_english}")
+            # OVERWRITE MODE: Update names even if they exist (for manual corrections)
+            if update_mode == "overwrite":
+                if name_english and name_english.strip() != profile.name_english:
+                    old_name = profile.name_english
+                    profile.name_english = name_english.strip()
+                    updated_fields.append('name_english')
+                    print(f"[ALLEGED PERSON AUTOMATION] 📝 Updated English name: '{old_name}' → '{name_english}'")
+                
+                if name_chinese and name_chinese.strip() != profile.name_chinese:
+                    old_name = profile.name_chinese
+                    profile.name_chinese = name_chinese.strip()
+                    updated_fields.append('name_chinese')
+                    print(f"[ALLEGED PERSON AUTOMATION] 📝 Updated Chinese name: '{old_name}' → '{name_chinese}'")
             
-            if name_chinese and not profile.name_chinese:
-                profile.name_chinese = name_chinese.strip()
-                updated_fields.append('name_chinese')
-                print(f"[ALLEGED PERSON AUTOMATION] 📝 Added Chinese name: {name_chinese}")
+            # MERGE MODE: Only add missing fields (don't overwrite existing)
+            else:
+                if name_english and not profile.name_english:
+                    profile.name_english = name_english.strip()
+                    updated_fields.append('name_english')
+                    print(f"[ALLEGED PERSON AUTOMATION] 📝 Added English name: {name_english}")
+                
+                if name_chinese and not profile.name_chinese:
+                    profile.name_chinese = name_chinese.strip()
+                    updated_fields.append('name_chinese')
+                    print(f"[ALLEGED PERSON AUTOMATION] 📝 Added Chinese name: {name_chinese}")
             
+            # Agent/License number updates (same for both modes)
             if agent_number and not profile.agent_number:
                 profile.agent_number = agent_number.strip()
                 updated_fields.append('agent_number')
@@ -526,7 +542,8 @@ def process_ai_analysis_results(db, AllegedPersonProfile, EmailAllegedPersonLink
 def process_manual_input(db, AllegedPersonProfile, EmailAllegedPersonLink,
                         email_id: int, alleged_subject_english: str, 
                         alleged_subject_chinese: str = "", 
-                        additional_info: Dict = None) -> List[Dict]:
+                        additional_info: Dict = None,
+                        update_mode: str = "overwrite") -> List[Dict]:
     """
     Process manual input of alleged person information
     
@@ -541,6 +558,7 @@ def process_manual_input(db, AllegedPersonProfile, EmailAllegedPersonLink,
         alleged_subject_english: Manually entered English names (comma-separated)
         alleged_subject_chinese: Manually entered Chinese names (comma-separated)
         additional_info: Dict with agent_number, company, etc. if available
+        update_mode: "merge", "overwrite", or "skip_if_exists" - default "overwrite" for manual edits
         
     Returns:
         List of profile creation/update results
@@ -591,7 +609,8 @@ def process_manual_input(db, AllegedPersonProfile, EmailAllegedPersonLink,
                 company=additional_info.get('company', ''),
                 role=additional_info.get('role', ''),
                 email_id=email_id,
-                source="MANUAL_INPUT"
+                source="MANUAL_INPUT",
+                update_mode=update_mode  # Pass through update mode from parameter
             )
             
             results.append(result)

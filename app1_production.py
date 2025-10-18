@@ -7103,7 +7103,7 @@ def int_source_whatsapp_update_assessment(entry_id):
                         name_chinese=chinese_name if chinese_name else None,
                         email_id=None,
                         source="WHATSAPP",
-                        update_mode="merge",
+                        update_mode="overwrite",  # Allow updating existing POI names from manual edits
                         additional_info=person_info
                     )
                     
@@ -7122,7 +7122,7 @@ def int_source_whatsapp_update_assessment(entry_id):
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
                                     confidence_score=0.90,
-                                    created_by=f"USER-{current_user.username}"
+                                    extraction_method='MANUAL'
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
@@ -7266,7 +7266,7 @@ def int_source_patrol_update_assessment(entry_id):
                         name_chinese=chinese_name if chinese_name else None,
                         email_id=None,
                         source="PATROL",
-                        update_mode="merge",
+                        update_mode="overwrite",  # Allow updating existing POI names from manual edits
                         additional_info=person_info
                     )
                     
@@ -7285,7 +7285,7 @@ def int_source_patrol_update_assessment(entry_id):
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
                                     confidence_score=0.90,
-                                    created_by=f"USER-{current_user.username}"
+                                    extraction_method='MANUAL'
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
@@ -7452,13 +7452,14 @@ def int_source_update_assessment(email_id):
                     if not english_name and not chinese_name:
                         continue
                     
-                    # Process this specific person
+                    # Process this specific person with overwrite mode to allow name changes
                     result = process_manual_input(
                         db, AllegedPersonProfile, EmailAllegedPersonLink,
                         email_id=email.id,
                         alleged_subject_english=english_name,
                         alleged_subject_chinese=chinese_name,
-                        additional_info=person_additional_info
+                        additional_info=person_additional_info,
+                        update_mode="overwrite"  # Allow updating existing POI names
                     )
                     
                     profile_results.extend(result)
