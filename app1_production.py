@@ -7105,28 +7105,38 @@ def int_source_whatsapp_update_assessment(entry_id):
                         update_mode="overwrite"  # Allow updating existing POI names from manual edits
                     )
                     
-                    if result.get('profile_id'):
+                    if result.get('success'):
                         try:
+                            # Get the POI ID string (e.g., 'POI-070')
+                            poi_id = result.get('poi_id')
+                            
+                            if not poi_id:
+                                print(f"[WHATSAPP AUTOMATION] ⚠️ No POI ID returned from automation")
+                                continue
+                            
+                            # Check if universal link already exists
                             existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                poi_id=result['profile_id'],
+                                poi_id=poi_id,
                                 source_type='WHATSAPP',
                                 source_id=entry.id
                             ).first()
                             
                             if not existing_link:
                                 universal_link = POIIntelligenceLink(
-                                    poi_id=result['profile_id'],
+                                    poi_id=poi_id,
+                                    case_profile_id=entry.caseprofile_id,
                                     source_type='WHATSAPP',
                                     source_id=entry.id,
-                                    case_profile_id=entry.caseprofile_id,
                                     confidence_score=0.90,
                                     extraction_method='MANUAL'
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
-                                print(f"[WHATSAPP AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                                print(f"[WHATSAPP AUTOMATION] ✅ Created universal link for POI {poi_id}")
                         except Exception as link_error:
                             print(f"[WHATSAPP AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                            import traceback
+                            traceback.print_exc()
                 
                 flash(f"Assessment updated and {max_len} POI profile(s) processed.", "success")
             except Exception as automation_error:
@@ -7266,28 +7276,38 @@ def int_source_patrol_update_assessment(entry_id):
                         update_mode="overwrite"  # Allow updating existing POI names from manual edits
                     )
                     
-                    if result.get('profile_id'):
+                    if result.get('success'):
                         try:
+                            # Get the POI ID string (e.g., 'POI-070')
+                            poi_id = result.get('poi_id')
+                            
+                            if not poi_id:
+                                print(f"[PATROL AUTOMATION] ⚠️ No POI ID returned from automation")
+                                continue
+                            
+                            # Check if universal link already exists
                             existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                poi_id=result['profile_id'],
+                                poi_id=poi_id,
                                 source_type='PATROL',
                                 source_id=entry.id
                             ).first()
                             
                             if not existing_link:
                                 universal_link = POIIntelligenceLink(
-                                    poi_id=result['profile_id'],
+                                    poi_id=poi_id,
+                                    case_profile_id=entry.caseprofile_id,
                                     source_type='PATROL',
                                     source_id=entry.id,
-                                    case_profile_id=entry.caseprofile_id,
                                     confidence_score=0.90,
                                     extraction_method='MANUAL'
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
-                                print(f"[PATROL AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                                print(f"[PATROL AUTOMATION] ✅ Created universal link for POI {poi_id}")
                         except Exception as link_error:
                             print(f"[PATROL AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                            import traceback
+                            traceback.print_exc()
                 
                 flash(f"Assessment updated and {max_len} POI profile(s) processed.", "success")
             except Exception as automation_error:
