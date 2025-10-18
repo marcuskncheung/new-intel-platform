@@ -1,0 +1,600 @@
+{% extends "base.html" %}
+
+{% block title %}Online Patrol Intelligence Detail - Intelligence Platform{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="card shadow-sm rounded">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background: #0066CC; color: #fff;">
+      <div>
+        <h5 class="mb-0"><i class="bi bi-compass"></i> Online Patrol Intelligence</h5>
+        <small>Source: {{ entry.source or 'Unknown' }} | Created: {{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at else 'N/A' }}</small>
+      </div>
+      <div class="btn-group">
+        <a href="{{ url_for('int_source') }}#patrol" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-left"></i> Back to Sources
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      
+      <!-- Case Reference Number Section -->
+      <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-hashtag"></i> Case Reference Number
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('update_patrol_int_reference', entry_id=entry.id) }}">
+            <div class="row align-items-end">
+              <div class="col-md-8">
+                <label class="form-label"><strong>INT Reference Number:</strong></label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-hashtag"></i>
+                  </span>
+                  <input type="text" 
+                         class="form-control form-control-lg" 
+                         name="int_reference_number" 
+                         value="{{ entry.int_reference_number or '' }}"
+                         placeholder="INT-001, INT-123, etc."
+                         pattern="INT-\d{1,4}"
+                         title="Format: INT-001, INT-123"
+                         style="font-weight: bold; font-family: monospace; font-size: 1.25rem;">
+                  <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> Save
+                  </button>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                  <i class="bi bi-info-circle"></i> 
+                  Format: INT-XXX (e.g., INT-001, INT-123). You can edit this directly.
+                </small>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Online Patrol Content Section -->
+      <div class="card border-info mb-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-compass"></i> Online Patrol Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-sm table-borderless">
+                <tr>
+                  <td width="40%"><strong>Sender:</strong></td>
+                  <td>{{ entry.sender or 'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Source:</strong></td>
+                  <td>{{ entry.source or 'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Status:</strong></td>
+                  <td>
+                    {% if entry.status %}
+                      <span class="badge bg-primary">{{ entry.status }}</span>
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Complaint Time:</strong></td>
+                  <td>{{ entry.complaint_time.strftime('%Y-%m-%d %H:%M') if entry.complaint_time else 'N/A' }}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-sm table-borderless">
+                <tr>
+                  <td width="40%"><strong>Entry ID:</strong></td>
+                  <td>PATROL-{{ entry.id }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Case Profile:</strong></td>
+                  <td>
+                    {% if entry.case_profile %}
+                      <a href="{{ url_for('case_profile_detail', case_id=entry.caseprofile_id) }}">
+                        {{ entry.case_profile.case_number or entry.case_profile.case_name }}
+                      </a>
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Created:</strong></td>
+                  <td>{{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at else 'N/A' }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+          
+          {% if entry.alleged_type or entry.details or entry.synopsis %}
+          <div class="mt-3">
+            {% if entry.alleged_type %}
+            <div class="mb-2">
+              <strong>Alleged Type:</strong> <span class="badge bg-warning text-dark">{{ entry.alleged_type }}</span>
+            </div>
+            {% endif %}
+            {% if entry.synopsis %}
+            <div class="mb-2">
+              <strong>Synopsis:</strong>
+              <div class="p-2 bg-light rounded border">{{ entry.synopsis }}</div>
+            </div>
+            {% endif %}
+            {% if entry.details %}
+            <div class="mb-2">
+              <strong>Details:</strong>
+              <div class="p-3 bg-light rounded border" style="white-space: pre-wrap;">{{ entry.details }}</div>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Photos Section (if applicable) -->
+      {% if entry.photos %}
+      <div class="card border-secondary mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="bi bi-camera"></i> Patrol Photos</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for photo in entry.photos %}
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="card">
+                <img src="{{ url_for('view_patrol_photo', photo_id=photo.id) }}" 
+                     class="card-img-top" 
+                     alt="Patrol Photo"
+                     style="max-height: 200px; object-fit: cover; cursor: pointer;"
+                     onclick="window.open(this.src, '_blank')">
+                <div class="card-body p-2">
+                  <small class="text-muted">{{ photo.filename or 'Photo' }}</small>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Assessment Form -->
+      <form method="POST" action="{{ url_for('int_source_patrol_update_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
+        <div class="card border-primary">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Assessment Details</h5>
+          </div>
+          <div class="card-body">
+            <table class="table table-bordered align-middle">
+              <tr>
+                <td width="25%"><b>Date:</b></td>
+                <td>{{ (entry.assessment_updated_at or entry.updated_at or entry.created_at).strftime("%Y-%m-%d %H:%M:%S") if (entry.assessment_updated_at or entry.updated_at or entry.created_at) else 'N/A' }}</td>
+              </tr>
+              <tr>
+                <td><b>Preparer:</b></td>
+                <td>
+                  <select name="preparer" class="form-select">
+                    <option value="">Select Preparer...</option>
+                    <option value="Nicola" {% if entry.preparer == 'Nicola' %}selected{% endif %}>Nicola</option>
+                    <option value="Erney" {% if entry.preparer == 'Erney' %}selected{% endif %}>Erney</option>
+                    <option value="Alex" {% if entry.preparer == 'Alex' %}selected{% endif %}>Alex</option>
+                    <option value="Queenie" {% if entry.preparer == 'Queenie' %}selected{% endif %}>Queenie</option>
+                    <option value="Charlie" {% if entry.preparer == 'Charlie' %}selected{% endif %}>Charlie</option>
+                    <option value="Eunice" {% if entry.preparer == 'Eunice' %}selected{% endif %}>Eunice</option>
+                    <option value="Marcus" {% if entry.preparer == 'Marcus' %}selected{% endif %}>Marcus</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Alleged Subject(s)</b></td>
+                <td>
+                  <div id="alleged-subjects">
+                    {% if entry.alleged_subject_english or entry.alleged_subject_chinese %}
+                      {% set english_names = entry.alleged_subject_english.split(',') if entry.alleged_subject_english else [] %}
+                      {% set chinese_names = entry.alleged_subject_chinese.split(',') if entry.alleged_subject_chinese else [] %}
+                      {% set max_len = [english_names|length, chinese_names|length] | max %}
+                      
+                      {# Parse saved license info from JSON #}
+                      {% set license_numbers = [] %}
+                      {% set intermediary_types = [] %}
+                      {% if entry.license_numbers_json %}
+                        {% set license_numbers = entry.license_numbers_json | from_json %}
+                      {% endif %}
+                      {% if entry.intermediary_types_json %}
+                        {% set intermediary_types = entry.intermediary_types_json | from_json %}
+                      {% endif %}
+                      
+                      {% for i in range(max_len) %}
+                        <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+                              🗑️ Remove
+                            </button>
+                          </div>
+                          
+                          <div class="row mb-3">
+                            <div class="col-md-6">
+                              <label class="form-label">📝 English Name</label>
+                              <input type="text" name="alleged_subjects_en[]" class="form-control" 
+                                     value="{{ english_names[i].strip() if i < english_names|length else '' }}" 
+                                     placeholder="Enter English name">
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                              <input type="text" name="alleged_subjects_cn[]" class="form-control" 
+                                     value="{{ chinese_names[i].strip() if i < chinese_names|length else '' }}"
+                                     placeholder="Enter Chinese name">
+                            </div>
+                          </div>
+                          
+                          {# Get saved license info for this person #}
+                          {% set has_license = i < license_numbers|length and license_numbers[i] %}
+                          {% set license_type = intermediary_types[i] if i < intermediary_types|length else '' %}
+                          {% set license_num = license_numbers[i] if i < license_numbers|length else '' %}
+                          
+                          <div class="mb-3">
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)" {% if has_license %}checked{% endif %}>
+                              <label class="form-check-label">Is this an insurance intermediary?</label>
+                            </div>
+                          </div>
+                          
+                          <div class="insurance-fields" style="display: {% if has_license %}block{% else %}none{% endif %}; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                            <div class="row">
+                              <div class="col-6">
+                                <label class="form-label">License Type:</label>
+                                <select name="intermediary_type[]" class="form-select">
+                                  <option value="">Select Type</option>
+                                  <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
+                                  <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
+                                  <option value="Other" {% if license_type == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                              </div>
+                              <div class="col-6">
+                                <label class="form-label">License Number:</label>
+                                <input type="text" name="license_numbers[]" class="form-control" value="{{ license_num }}" placeholder="Enter license number">
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <p class="text-muted mt-2 mb-0">
+                            <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                          </p>
+                        </div>
+                      {% endfor %}
+                    {% elif entry.alleged_person %}
+                      {% set subjects = entry.alleged_person.split(',') %}
+                      {% for subject in subjects %}
+                        <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+                              🗑️ Remove
+                            </button>
+                          </div>
+                          
+                          <div class="row mb-3">
+                            <div class="col-md-6">
+                              <label class="form-label">📝 English Name</label>
+                              <input type="text" name="alleged_subjects_en[]" class="form-control" value="{{ subject.strip() }}" placeholder="Enter English name">
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                              <input type="text" name="alleged_subjects_cn[]" class="form-control" placeholder="Enter Chinese name">
+                            </div>
+                          </div>
+                          
+                          <div class="mb-3">
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+                              <label class="form-check-label">Is this an insurance intermediary?</label>
+                            </div>
+                          </div>
+                          
+                          <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                            <div class="row">
+                              <div class="col-6">
+                                <label class="form-label">License Type:</label>
+                                <select name="intermediary_type[]" class="form-select">
+                                  <option value="">Select Type</option>
+                                  <option value="Agent">Agent</option>
+                                  <option value="Broker">Broker</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              </div>
+                              <div class="col-6">
+                                <label class="form-label">License Number:</label>
+                                <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <p class="text-muted mt-2 mb-0">
+                            <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                          </p>
+                        </div>
+                      {% endfor %}
+                    {% else %}
+                      <!-- Empty state - add first person -->
+                      <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <h6 class="text-primary mb-0">📋 Alleged Subject 1</h6>
+                          <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)" disabled>
+                            🗑️ Remove
+                          </button>
+                        </div>
+                        
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label class="form-label">📝 English Name</label>
+                            <input type="text" name="alleged_subjects_en[]" class="form-control" placeholder="Enter English name">
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                            <input type="text" name="alleged_subjects_cn[]" class="form-control" placeholder="Enter Chinese name">
+                          </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+                            <label class="form-check-label">Is this an insurance intermediary?</label>
+                          </div>
+                        </div>
+                        
+                        <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                          <div class="row">
+                            <div class="col-6">
+                              <label class="form-label">License Type:</label>
+                              <select name="intermediary_type[]" class="form-select">
+                                <option value="">Select Type</option>
+                                <option value="Agent">Agent</option>
+                                <option value="Broker">Broker</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            <div class="col-6">
+                              <label class="form-label">License Number:</label>
+                              <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <p class="text-muted mt-2 mb-0">
+                          <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                        </p>
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="mt-3 text-center">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addAllegedSubject()">
+                      <i class="bi bi-plus-circle"></i> Add Another Alleged Subject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Allegation Type:</b></td>
+                <td>
+                  <select name="alleged_nature" class="form-select">
+                    <option value="">Select Type...</option>
+                    <option value="Mis-selling" {% if entry.alleged_nature == 'Mis-selling' %}selected{% endif %}>Mis-selling</option>
+                    <option value="Fraud" {% if entry.alleged_nature == 'Fraud' %}selected{% endif %}>Fraud</option>
+                    <option value="Misrepresentation" {% if entry.alleged_nature == 'Misrepresentation' %}selected{% endif %}>Misrepresentation</option>
+                    <option value="Breach of Duty" {% if entry.alleged_nature == 'Breach of Duty' %}selected{% endif %}>Breach of Duty</option>
+                    <option value="Churning" {% if entry.alleged_nature == 'Churning' %}selected{% endif %}>Churning</option>
+                    <option value="Unlicensed Activity" {% if entry.alleged_nature == 'Unlicensed Activity' %}selected{% endif %}>Unlicensed Activity</option>
+                    <option value="Other" {% if entry.alleged_nature == 'Other' %}selected{% endif %}>Other</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Allegation Summary:</b></td>
+                <td>
+                  <textarea name="allegation_summary" class="form-control" rows="4" placeholder="Detailed description of the allegation...">{{ entry.allegation_summary or '' }}</textarea>
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle"></i> Provide a detailed summary of the allegation, including key facts and circumstances.
+                  </small>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Source Reliability (1-5):</b></td>
+                <td>
+                  <div class="btn-group" role="group">
+                    {% for i in range(1, 6) %}
+                      <input type="radio" class="btn-check" name="source_reliability" value="{{ i }}" id="reliability{{ i }}" {% if entry.source_reliability == i %}checked{% endif %}>
+                      <label class="btn btn-outline-primary" for="reliability{{ i }}">{{ i }}</label>
+                    {% endfor %}
+                  </div>
+                  <small class="text-muted d-block mt-2">
+                    1 = Highly Unreliable | 5 = Highly Reliable
+                  </small>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Content Validity (1-5):</b></td>
+                <td>
+                  <div class="btn-group" role="group">
+                    {% for i in range(1, 6) %}
+                      <input type="radio" class="btn-check" name="content_validity" value="{{ i }}" id="validity{{ i }}" {% if entry.content_validity == i %}checked{% endif %}>
+                      <label class="btn btn-outline-success" for="validity{{ i }}">{{ i }}</label>
+                    {% endfor %}
+                  </div>
+                  <small class="text-muted d-block mt-2">
+                    1 = Not Credible | 5 = Highly Credible
+                  </small>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light">
+                  <h6 class="text-primary mb-0"><i class="bi bi-person-check"></i> Reviewer Section</h6>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Reviewer Name:</b></td>
+                <td>
+                  <select name="reviewer_name" class="form-select">
+                    <option value="">Select Reviewer...</option>
+                    <option value="Nicola" {% if entry.reviewer_name == 'Nicola' %}selected{% endif %}>Nicola</option>
+                    <option value="Erney" {% if entry.reviewer_name == 'Erney' %}selected{% endif %}>Erney</option>
+                    <option value="Alex" {% if entry.reviewer_name == 'Alex' %}selected{% endif %}>Alex</option>
+                    <option value="Queenie" {% if entry.reviewer_name == 'Queenie' %}selected{% endif %}>Queenie</option>
+                    <option value="Charlie" {% if entry.reviewer_name == 'Charlie' %}selected{% endif %}>Charlie</option>
+                    <option value="Eunice" {% if entry.reviewer_name == 'Eunice' %}selected{% endif %}>Eunice</option>
+                    <option value="Marcus" {% if entry.reviewer_name == 'Marcus' %}selected{% endif %}>Marcus</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Reviewer Comment:</b></td>
+                <td>
+                  <textarea name="reviewer_comment" class="form-control" rows="3" placeholder="Reviewer's comments...">{{ entry.reviewer_comment or '' }}</textarea>
+                </td>
+              </tr>
+              <tr>
+                <td><b>Reviewer Decision:</b></td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="reviewer_decision" value="agree" id="decision_agree" {% if entry.reviewer_decision == 'agree' %}checked{% endif %}>
+                    <label class="btn btn-outline-success" for="decision_agree">
+                      <i class="bi bi-check-circle"></i> Agree
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="reviewer_decision" value="disagree" id="decision_disagree" {% if entry.reviewer_decision == 'disagree' %}checked{% endif %}>
+                    <label class="btn btn-outline-danger" for="decision_disagree">
+                      <i class="bi bi-x-circle"></i> Disagree
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="reviewer_decision" value="pending" id="decision_pending" {% if entry.reviewer_decision == 'pending' or not entry.reviewer_decision %}checked{% endif %}>
+                    <label class="btn btn-outline-warning" for="decision_pending">
+                      <i class="bi bi-clock"></i> Pending
+                    </label>
+                  </div>
+                </td>
+              </tr>
+            </table>
+            
+            <div class="text-center mt-4">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save"></i> Save Assessment
+              </button>
+              <a href="{{ url_for('int_source') }}#patrol" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-circle"></i> Cancel
+              </a>
+            </div>
+          </div>
+        </div>
+      </form>
+      
+    </div>
+  </div>
+</div>
+
+<script>
+// Toggle insurance intermediary fields
+function toggleInsuranceFields(checkbox) {
+    const row = checkbox.closest('.alleged-subject-row');
+    const insuranceFields = row.querySelector('.insurance-fields');
+    if (checkbox.checked) {
+        insuranceFields.style.display = 'block';
+    } else {
+        insuranceFields.style.display = 'none';
+        // Clear fields when unchecked
+        row.querySelector('select[name="intermediary_type[]"]').value = '';
+        row.querySelector('input[name="license_numbers[]"]').value = '';
+    }
+}
+
+// Add new alleged subject
+function addAllegedSubject() {
+    const container = document.getElementById('alleged-subjects');
+    const rows = container.querySelectorAll('.alleged-subject-row');
+    const newIndex = rows.length + 1;
+    
+    const newRow = document.createElement('div');
+    newRow.className = 'alleged-subject-row mb-3 p-3 border rounded';
+    newRow.style.backgroundColor = '#f8f9fa';
+    newRow.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="text-primary mb-0">📋 Alleged Subject ${newIndex}</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+                🗑️ Remove
+            </button>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">📝 English Name</label>
+                <input type="text" name="alleged_subjects_en[]" class="form-control" placeholder="Enter English name">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                <input type="text" name="alleged_subjects_cn[]" class="form-control" placeholder="Enter Chinese name">
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)">
+                <label class="form-check-label">Is this an insurance intermediary?</label>
+            </div>
+        </div>
+        
+        <div class="insurance-fields" style="display: none; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+            <div class="row">
+                <div class="col-6">
+                    <label class="form-label">License Type:</label>
+                    <select name="intermediary_type[]" class="form-select">
+                        <option value="">Select Type</option>
+                        <option value="Agent">Agent</option>
+                        <option value="Broker">Broker</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label">License Number:</label>
+                    <input type="text" name="license_numbers[]" class="form-control" placeholder="Enter license number">
+                </div>
+            </div>
+        </div>
+        
+        <p class="text-muted mt-2 mb-0">
+            <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+        </p>
+    `;
+    
+    container.appendChild(newRow);
+}
+
+// Remove alleged subject
+function removeAllegedSubject(button) {
+    const row = button.closest('.alleged-subject-row');
+    const container = document.getElementById('alleged-subjects');
+    const rows = container.querySelectorAll('.alleged-subject-row');
+    
+    // Don't allow removal if it's the only row
+    if (rows.length <= 1) {
+        alert('You must have at least one alleged subject.');
+        return;
+    }
+    
+    row.remove();
+    
+    // Renumber remaining rows
+    container.querySelectorAll('.alleged-subject-row').forEach((row, index) => {
+        row.querySelector('h6').textContent = `📋 Alleged Subject ${index + 1}`;
+    });
+}
+</script>
+
+{% endblock %}

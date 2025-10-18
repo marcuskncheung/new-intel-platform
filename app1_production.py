@@ -5833,7 +5833,7 @@ def online_patrol_detail(entry_id):
                 return redirect(url_for('alleged_subject_list'))
 
     # GET: show detail page
-    return render_template("int_source_online_patrol_edit.html", entry=entry)
+    return render_template("int_source_online_patrol_aligned.html", entry=entry)
 
 @app.route("/delete_online_patrol/<int:entry_id>", methods=["POST"])
 @login_required
@@ -6865,7 +6865,7 @@ def whatsapp_detail(entry_id):
                 return redirect(url_for('alleged_subject_list'))
 
     # GET: show detail page
-    return render_template("whatsapp_detail_test.html", entry=entry, images=images)
+    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images)
 
 # Add this route to fix url_for('surveillance_detail', entry_id=...) errors in your templates
 @app.route("/surveillance/<int:entry_id>", methods=["GET", "POST"])
@@ -6951,6 +6951,366 @@ def surveillance_detail(entry_id):
     # --- Render appropriate template ---
     template = "int_source_surveillance_edit.html" if is_edit else "surveillance_detail_note.html"
     return render_template(template, entry=entry, documents=documents)
+
+# WhatsApp INT Reference Number Update Route
+@app.route("/whatsapp/<int:entry_id>/update_int_reference", methods=["POST"])
+@login_required
+def update_whatsapp_int_reference(entry_id):
+    """Update INT reference number for WhatsApp entry"""
+    entry = WhatsAppEntry.query.get_or_404(entry_id)
+    entry.int_reference_number = request.form.get("int_reference_number", "").strip().upper()
+    
+    try:
+        db.session.commit()
+        flash("INT Reference Number updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating INT reference: {e}", "danger")
+    
+    return redirect(url_for('whatsapp_detail', entry_id=entry_id))
+
+# Online Patrol INT Reference Number Update Route
+@app.route("/online_patrol/<int:entry_id>/update_int_reference", methods=["POST"])
+@login_required
+def update_patrol_int_reference(entry_id):
+    """Update INT reference number for Online Patrol entry"""
+    entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+    entry.int_reference_number = request.form.get("int_reference_number", "").strip().upper()
+    
+    try:
+        db.session.commit()
+        flash("INT Reference Number updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating INT reference: {e}", "danger")
+    
+    return redirect(url_for('online_patrol_detail', entry_id=entry_id))
+
+# WhatsApp Assessment Update Route
+@app.route("/whatsapp/<int:entry_id>/update_assessment", methods=["POST"])
+@login_required
+def int_source_whatsapp_update_assessment(entry_id):
+    """Update assessment details for WhatsApp entry"""
+    entry = WhatsAppEntry.query.get_or_404(entry_id)
+    
+    # Update basic assessment fields
+    entry.source_reliability = request.form.get("source_reliability", type=int)
+    entry.content_validity = request.form.get("content_validity", type=int)
+    entry.preparer = request.form.get("preparer")
+    entry.alleged_nature = request.form.get("alleged_nature")
+    entry.allegation_summary = request.form.get("allegation_summary")
+    entry.reviewer_name = request.form.get("reviewer_name")
+    entry.reviewer_comment = request.form.get("reviewer_comment")
+    entry.reviewer_decision = request.form.get("reviewer_decision")
+    
+    # Handle multiple alleged subjects with English and Chinese names
+    english_names = request.form.getlist("alleged_subjects_en[]")
+    chinese_names = request.form.getlist("alleged_subjects_cn[]")
+    license_types = request.form.getlist("intermediary_type[]")
+    license_numbers_list = request.form.getlist("license_numbers[]")
+    
+    # Process alleged subjects
+    processed_english = []
+    processed_chinese = []
+    license_info = []
+    intermediary_info = []
+    
+    max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
+    
+    for i in range(max_len):
+        english_name = english_names[i].strip() if i < len(english_names) else ""
+        chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+        
+        if english_name or chinese_name:
+            processed_english.append(english_name)
+            processed_chinese.append(chinese_name)
+            
+            if i < len(license_numbers_list):
+                license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+                license_type = license_types[i] if i < len(license_types) else ""
+                license_info.append(license_num if license_num else "")
+                intermediary_info.append(license_type if license_type else "")
+    
+    # Store in database
+    entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
+    entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+    
+    # Update legacy field for backward compatibility
+    if processed_english and processed_chinese:
+        combined_subjects = []
+        for i in range(max(len(processed_english), len(processed_chinese))):
+            eng = processed_english[i] if i < len(processed_english) else ""
+            chn = processed_chinese[i] if i < len(processed_chinese) else ""
+            if eng and chn:
+                combined_subjects.append(f"{eng} ({chn})")
+            elif eng:
+                combined_subjects.append(eng)
+            elif chn:
+                combined_subjects.append(f"({chn})")
+        entry.alleged_person = ', '.join(combined_subjects)
+    elif processed_english:
+        entry.alleged_person = ', '.join(processed_english)
+    elif processed_chinese:
+        entry.alleged_person = ', '.join(processed_chinese)
+    else:
+        entry.alleged_person = None
+    
+    # Store license information
+    import json
+    if license_info and any(license_info):
+        entry.license_numbers_json = json.dumps(license_info)
+        entry.intermediary_types_json = json.dumps(intermediary_info)
+        entry.license_number = next((lic for lic in license_info if lic), None)
+    else:
+        entry.license_numbers_json = None
+        entry.intermediary_types_json = None
+        entry.license_number = None
+    
+    # Determine case opening
+    combined_score = (entry.source_reliability or 0) + (entry.content_validity or 0)
+    if combined_score >= 8 and entry.reviewer_decision == 'agree':
+        entry.intelligence_case_opened = True
+    elif entry.reviewer_decision == 'disagree':
+        entry.intelligence_case_opened = False
+    
+    try:
+        entry.assessment_updated_at = get_hk_time()
+        db.session.commit()
+        
+        # 🤖 POI AUTOMATION with license info
+        if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
+            try:
+                print(f"[WHATSAPP AUTOMATION] 🚀 Auto-updating POI profiles for WhatsApp {entry.id}")
+                
+                for i in range(max_len):
+                    english_name = processed_english[i] if i < len(processed_english) else ""
+                    chinese_name = processed_chinese[i] if i < len(processed_chinese) else ""
+                    
+                    if not english_name and not chinese_name:
+                        continue
+                    
+                    # Prepare additional info
+                    person_info = {}
+                    if i < len(license_info) and license_info[i]:
+                        person_info['license_number'] = license_info[i]
+                        person_info['agent_number'] = license_info[i]
+                    if i < len(intermediary_info) and intermediary_info[i]:
+                        person_info['role'] = intermediary_info[i]
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=english_name if english_name else None,
+                        name_chinese=chinese_name if chinese_name else None,
+                        email_id=None,
+                        source="WHATSAPP",
+                        update_mode="merge",
+                        additional_info=person_info
+                    )
+                    
+                    if result.get('profile_id'):
+                        try:
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['profile_id'],
+                                source_type='WHATSAPP',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                universal_link = POIIntelligenceLink(
+                                    poi_id=result['profile_id'],
+                                    source_type='WHATSAPP',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id,
+                                    confidence_score=0.90,
+                                    created_by=f"USER-{current_user.username}"
+                                )
+                                db.session.add(universal_link)
+                                db.session.commit()
+                                print(f"[WHATSAPP AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                        except Exception as link_error:
+                            print(f"[WHATSAPP AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                
+                flash(f"Assessment updated and {max_len} POI profile(s) processed.", "success")
+            except Exception as automation_error:
+                print(f"[WHATSAPP AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                flash("Assessment saved, but POI automation had an error.", "warning")
+        else:
+            flash("Assessment updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating assessment: {str(e)}", "error")
+        print(f"Database error: {e}")
+    
+    # 🎯 SMART REDIRECT
+    linked_poi = get_linked_poi_for_intelligence('WHATSAPP', entry_id)
+    if linked_poi:
+        flash(f'Assessment updated. Viewing POI profile: {linked_poi}', 'success')
+        return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+    else:
+        return redirect(url_for('alleged_subject_list'))
+
+# Online Patrol Assessment Update Route
+@app.route("/online_patrol/<int:entry_id>/update_assessment", methods=["POST"])
+@login_required
+def int_source_patrol_update_assessment(entry_id):
+    """Update assessment details for Online Patrol entry"""
+    entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+    
+    # Update basic assessment fields
+    entry.source_reliability = request.form.get("source_reliability", type=int)
+    entry.content_validity = request.form.get("content_validity", type=int)
+    entry.preparer = request.form.get("preparer")
+    entry.alleged_nature = request.form.get("alleged_nature")
+    entry.allegation_summary = request.form.get("allegation_summary")
+    entry.reviewer_name = request.form.get("reviewer_name")
+    entry.reviewer_comment = request.form.get("reviewer_comment")
+    entry.reviewer_decision = request.form.get("reviewer_decision")
+    
+    # Handle multiple alleged subjects
+    english_names = request.form.getlist("alleged_subjects_en[]")
+    chinese_names = request.form.getlist("alleged_subjects_cn[]")
+    license_types = request.form.getlist("intermediary_type[]")
+    license_numbers_list = request.form.getlist("license_numbers[]")
+    
+    # Process alleged subjects
+    processed_english = []
+    processed_chinese = []
+    license_info = []
+    intermediary_info = []
+    
+    max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
+    
+    for i in range(max_len):
+        english_name = english_names[i].strip() if i < len(english_names) else ""
+        chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+        
+        if english_name or chinese_name:
+            processed_english.append(english_name)
+            processed_chinese.append(chinese_name)
+            
+            if i < len(license_numbers_list):
+                license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+                license_type = license_types[i] if i < len(license_types) else ""
+                license_info.append(license_num if license_num else "")
+                intermediary_info.append(license_type if license_type else "")
+    
+    # Store in database
+    entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
+    entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+    
+    # Update legacy field
+    if processed_english and processed_chinese:
+        combined_subjects = []
+        for i in range(max(len(processed_english), len(processed_chinese))):
+            eng = processed_english[i] if i < len(processed_english) else ""
+            chn = processed_chinese[i] if i < len(processed_chinese) else ""
+            if eng and chn:
+                combined_subjects.append(f"{eng} ({chn})")
+            elif eng:
+                combined_subjects.append(eng)
+            elif chn:
+                combined_subjects.append(f"({chn})")
+        entry.alleged_person = ', '.join(combined_subjects)
+    elif processed_english:
+        entry.alleged_person = ', '.join(processed_english)
+    elif processed_chinese:
+        entry.alleged_person = ', '.join(processed_chinese)
+    else:
+        entry.alleged_person = None
+    
+    # Store license information
+    import json
+    if license_info and any(license_info):
+        entry.license_numbers_json = json.dumps(license_info)
+        entry.intermediary_types_json = json.dumps(intermediary_info)
+        entry.license_number = next((lic for lic in license_info if lic), None)
+    else:
+        entry.license_numbers_json = None
+        entry.intermediary_types_json = None
+        entry.license_number = None
+    
+    # Determine case opening
+    combined_score = (entry.source_reliability or 0) + (entry.content_validity or 0)
+    if combined_score >= 8 and entry.reviewer_decision == 'agree':
+        entry.intelligence_case_opened = True
+    elif entry.reviewer_decision == 'disagree':
+        entry.intelligence_case_opened = False
+    
+    try:
+        entry.assessment_updated_at = get_hk_time()
+        db.session.commit()
+        
+        # 🤖 POI AUTOMATION with license info
+        if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
+            try:
+                print(f"[PATROL AUTOMATION] 🚀 Auto-updating POI profiles for Patrol {entry.id}")
+                
+                for i in range(max_len):
+                    english_name = processed_english[i] if i < len(processed_english) else ""
+                    chinese_name = processed_chinese[i] if i < len(processed_chinese) else ""
+                    
+                    if not english_name and not chinese_name:
+                        continue
+                    
+                    # Prepare additional info
+                    person_info = {}
+                    if i < len(license_info) and license_info[i]:
+                        person_info['license_number'] = license_info[i]
+                        person_info['agent_number'] = license_info[i]
+                    if i < len(intermediary_info) and intermediary_info[i]:
+                        person_info['role'] = intermediary_info[i]
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=english_name if english_name else None,
+                        name_chinese=chinese_name if chinese_name else None,
+                        email_id=None,
+                        source="PATROL",
+                        update_mode="merge",
+                        additional_info=person_info
+                    )
+                    
+                    if result.get('profile_id'):
+                        try:
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['profile_id'],
+                                source_type='PATROL',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                universal_link = POIIntelligenceLink(
+                                    poi_id=result['profile_id'],
+                                    source_type='PATROL',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id,
+                                    confidence_score=0.90,
+                                    created_by=f"USER-{current_user.username}"
+                                )
+                                db.session.add(universal_link)
+                                db.session.commit()
+                                print(f"[PATROL AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                        except Exception as link_error:
+                            print(f"[PATROL AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                
+                flash(f"Assessment updated and {max_len} POI profile(s) processed.", "success")
+            except Exception as automation_error:
+                print(f"[PATROL AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                flash("Assessment saved, but POI automation had an error.", "warning")
+        else:
+            flash("Assessment updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating assessment: {str(e)}", "error")
+        print(f"Database error: {e}")
+    
+    # 🎯 SMART REDIRECT
+    linked_poi = get_linked_poi_for_intelligence('PATROL', entry_id)
+    if linked_poi:
+        flash(f'Assessment updated. Viewing POI profile: {linked_poi}', 'success')
+        return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+    else:
+        return redirect(url_for('alleged_subject_list'))
 
 # Add this route to fix url_for('int_source_update_assessment', email_id=...) errors in your templates
 @app.route("/int_source/email/<int:email_id>/update_assessment", methods=["POST"])
