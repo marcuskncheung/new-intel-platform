@@ -2249,15 +2249,15 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or wa.created_at,
-                        'date_str': (link.link_created_at or wa.created_at).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or wa.created_at) else 'N/A',
+                        'date': link.link_created_at or wa.received_time,
+                        'date_str': (link.link_created_at or wa.received_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or wa.received_time) else 'N/A',
                         'id': wa.id,
-                        'reference': f'WHATSAPP-{wa.id}',
-                        'title': f'WhatsApp: {wa.contact_name or wa.phone_number or "Unknown"}',
-                        'summary': wa.synopsis or wa.alleged_nature or 'WhatsApp conversation',
+                        'reference': wa.int_reference or f'WHATSAPP-{wa.id}',
+                        'title': f'WhatsApp: {wa.complaint_name or wa.phone_number or "Unknown"}',
+                        'summary': wa.allegation_summary or wa.alleged_nature or wa.details or 'WhatsApp conversation',
                         'phone': wa.phone_number,
-                        'contact': wa.contact_name,
-                        'view_url': url_for('int_source_whatsapp_detail', entry_id=wa.id)
+                        'contact': wa.complaint_name,
+                        'view_url': url_for('whatsapp_detail', entry_id=wa.id)
                     }
                     whatsapp.append(intel_data)
                     all_intelligence.append(intel_data)
