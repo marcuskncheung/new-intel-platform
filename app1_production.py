@@ -2271,13 +2271,13 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or pt.created_at,
-                        'date_str': (link.link_created_at or pt.created_at).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or pt.created_at) else 'N/A',
+                        'date': link.link_created_at or pt.complaint_time,
+                        'date_str': (link.link_created_at or pt.complaint_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or pt.complaint_time) else 'N/A',
                         'id': pt.id,
-                        'reference': f'PATROL-{pt.id}',
-                        'title': pt.synopsis or 'Online Patrol Entry',
-                        'summary': pt.action_taken or pt.details or 'Patrol observation',
-                        'location': getattr(pt, 'location', None),
+                        'reference': pt.int_reference or f'PATROL-{pt.id}',
+                        'title': f'Online Patrol: {pt.sender or "Unknown"}',
+                        'summary': pt.allegation_summary or pt.alleged_nature or pt.details or 'Patrol observation',
+                        'status': pt.status,
                         'view_url': url_for('int_source_online_patrol_detail', entry_id=pt.id)
                     }
                     patrol.append(intel_data)
@@ -2286,19 +2286,22 @@ def alleged_subject_profile_detail(poi_id):
             elif link.source_type == 'SURVEILLANCE':
                 sv = SurveillanceEntry.query.get(link.source_id)
                 if sv:
+                    # Convert date to datetime for consistency
+                    sv_datetime = datetime.combine(sv.date, datetime.min.time()) if sv.date else None
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'SURVEILLANCE',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or sv.created_at,
-                        'date_str': (link.link_created_at or sv.created_at).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv.created_at) else 'N/A',
+                        'date': link.link_created_at or sv_datetime,
+                        'date_str': (link.link_created_at or sv_datetime).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv_datetime) else 'N/A',
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
-                        'title': sv.synopsis or 'Surveillance Entry',
-                        'summary': sv.details or sv.action_taken or 'Surveillance observation',
-                        'location': getattr(sv, 'location', None),
+                        'title': f'{sv.operation_type or "Surveillance"}: {sv.operation_number or f"OP-{sv.id}"}',
+                        'summary': sv.allegation_summary or sv.alleged_nature or sv.details_of_finding or 'Surveillance observation',
+                        'location': sv.venue,
+                        'operation_type': sv.operation_type,
                         'view_url': url_for('int_source_surveillance_detail', entry_id=sv.id)
                     }
                     surveillance.append(intel_data)
