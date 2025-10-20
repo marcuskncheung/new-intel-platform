@@ -3102,9 +3102,10 @@ def int_source():
     
     print(f"[DEBUG] Final emails count for interface: {len(emails)}")
     
-    whatsapp_data = WhatsAppEntry.query.all()
-    online_patrol_data = OnlinePatrolEntry.query.all()
-    surveillance_data = SurveillanceEntry.query.all()
+    # Sort all intelligence sources by ID descending (newest first) to match email sorting
+    whatsapp_data = WhatsAppEntry.query.order_by(WhatsAppEntry.id.desc()).all()
+    online_patrol_data = OnlinePatrolEntry.query.order_by(OnlinePatrolEntry.id.desc()).all()
+    surveillance_data = SurveillanceEntry.query.order_by(SurveillanceEntry.id.desc()).all()
 
     # ------------------------------
     # Build data for Analytics charts
