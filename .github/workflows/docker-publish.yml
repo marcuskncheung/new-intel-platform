@@ -21,18 +21,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Wait for Docker Hub (if needed)
+    - name: Check Docker Hub Status
+      id: dockerhub_check
+      continue-on-error: true
       run: |
         echo "⏳ Checking Docker Hub availability..."
-        for i in {1..5}; do
-          if curl -f -s --max-time 10 https://registry-1.docker.io/v2/ > /dev/null 2>&1; then
-            echo "✅ Docker Hub is available"
-            break
-          else
-            echo "⚠️  Docker Hub unavailable, waiting 30s... (attempt $i/5)"
-            sleep 30
-          fi
-        done
+        if curl -f -s --max-time 10 https://registry-1.docker.io/v2/ > /dev/null 2>&1; then
+          echo "✅ Docker Hub is available"
+          echo "available=true" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️  Docker Hub unavailable - using Ubuntu base image instead"
+          echo "available=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Log in to Container Registry
       uses: docker/login-action@v3

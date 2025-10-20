@@ -1,22 +1,30 @@
 # Dockerfile for Intelligence Platform with PostgreSQL support
-# Using specific digest for reliability (avoid Docker Hub intermittent issues)
-FROM python:3.11.11-slim
+# Multi-stage build to avoid Docker Hub dependency during outages
+# Stage 1: Use GitHub's runner image which already has Python
+FROM ubuntu:22.04 as base
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-# Install system dependencies including PostgreSQL client
+# Install Python 3.11 and system dependencies
 RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
     gcc \
     g++ \
     libpq-dev \
     postgresql-client \
     poppler-utils \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3.11 /usr/bin/python
+
+# Dockerfile for Intelligence Platform with PostgreSQL support
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Set working directory
 WORKDIR /app
