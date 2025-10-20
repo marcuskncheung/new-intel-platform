@@ -21,6 +21,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Wait for Docker Hub (if needed)
+      run: |
+        echo "⏳ Checking Docker Hub availability..."
+        for i in {1..5}; do
+          if curl -f -s --max-time 10 https://registry-1.docker.io/v2/ > /dev/null 2>&1; then
+            echo "✅ Docker Hub is available"
+            break
+          else
+            echo "⚠️  Docker Hub unavailable, waiting 30s... (attempt $i/5)"
+            sleep 30
+          fi
+        done
+
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
@@ -39,6 +52,13 @@ jobs:
           type=sha,prefix={{branch}}-
           type=raw,value=latest,enable={{is_default_branch}}
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver-opts: |
+          image=moby/buildkit:latest
+          network=host
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -46,8 +66,10 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-      # Retry on Docker Hub failures (500 errors are common)
-      continue-on-error: false
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          BUILDKIT_INLINE_CACHE=1
       timeout-minutes: 20
 
     - name: Deploy to server (optional webhook)
