@@ -87,10 +87,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_id=result['poi_id'],
                             source_type='EMAIL',
                             source_id=email.id,
-                            case_id=email.caseprofile_id,
+                            case_profile_id=email.caseprofile_id,
                             confidence_score=0.95,
-                            extraction_method='REFRESH',
-                            created_by='SYSTEM_REFRESH'
+                            extraction_method='REFRESH'
                         )
                         db.session.add(new_link)
                         results['email']['links_created'] += 1
@@ -141,10 +140,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_id=result['poi_id'],
                             source_type='WHATSAPP',
                             source_id=entry.id,
-                            case_id=entry.caseprofile_id,
+                            case_profile_id=entry.caseprofile_id,
                             confidence_score=0.90,
-                            extraction_method='REFRESH',
-                            created_by='SYSTEM_REFRESH'
+                            extraction_method='REFRESH'
                         )
                         db.session.add(new_link)
                         results['whatsapp']['links_created'] += 1
@@ -195,10 +193,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_id=result['poi_id'],
                             source_type='PATROL',
                             source_id=entry.id,
-                            case_id=entry.caseprofile_id,
+                            case_profile_id=entry.caseprofile_id,
                             confidence_score=0.90,
-                            extraction_method='REFRESH',
-                            created_by='SYSTEM_REFRESH'
+                            extraction_method='REFRESH'
                         )
                         db.session.add(new_link)
                         results['patrol']['links_created'] += 1
@@ -256,10 +253,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         poi_id=result['poi_id'],
                         source_type='SURVEILLANCE',
                         source_id=target.surveillance_entry_id,
-                        case_id=None,
+                        case_profile_id=None,
                         confidence_score=0.95,
-                        extraction_method='REFRESH',
-                        created_by='SYSTEM_REFRESH'
+                        extraction_method='REFRESH'
                     )
                     db.session.add(new_link)
                     results['surveillance']['links_created'] += 1
