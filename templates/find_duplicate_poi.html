@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-search"></i> Find & Merge Duplicate POI Profiles</h2>
+    <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Back to POI List
+    </a>
+  </div>
+
+  {% if scanning %}
+    <div class="alert alert-info">
+      <i class="bi bi-hourglass-split"></i> Scanning {{ total_profiles }} profiles for duplicates...
+    </div>
+  {% endif %}
+
+  {% if duplicates %}
+    <div class="alert alert-warning">
+      <h5><i class="bi bi-exclamation-triangle"></i> Found {{ duplicates|length }} Potential Duplicate Groups</h5>
+      <p class="mb-0">Review each group and merge if they are the same person.</p>
+    </div>
+
+    {% for group in duplicates %}
+    <div class="card mb-4">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+          <i class="bi bi-people"></i> Duplicate Group {{ loop.index }}
+          <span class="badge bg-dark">{{ group.similarity }}% Match</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for profile in group.profiles %}
+          <div class="col-md-6 mb-3">
+            <div class="card {% if loop.first %}border-success{% else %}border-secondary{% endif %}">
+              <div class="card-header {% if loop.first %}bg-success text-white{% else %}bg-secondary text-white{% endif %}">
+                <strong>{{ profile.poi_id }}</strong> {% if loop.first %}<span class="badge bg-light text-success">Keep This</span>{% else %}<span class="badge bg-light text-dark">Merge Into Master</span>{% endif %}
+              </div>
+              <div class="card-body">
+                <p><strong>English:</strong> {{ profile.name_english or 'N/A' }}</p>
+                <p><strong>Chinese:</strong> {{ profile.name_chinese or 'N/A' }}</p>
+                <p><strong>License:</strong> {{ profile.license_number or 'N/A' }}</p>
+                <p><strong>Company:</strong> {{ profile.company or 'N/A' }}</p>
+                <p><strong>Email Count:</strong> {{ profile.email_count }}</p>
+                <p><strong>WhatsApp Count:</strong> {{ profile.whatsapp_count }}</p>
+                <p><strong>Patrol Count:</strong> {{ profile.patrol_count }}</p>
+                <p class="mb-0"><strong>Created:</strong> {{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <form method="POST" action="{{ url_for('merge_poi_profiles') }}" class="mt-3">
+          <input type="hidden" name="master_poi_id" value="{{ group.profiles[0].poi_id }}">
+          {% for profile in group.profiles[1:] %}
+          <input type="hidden" name="duplicate_poi_ids" value="{{ profile.poi_id }}">
+          {% endfor %}
+          <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ Merge these profiles?\n\nThis will:\n- Keep {{ group.profiles[0].poi_id }} ({{ group.profiles[0].name_english or group.profiles[0].name_chinese }})\n- Merge all intelligence links from duplicates\n- Mark duplicates as MERGED\n\nThis action cannot be undone!')">
+            <i class="bi bi-arrow-down-up"></i> Merge Into {{ group.profiles[0].poi_id }}
+          </button>
+          <button type="button" class="btn btn-secondary ms-2" onclick="this.closest('.card').remove()">
+            <i class="bi bi-x-circle"></i> Skip This Group
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+
+  {% elif scanned %}
+    <div class="alert alert-success">
+      <h5><i class="bi bi-check-circle"></i> No Duplicates Found!</h5>
+      <p class="mb-0">All {{ total_profiles }} POI profiles appear to be unique.</p>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <h4><i class="bi bi-search"></i> Find Duplicate POI Profiles</h4>
+        <p class="text-muted">Scan all POI profiles to find potential duplicates based on name similarity.</p>
+        <form method="POST" action="{{ url_for('find_duplicate_poi_profiles') }}">
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-search"></i> Start Scanning
+          </button>
+        </form>
+        <p class="text-muted mt-3">
+          <strong>Matching Criteria:</strong><br>
+          • English name similarity ≥ 85%<br>
+          • Chinese name exact or partial match<br>
+          • Same license number (if available)<br>
+          • Examples: "John Smith" ↔ "Smith John", "張偉" ↔ "張偉強"
+        </p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
