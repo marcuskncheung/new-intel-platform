@@ -2280,7 +2280,7 @@ def alleged_subject_profile_detail(poi_id):
                         'title': f'Online Patrol: {pt.sender or "Unknown"}',
                         'summary': pt.allegation_summary or pt.alleged_nature or pt.details or 'Patrol observation',
                         'status': pt.status,
-                        'view_url': url_for('int_source_online_patrol_detail', entry_id=pt.id)
+                        'view_url': url_for('online_patrol_detail', entry_id=pt.id)
                     }
                     patrol.append(intel_data)
                     all_intelligence.append(intel_data)
@@ -2304,7 +2304,7 @@ def alleged_subject_profile_detail(poi_id):
                         'summary': sv.allegation_summary or sv.alleged_nature or sv.details_of_finding or 'Surveillance observation',
                         'location': sv.venue,
                         'operation_type': sv.operation_type,
-                        'view_url': url_for('int_source_surveillance_detail', entry_id=sv.id)
+                        'view_url': url_for('surveillance_detail', entry_id=sv.id)
                     }
                     surveillance.append(intel_data)
                     all_intelligence.append(intel_data)
