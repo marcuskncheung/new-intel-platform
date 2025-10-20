@@ -104,6 +104,93 @@ def format_hk_time(dt, format='%Y-%m-%d %H:%M:%S'):
     except:
         return str(dt)
 
+# ========================================
+# 🔗 TWO-TIER REFERENCE SYSTEM HELPERS
+# ========================================
+
+def get_source_display_id(source_type, source_id):
+    """
+    Format source-specific ID for display
+    
+    Args:
+        source_type: "EMAIL", "WHATSAPP", "PATROL", "SURVEILLANCE"
+        source_id: Database ID (integer)
+        
+    Returns:
+        Formatted string: "EMAIL-182", "WHATSAPP-23", etc.
+    """
+    return f"{source_type}-{source_id}"
+
+def get_case_int_reference(source_record):
+    """
+    Get assigned case INT reference for a source record
+    
+    Args:
+        source_record: Email, WhatsAppEntry, OnlinePatrolEntry, or SurveillanceEntry
+        
+    Returns:
+        Case INT reference (e.g., "INT-007") or None if not assigned
+    """
+    try:
+        if hasattr(source_record, 'caseprofile_id') and source_record.caseprofile_id:
+            case = db.session.get(CaseProfile, source_record.caseprofile_id)
+            return case.int_reference if case else None
+        return None
+    except Exception as e:
+        print(f"[CASE INT] Error getting case reference: {e}")
+        return None
+
+def format_intelligence_reference(source_type, source_id, include_case=True):
+    """
+    Format intelligence reference with both source ID and case INT
+    
+    Args:
+        source_type: "EMAIL", "WHATSAPP", "PATROL", "SURVEILLANCE"
+        source_id: Database ID
+        include_case: Whether to include case INT if available
+        
+    Returns:
+        Dict with display information:
+        {
+            'source_id': 'EMAIL-182',
+            'case_int': 'INT-007' or None,
+            'display': 'EMAIL-182 (Case: INT-007)' or 'EMAIL-182'
+        }
+    """
+    source_display = get_source_display_id(source_type, source_id)
+    
+    result = {
+        'source_id': source_display,
+        'case_int': None,
+        'display': source_display
+    }
+    
+    if include_case:
+        # Try to get case INT from database
+        try:
+            if source_type == "EMAIL":
+                record = db.session.get(Email, source_id)
+            elif source_type == "WHATSAPP":
+                record = db.session.get(WhatsAppEntry, source_id)
+            elif source_type == "PATROL":
+                record = db.session.get(OnlinePatrolEntry, source_id)
+            elif source_type == "SURVEILLANCE":
+                record = db.session.get(SurveillanceEntry, source_id)
+            else:
+                record = None
+            
+            if record:
+                case_int = get_case_int_reference(record)
+                if case_int:
+                    result['case_int'] = case_int
+                    result['display'] = f"{source_display} (Case: {case_int})"
+        except Exception as e:
+            print(f"[INT FORMAT] Error formatting reference: {e}")
+    
+    return result
+
+# ...existing code...
+
 from email_utils import split_email_thread, extract_meta_and_content
 from sqlalchemy import text, inspect
 from docx import Document as DocxDocument  # This import is correct if python-docx is installed
@@ -519,6 +606,16 @@ def safe_datetime_filter(value, format='%Y-%m-%d %H:%M'):
 @app.template_filter('regex_replace')
 def regex_replace(s, find, replace):
     return re.sub(find, replace, s)
+
+# Add context processor to make helper functions available in templates
+@app.context_processor
+def inject_reference_helpers():
+    """Make reference system helper functions available in all templates"""
+    return dict(
+        get_source_display_id=get_source_display_id,
+        get_case_int_reference=get_case_int_reference,
+        format_intelligence_reference=format_intelligence_reference
+    )
     
     
 # --- PRODUCTION DATABASE SETUP (POSTGRESQL/SQLITE) ---

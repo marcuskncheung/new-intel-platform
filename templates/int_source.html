@@ -1774,24 +1774,27 @@
           <thead class="table-light">
             <tr>
               <th class="sortable" data-column="0">
-                Case Number <i class="fas fa-sort sort-icon"></i>
+                Source ID <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="1">
-                Sender <i class="fas fa-sort sort-icon"></i>
+                Case INT <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="2">
-                Recipients <i class="fas fa-sort sort-icon"></i>
+                Sender <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="3">
-                Subject <i class="fas fa-sort sort-icon"></i>
+                Recipients <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="4">
-                Received <i class="fas fa-sort sort-icon"></i>
+                Subject <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="5">
-                Combined Score <i class="fas fa-sort sort-icon"></i>
+                Received <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="6">
+                Combined Score <i class="fas fa-sort sort-icon"></i>
+              </th>
+              <th class="sortable" data-column="7">
                 Status <i class="fas fa-sort sort-icon"></i>
               </th>
               <th>Action</th>
@@ -1800,26 +1803,23 @@
           <tbody>
             {% for email in emails %}
             {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
+            {% set case_int = get_case_int_reference(email) %}
             <tr class="email-row" 
                 style="background-color: {{ email.thread_color if email.is_thread else 'transparent' }}; border-left: {{ '4px solid ' + email.thread_color if email.is_thread else 'none' }};"
                 data-thread-id="{{ email.thread_id }}" 
                 data-thread-key="{{ email.thread_key }}"
                 title="{{ 'Thread: ' + email.thread_count|string + ' emails in conversation' if email.is_thread else 'Single email' }}">
               <td>
-                {% if email.int_reference_number %}
-                  <span class="badge bg-primary" title="INT Reference Number - Order: {{ email.int_reference_order }}">
-                    <i class="fas fa-hashtag"></i> {{ email.int_reference_number }}
-                    {% if email.int_reference_manual %}
-                      <i class="fas fa-pencil-alt ms-1" title="Manually edited"></i>
-                    {% endif %}
-                  </span>
-                {% else %}
-                  <span class="badge bg-warning text-dark" title="No INT number assigned">
-                    <i class="fas fa-clock"></i> Pending
-                  </span>
+                <span class="badge bg-info">EMAIL-{{ email.id }}</span>
+                {% if email.is_thread %}
+                  <br><small class="text-muted">Thread: {{ email.thread_count }}</small>
                 {% endif %}
-                {% if email.case_number %}
-                  <br><small class="text-muted">Case: {{ email.case_number }}</small>
+              </td>
+              <td>
+                {% if case_int %}
+                  <span class="badge bg-primary">{{ case_int }}</span>
+                {% else %}
+                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
@@ -2041,7 +2041,8 @@
         <table id="whatsapp-table" class="table table-sm pro-table">
           <thead>
             <tr>
-              <th>INT Ref</th>
+              <th>Source ID</th>
+              <th>Case INT</th>
               <th>Received Time</th>
               <th>Complaint Name</th>
               <th>Phone Number</th>
@@ -2055,12 +2056,16 @@
           <tbody>
             {% for w in whatsapp_data %}
             {% set combined_score = (w.source_reliability or 0) + (w.content_validity or 0) %}
+            {% set case_int = get_case_int_reference(w) %}
             <tr>
               <td>
-                {% if w.int_reference %}
-                  <span class="badge bg-primary">{{ w.int_reference }}</span>
+                <span class="badge bg-info">WHATSAPP-{{ w.id }}</span>
+              </td>
+              <td>
+                {% if case_int %}
+                  <span class="badge bg-primary">{{ case_int }}</span>
                 {% else %}
-                  <span class="badge bg-secondary">WT-{{ loop.index }}</span>
+                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
@@ -2251,7 +2256,8 @@
         <table id="online-table" class="table table-sm pro-table">
           <thead>
             <tr>
-              <th>INT Ref</th>
+              <th>Source ID</th>
+              <th>Case INT</th>
               <th>Sender</th>
               <th>Complaint Time</th>
               <th>Source</th>
@@ -2264,12 +2270,16 @@
           <tbody>
             {% for o in online_patrol_data %}
             {% set combined_score = (o.source_reliability or 0) + (o.content_validity or 0) %}
+            {% set case_int = get_case_int_reference(o) %}
             <tr>
               <td>
-                {% if o.int_reference %}
-                  <span class="badge bg-primary">{{ o.int_reference }}</span>
+                <span class="badge bg-info">PATROL-{{ o.id }}</span>
+              </td>
+              <td>
+                {% if case_int %}
+                  <span class="badge bg-primary">{{ case_int }}</span>
                 {% else %}
-                  <span class="badge bg-secondary">OP-{{ loop.index }}</span>
+                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>{{ o.sender }}</td>
