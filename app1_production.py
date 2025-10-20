@@ -974,8 +974,9 @@ class WhatsAppEntry(db.Model):
     @property
     def int_reference(self):
         """🔗 Get unified INT reference from CaseProfile"""
-        if self.case_profile:
-            return self.case_profile.int_reference
+        if self.caseprofile_id:
+            case = CaseProfile.query.get(self.caseprofile_id)
+            return case.int_reference if case else None
         return None
     
     @property
@@ -1038,8 +1039,9 @@ class OnlinePatrolEntry(db.Model):
     @property
     def int_reference(self):
         """🔗 Get unified INT reference from CaseProfile"""
-        if self.case_profile:
-            return self.case_profile.int_reference
+        if self.caseprofile_id:
+            case = CaseProfile.query.get(self.caseprofile_id)
+            return case.int_reference if case else None
         return None
 
 class SurveillanceEntry(db.Model):
