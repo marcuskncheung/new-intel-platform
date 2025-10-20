@@ -1777,24 +1777,21 @@
                 Source ID <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="1">
-                Case INT <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="2">
                 Sender <i class="fas fa-sort sort-icon"></i>
               </th>
-              <th class="sortable" data-column="3">
+              <th class="sortable" data-column="2">
                 Recipients <i class="fas fa-sort sort-icon"></i>
               </th>
-              <th class="sortable" data-column="4">
+              <th class="sortable" data-column="3">
                 Subject <i class="fas fa-sort sort-icon"></i>
               </th>
-              <th class="sortable" data-column="5">
+              <th class="sortable" data-column="4">
                 Received <i class="fas fa-sort sort-icon"></i>
               </th>
-              <th class="sortable" data-column="6">
+              <th class="sortable" data-column="5">
                 Combined Score <i class="fas fa-sort sort-icon"></i>
               </th>
-              <th class="sortable" data-column="7">
+              <th class="sortable" data-column="6">
                 Status <i class="fas fa-sort sort-icon"></i>
               </th>
               <th>Action</th>
@@ -1803,7 +1800,6 @@
           <tbody>
             {% for email in emails %}
             {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
-            {% set case_int = get_case_int_reference(email) %}
             <tr class="email-row" 
                 style="background-color: {{ email.thread_color if email.is_thread else 'transparent' }}; border-left: {{ '4px solid ' + email.thread_color if email.is_thread else 'none' }};"
                 data-thread-id="{{ email.thread_id }}" 
@@ -1813,13 +1809,6 @@
                 <span class="badge bg-info">EMAIL-{{ email.id }}</span>
                 {% if email.is_thread %}
                   <br><small class="text-muted">Thread: {{ email.thread_count }}</small>
-                {% endif %}
-              </td>
-              <td>
-                {% if case_int %}
-                  <span class="badge bg-primary">{{ case_int }}</span>
-                {% else %}
-                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
@@ -2042,7 +2031,6 @@
           <thead>
             <tr>
               <th>Source ID</th>
-              <th>Case INT</th>
               <th>Received Time</th>
               <th>Complaint Name</th>
               <th>Phone Number</th>
@@ -2056,17 +2044,9 @@
           <tbody>
             {% for w in whatsapp_data %}
             {% set combined_score = (w.source_reliability or 0) + (w.content_validity or 0) %}
-            {% set case_int = get_case_int_reference(w) %}
             <tr>
               <td>
                 <span class="badge bg-info">WHATSAPP-{{ w.id }}</span>
-              </td>
-              <td>
-                {% if case_int %}
-                  <span class="badge bg-primary">{{ case_int }}</span>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
               </td>
               <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
               <td>{{ w.complaint_name }}</td>
@@ -2257,7 +2237,6 @@
           <thead>
             <tr>
               <th>Source ID</th>
-              <th>Case INT</th>
               <th>Sender</th>
               <th>Complaint Time</th>
               <th>Source</th>
@@ -2270,17 +2249,9 @@
           <tbody>
             {% for o in online_patrol_data %}
             {% set combined_score = (o.source_reliability or 0) + (o.content_validity or 0) %}
-            {% set case_int = get_case_int_reference(o) %}
             <tr>
               <td>
                 <span class="badge bg-info">PATROL-{{ o.id }}</span>
-              </td>
-              <td>
-                {% if case_int %}
-                  <span class="badge bg-primary">{{ case_int }}</span>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
               </td>
               <td>{{ o.sender }}</td>
               <td>{{ o.complaint_time }}</td>
