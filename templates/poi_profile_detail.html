@@ -323,7 +323,16 @@
                                             <span class="badge bg-danger"><i class="bi bi-camera-video"></i> Surveillance</span>
                                         {% endif %}
                                     </td>
-                                    <td><code>{{ intel.get('int_reference_number') or intel.get('reference') or 'N/A' }}</code></td>
+                                    <td>
+                                        {% if intel.get('source_type') and intel.get('id') %}
+                                            <span class="badge bg-info">{{ intel.get('source_type') }}-{{ intel.get('id') }}</span>
+                                            {% if intel.get('case_int') %}
+                                                <br><small class="text-muted">Case: {{ intel.get('case_int') }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <code>{{ intel.get('int_reference_number') or intel.get('reference') or 'N/A' }}</code>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ intel.get('title') or intel.get('subject') or intel.get('summary') or intel.get('content', '')[:100] or 'No content' }}</td>
                                     <td class="text-center">
                                         {% if intel.get('source_type') == 'EMAIL' and intel.get('id') %}
