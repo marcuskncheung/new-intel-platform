@@ -75,16 +75,16 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     results['email']['profiles_updated'] += 1
                 
                 # Create universal link
-                if result.get('profile_id'):
+                if result.get('poi_id'):
                     existing_link = POIIntelligenceLink.query.filter_by(
-                        poi_id=result['profile_id'],
+                        poi_id=result['poi_id'],
                         source_type='EMAIL',
                         source_id=email.id
                     ).first()
                     
                     if not existing_link:
                         new_link = POIIntelligenceLink(
-                            poi_id=result['profile_id'],
+                            poi_id=result['poi_id'],
                             source_type='EMAIL',
                             source_id=email.id,
                             case_id=email.caseprofile_id,
@@ -129,16 +129,16 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     results['whatsapp']['profiles_updated'] += 1
                 
                 # Create universal link
-                if result.get('profile_id'):
+                if result.get('poi_id'):
                     existing_link = POIIntelligenceLink.query.filter_by(
-                        poi_id=result['profile_id'],
+                        poi_id=result['poi_id'],
                         source_type='WHATSAPP',
                         source_id=entry.id
                     ).first()
                     
                     if not existing_link:
                         new_link = POIIntelligenceLink(
-                            poi_id=result['profile_id'],
+                            poi_id=result['poi_id'],
                             source_type='WHATSAPP',
                             source_id=entry.id,
                             case_id=entry.caseprofile_id,
@@ -183,16 +183,16 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     results['patrol']['profiles_updated'] += 1
                 
                 # Create universal link
-                if result.get('profile_id'):
+                if result.get('poi_id'):
                     existing_link = POIIntelligenceLink.query.filter_by(
-                        poi_id=result['profile_id'],
+                        poi_id=result['poi_id'],
                         source_type='PATROL',
                         source_id=entry.id
                     ).first()
                     
                     if not existing_link:
                         new_link = POIIntelligenceLink(
-                            poi_id=result['profile_id'],
+                            poi_id=result['poi_id'],
                             source_type='PATROL',
                             source_id=entry.id,
                             case_id=entry.caseprofile_id,
@@ -244,16 +244,16 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 results['surveillance']['profiles_updated'] += 1
             
             # Create universal link
-            if result.get('profile_id'):
+            if result.get('poi_id'):
                 existing_link = POIIntelligenceLink.query.filter_by(
-                    poi_id=result['profile_id'],
+                    poi_id=result['poi_id'],
                     source_type='SURVEILLANCE',
                     source_id=target.surveillance_entry_id
                 ).first()
                 
                 if not existing_link:
                     new_link = POIIntelligenceLink(
-                        poi_id=result['profile_id'],
+                        poi_id=result['poi_id'],
                         source_type='SURVEILLANCE',
                         source_id=target.surveillance_entry_id,
                         case_id=None,
