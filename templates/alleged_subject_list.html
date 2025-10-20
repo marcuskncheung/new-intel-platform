@@ -11,6 +11,11 @@
       <a href="{{ url_for('find_duplicate_poi_profiles') }}" class="btn btn-warning">
         <i class="bi bi-search"></i> Find & Merge Duplicates
       </a>
+      <form method="POST" action="{{ url_for('recalculate_poi_counts') }}" style="display: inline;">
+        <button type="submit" class="btn btn-secondary" title="Fix email count discrepancies">
+          <i class="bi bi-calculator"></i> Recalculate Counts
+        </button>
+      </form>
     {% else %}
       {# Old legacy profile system #}
       <a href="{{ url_for('create') }}" class="btn btn-success">+ New Profile</a>

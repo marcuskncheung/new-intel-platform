@@ -3518,6 +3518,69 @@ def refresh_poi_profiles():
     
     return redirect(url_for("alleged_subject_list"))
 
+@app.route("/alleged_subject_profiles/recalculate_counts", methods=["POST"])
+@login_required
+def recalculate_poi_counts():
+    """
+    🔢 RECALCULATE POI INTELLIGENCE COUNTS
+
+    Fixes email_count, whatsapp_count, etc. by recounting from POIIntelligenceLink table
+    This resolves discrepancies where old EmailAllegedPersonLink counts don't match actual display
+    """
+    try:
+        print("[POI RECALC] 🔢 Starting intelligence count recalculation...")
+
+        all_profiles = AllegedPersonProfile.query.filter(
+            AllegedPersonProfile.status != 'MERGED'
+        ).all()
+
+        updated_count = 0
+        for profile in all_profiles:
+            old_email_count = profile.email_count
+
+            # Recalculate from POIIntelligenceLink table (new system)
+            profile.email_count = POIIntelligenceLink.query.filter_by(
+                poi_id=profile.poi_id, 
+                source_type='EMAIL'
+            ).count()
+
+            profile.whatsapp_count = POIIntelligenceLink.query.filter_by(
+                poi_id=profile.poi_id, 
+                source_type='WHATSAPP'
+            ).count()
+
+            profile.patrol_count = POIIntelligenceLink.query.filter_by(
+                poi_id=profile.poi_id, 
+                source_type='PATROL'
+            ).count()
+
+            profile.surveillance_count = POIIntelligenceLink.query.filter_by(
+                poi_id=profile.poi_id, 
+                source_type='SURVEILLANCE'
+            ).count()
+
+            profile.total_mentions = POIIntelligenceLink.query.filter_by(
+                poi_id=profile.poi_id
+            ).count()
+
+            if old_email_count != profile.email_count:
+                print(f"[POI RECALC] {profile.poi_id}: Email count {old_email_count} → {profile.email_count}")
+                updated_count += 1
+
+        db.session.commit()
+
+        flash(f"✅ Recalculated intelligence counts for {len(all_profiles)} profiles ({updated_count} updated)", "success")
+        print(f"[POI RECALC] ✅ Updated {updated_count} profiles with corrected counts")
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"[POI RECALC] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Error recalculating counts: {str(e)}", "danger")
+
+    return redirect(url_for("alleged_subject_list"))
+
 @app.route("/alleged_subject_profiles/find_duplicates", methods=["GET", "POST"])
 @login_required
 def find_duplicate_poi_profiles():
@@ -3675,9 +3738,14 @@ def merge_poi_profiles():
             
             print(f"[MERGE] ✅ Merged {dup_id} into {master_poi_id}")
         
-        # Recalculate master profile counts
-        master.email_count = EmailAllegedPersonLink.query.filter_by(alleged_person_id=master.id).count()
-        master.total_intel_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id).count()
+        # Recalculate master profile counts from POIIntelligenceLink table
+        master.email_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id, source_type='EMAIL').count()
+        master.whatsapp_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id, source_type='WHATSAPP').count()
+        master.patrol_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id, source_type='PATROL').count()
+        master.surveillance_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id, source_type='SURVEILLANCE').count()
+        master.total_mentions = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id).count()
+        
+        print(f"[MERGE] 📊 Updated counts: Email={master.email_count}, WhatsApp={master.whatsapp_count}, Patrol={master.patrol_count}, Surveillance={master.surveillance_count}, Total={master.total_mentions}")
         
         db.session.commit()
         
