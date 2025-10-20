@@ -10,41 +10,80 @@
 
   {% if scanning %}
     <div class="alert alert-info">
-      <i class="bi bi-hourglass-split"></i> Scanning {{ total_profiles }} profiles for duplicates...
+      <i class="bi bi-hourglass-split"></i> Scanning profiles for duplicates...
     </div>
   {% endif %}
 
-  {% if duplicates %}
+  {% if duplicate_groups %}
     <div class="alert alert-warning">
-      <h5><i class="bi bi-exclamation-triangle"></i> Found {{ duplicates|length }} Potential Duplicate Groups</h5>
+      <h5><i class="bi bi-exclamation-triangle"></i> Found {{ duplicate_groups|length }} Potential Duplicate Groups</h5>
       <p class="mb-0">Review each group and merge if they are the same person.</p>
     </div>
 
-    {% for group in duplicates %}
+    {% for group in duplicate_groups %}
     <div class="card mb-4">
       <div class="card-header bg-warning text-dark">
         <h5 class="mb-0">
           <i class="bi bi-people"></i> Duplicate Group {{ loop.index }}
-          <span class="badge bg-dark">{{ group.similarity }}% Match</span>
         </h5>
       </div>
       <div class="card-body">
         <div class="row">
-          {% for profile in group.profiles %}
+          {# Master Profile (Keep) #}
           <div class="col-md-6 mb-3">
-            <div class="card {% if loop.first %}border-success{% else %}border-secondary{% endif %}">
-              <div class="card-header {% if loop.first %}bg-success text-white{% else %}bg-secondary text-white{% endif %}">
-                <strong>{{ profile.poi_id }}</strong> {% if loop.first %}<span class="badge bg-light text-success">Keep This</span>{% else %}<span class="badge bg-light text-dark">Merge Into Master</span>{% endif %}
+            <div class="card border-success">
+              <div class="card-header bg-success text-white">
+                <strong>{{ group.master.poi_id }}</strong> 
+                <span class="badge bg-light text-success float-end">KEEP (Master)</span>
               </div>
               <div class="card-body">
-                <p><strong>English:</strong> {{ profile.name_english or 'N/A' }}</p>
-                <p><strong>Chinese:</strong> {{ profile.name_chinese or 'N/A' }}</p>
-                <p><strong>License:</strong> {{ profile.license_number or 'N/A' }}</p>
-                <p><strong>Company:</strong> {{ profile.company or 'N/A' }}</p>
-                <p><strong>Email Count:</strong> {{ profile.email_count }}</p>
-                <p><strong>WhatsApp Count:</strong> {{ profile.whatsapp_count }}</p>
-                <p><strong>Patrol Count:</strong> {{ profile.patrol_count }}</p>
-                <p class="mb-0"><strong>Created:</strong> {{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}</p>
+                <p><strong>English:</strong> {{ group.master.name_english or 'N/A' }}</p>
+                <p><strong>Chinese:</strong> {{ group.master.name_chinese or 'N/A' }}</p>
+                <p><strong>License:</strong> {{ group.master.license_number or 'N/A' }}</p>
+                <p><strong>Company:</strong> {{ group.master.company or 'N/A' }}</p>
+                <p><strong>Intelligence:</strong> 
+                  Email: {{ group.master.email_count }}, 
+                  WhatsApp: {{ group.master.whatsapp_count or 0 }}, 
+                  Patrol: {{ group.master.patrol_count or 0 }}
+                </p>
+                <p class="mb-0"><strong>Created:</strong> {{ group.master.created_at.strftime('%Y-%m-%d') if group.master.created_at else 'N/A' }}</p>
+              </div>
+            </div>
+          </div>
+
+          {# Duplicate Profiles (Merge) #}
+          {% for dup in group.duplicates %}
+          <div class="col-md-6 mb-3">
+            <div class="card border-secondary">
+              <div class="card-header bg-secondary text-white">
+                <strong>{{ dup.poi_id }}</strong>
+                <span class="badge bg-light text-dark float-end">
+                  {{ group.scores[dup.id].overall }}% Match
+                </span>
+              </div>
+              <div class="card-body">
+                <p><strong>English:</strong> {{ dup.name_english or 'N/A' }}
+                  {% if group.scores[dup.id].english > 0 %}
+                    <span class="badge bg-info">{{ group.scores[dup.id].english }}%</span>
+                  {% endif %}
+                </p>
+                <p><strong>Chinese:</strong> {{ dup.name_chinese or 'N/A' }}
+                  {% if group.scores[dup.id].chinese > 0 %}
+                    <span class="badge bg-info">{{ group.scores[dup.id].chinese }}%</span>
+                  {% endif %}
+                </p>
+                <p><strong>License:</strong> {{ dup.license_number or 'N/A' }}
+                  {% if group.scores[dup.id].license %}
+                    <span class="badge bg-success">Exact Match</span>
+                  {% endif %}
+                </p>
+                <p><strong>Company:</strong> {{ dup.company or 'N/A' }}</p>
+                <p><strong>Intelligence:</strong> 
+                  Email: {{ dup.email_count }}, 
+                  WhatsApp: {{ dup.whatsapp_count or 0 }}, 
+                  Patrol: {{ dup.patrol_count or 0 }}
+                </p>
+                <p class="mb-0"><strong>Created:</strong> {{ dup.created_at.strftime('%Y-%m-%d') if dup.created_at else 'N/A' }}</p>
               </div>
             </div>
           </div>
@@ -52,12 +91,12 @@
         </div>
 
         <form method="POST" action="{{ url_for('merge_poi_profiles') }}" class="mt-3">
-          <input type="hidden" name="master_poi_id" value="{{ group.profiles[0].poi_id }}">
-          {% for profile in group.profiles[1:] %}
-          <input type="hidden" name="duplicate_poi_ids" value="{{ profile.poi_id }}">
+          <input type="hidden" name="master_poi_id" value="{{ group.master.poi_id }}">
+          {% for dup in group.duplicates %}
+          <input type="hidden" name="duplicate_ids" value="{{ dup.poi_id }}">
           {% endfor %}
-          <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ Merge these profiles?\n\nThis will:\n- Keep {{ group.profiles[0].poi_id }} ({{ group.profiles[0].name_english or group.profiles[0].name_chinese }})\n- Merge all intelligence links from duplicates\n- Mark duplicates as MERGED\n\nThis action cannot be undone!')">
-            <i class="bi bi-arrow-down-up"></i> Merge Into {{ group.profiles[0].poi_id }}
+          <button type="submit" class="btn btn-danger" onclick="return confirm('⚠️ Merge {{ group.duplicates|length }} profile(s) into {{ group.master.poi_id }}?\n\nMaster (Keep): {{ group.master.name_english or group.master.name_chinese }}\n\nThis will:\n- Transfer all intelligence links to master\n- Mark duplicates as MERGED\n- Update master intelligence counts\n\nThis action cannot be undone!')">
+            <i class="bi bi-arrow-down-up"></i> Merge {{ group.duplicates|length }} Profile(s) Into {{ group.master.poi_id }}
           </button>
           <button type="button" class="btn btn-secondary ms-2" onclick="this.closest('.card').remove()">
             <i class="bi bi-x-circle"></i> Skip This Group
@@ -67,10 +106,15 @@
     </div>
     {% endfor %}
 
-  {% elif scanned %}
+  {% elif scan_completed %}
     <div class="alert alert-success">
       <h5><i class="bi bi-check-circle"></i> No Duplicates Found!</h5>
-      <p class="mb-0">All {{ total_profiles }} POI profiles appear to be unique.</p>
+      <p class="mb-0">All POI profiles appear to be unique.</p>
+    </div>
+    <div class="text-center mt-3">
+      <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-primary">
+        <i class="bi bi-arrow-left"></i> Back to POI List
+      </a>
     </div>
   {% else %}
     <div class="card">
