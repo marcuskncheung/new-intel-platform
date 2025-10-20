@@ -1,5 +1,6 @@
 # Dockerfile for Intelligence Platform with PostgreSQL support
-FROM python:3.11-slim
+# Using specific digest for reliability (avoid Docker Hub intermittent issues)
+FROM python:3.11.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
