@@ -81,7 +81,7 @@ def rearrange_email_ids():
         attachment_data_list = []
         
         for idx, email in enumerate(sorted_emails, start=1):
-            # Store email data
+            # Store email data (only fields that exist in the Email model)
             email_dict = {
                 'new_id': idx,  # Oldest email gets ID=1, latest gets biggest ID
                 'old_id': email.id,
@@ -91,17 +91,32 @@ def rearrange_email_ids():
                 'subject': email.subject,
                 'received': email.received,
                 'body': email.body,
-                'thread_id': email.thread_id,
-                'thread_key': email.thread_key,
-                'thread_count': email.thread_count,
-                'thread_color': email.thread_color,
-                'is_thread': email.is_thread,
                 'source_reliability': email.source_reliability,
                 'content_validity': email.content_validity,
                 'reviewer_name': email.reviewer_name,
                 'reviewer_comment': email.reviewer_comment,
                 'intelligence_case_opened': email.intelligence_case_opened,
-                'caseprofile_id': email.caseprofile_id
+                'caseprofile_id': email.caseprofile_id,
+                'alleged_subject': email.alleged_subject,
+                'alleged_subject_english': email.alleged_subject_english,
+                'alleged_subject_chinese': email.alleged_subject_chinese,
+                'alleged_nature': email.alleged_nature,
+                'allegation_summary': email.allegation_summary,
+                'ai_analysis_summary': email.ai_analysis_summary,
+                'license_number': email.license_number,
+                'license_numbers_json': email.license_numbers_json,
+                'intermediary_types_json': email.intermediary_types_json,
+                'preparer': email.preparer,
+                'reviewer_decision': email.reviewer_decision,
+                'status': email.status,
+                'case_number': email.case_number,
+                'case_assigned_by': email.case_assigned_by,
+                'case_assigned_at': email.case_assigned_at,
+                'int_reference_number': email.int_reference_number,
+                'int_reference_order': email.int_reference_order,
+                'int_reference_manual': email.int_reference_manual,
+                'int_reference_updated_at': email.int_reference_updated_at,
+                'int_reference_updated_by': email.int_reference_updated_by
             }
             email_data_list.append(email_dict)
             
@@ -149,17 +164,32 @@ def rearrange_email_ids():
                 subject=email_data['subject'],
                 received=email_data['received'],
                 body=email_data['body'],
-                thread_id=email_data['thread_id'],
-                thread_key=email_data['thread_key'],
-                thread_count=email_data['thread_count'],
-                thread_color=email_data['thread_color'],
-                is_thread=email_data['is_thread'],
                 source_reliability=email_data['source_reliability'],
                 content_validity=email_data['content_validity'],
                 reviewer_name=email_data['reviewer_name'],
                 reviewer_comment=email_data['reviewer_comment'],
                 intelligence_case_opened=email_data['intelligence_case_opened'],
-                caseprofile_id=email_data['caseprofile_id']
+                caseprofile_id=email_data['caseprofile_id'],
+                alleged_subject=email_data['alleged_subject'],
+                alleged_subject_english=email_data['alleged_subject_english'],
+                alleged_subject_chinese=email_data['alleged_subject_chinese'],
+                alleged_nature=email_data['alleged_nature'],
+                allegation_summary=email_data['allegation_summary'],
+                ai_analysis_summary=email_data['ai_analysis_summary'],
+                license_number=email_data['license_number'],
+                license_numbers_json=email_data['license_numbers_json'],
+                intermediary_types_json=email_data['intermediary_types_json'],
+                preparer=email_data['preparer'],
+                reviewer_decision=email_data['reviewer_decision'],
+                status=email_data['status'],
+                case_number=email_data['case_number'],
+                case_assigned_by=email_data['case_assigned_by'],
+                case_assigned_at=email_data['case_assigned_at'],
+                int_reference_number=email_data['int_reference_number'],
+                int_reference_order=email_data['int_reference_order'],
+                int_reference_manual=email_data['int_reference_manual'],
+                int_reference_updated_at=email_data['int_reference_updated_at'],
+                int_reference_updated_by=email_data['int_reference_updated_by']
             )
             db.session.add(new_email)
         
@@ -222,31 +252,37 @@ def main():
         print("\n❌ Operation cancelled.")
         return
     
-    try:
-        # Step 1: Backup
-        total_emails = backup_emails()
-        
-        if total_emails == 0:
-            print("\n⚠️  No emails found in database. Nothing to rearrange.")
-            return
-        
-        # Step 2: Rearrange
-        rearrange_email_ids()
-        
-        print("\n" + "="*80)
-        print("✅ ALL OPERATIONS COMPLETED SUCCESSFULLY!")
-        print("="*80)
-        print("\n📝 Next steps:")
-        print("  1. Restart your Flask application")
-        print("  2. Check the intelligence list page")
-        print("  3. Verify EMAIL-1 is oldest, EMAIL-{} is newest".format(total_emails))
-        
-    except Exception as e:
-        print(f"\n❌ ERROR: {e}")
-        print("\n🔄 Rolling back changes...")
-        db.session.rollback()
-        print("⚠️  Check the backup file and manually restore if needed.")
-        raise
+    # Wrap everything in app context to avoid "Working outside of application context" errors
+    with app.app_context():
+        try:
+            # Step 1: Backup
+            total_emails = backup_emails()
+            
+            if total_emails == 0:
+                print("\n⚠️  No emails found in database. Nothing to rearrange.")
+                return
+            
+            # Step 2: Rearrange
+            rearrange_email_ids()
+            
+            print("\n" + "="*80)
+            print("✅ ALL OPERATIONS COMPLETED SUCCESSFULLY!")
+            print("="*80)
+            print("\n📝 Next steps:")
+            print("  1. Restart your Flask application")
+            print("  2. Check the intelligence list page")
+            print("  3. Verify EMAIL-1 is oldest, EMAIL-{} is newest".format(total_emails))
+            
+        except Exception as e:
+            print(f"\n❌ ERROR: {e}")
+            print("\n🔄 Rolling back changes...")
+            try:
+                db.session.rollback()
+                print("✅ Changes rolled back successfully")
+            except:
+                print("⚠️  Could not rollback - database may be in inconsistent state")
+            print("⚠️  Check the backup file and manually restore if needed.")
+            raise
 
 if __name__ == "__main__":
     main()
