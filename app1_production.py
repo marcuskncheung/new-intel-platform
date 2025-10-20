@@ -975,7 +975,7 @@ class WhatsAppEntry(db.Model):
     def int_reference(self):
         """🔗 Get unified INT reference from CaseProfile"""
         if self.caseprofile_id:
-            case = CaseProfile.query.get(self.caseprofile_id)
+            case = db.session.get(CaseProfile, self.caseprofile_id)
             return case.int_reference if case else None
         return None
     
@@ -1040,7 +1040,7 @@ class OnlinePatrolEntry(db.Model):
     def int_reference(self):
         """🔗 Get unified INT reference from CaseProfile"""
         if self.caseprofile_id:
-            case = CaseProfile.query.get(self.caseprofile_id)
+            case = db.session.get(CaseProfile, self.caseprofile_id)
             return case.int_reference if case else None
         return None
 
@@ -1211,7 +1211,7 @@ def update_int_reference_number(email_id, new_int_number, updated_by):
     Allows duplicates (same INT number for related emails)
     """
     try:
-        email = Email.query.get(email_id)
+        email = db.session.get(Email, email_id)
         if not email:
             return {'success': False, 'error': 'Email not found'}
         
@@ -1595,7 +1595,7 @@ def update_int_reference_unified(case_profile_id, new_int_number, updated_by):
         updated_by: Username making the change
     """
     try:
-        case = CaseProfile.query.get(case_profile_id)
+        case = db.session.get(CaseProfile, case_profile_id)
         if not case:
             return {'success': False, 'error': 'Case profile not found'}
         
@@ -1962,7 +1962,7 @@ def view_alleged_person_profile_old(profile_id):
         email_dates = []  # Collect email dates for first/last calculation
         
         for link in links:
-            email = Email.query.get(link.email_id)
+            email = db.session.get(Email, link.email_id)
             if email:
                 # Handle received date - it's stored as string in database
                 received_str = "N/A"
@@ -2200,7 +2200,7 @@ def alleged_subject_profile_detail(poi_id):
             }
             
             if link.source_type == 'EMAIL':
-                email = Email.query.get(link.source_id)
+                email = db.session.get(Email, link.source_id)
                 if email:
                     intel_data.update({
                         'id': email.id,
@@ -2243,7 +2243,7 @@ def alleged_subject_profile_detail(poi_id):
         # Continue processing other source types from poi_intelligence_link
         for link in links:
             if link.source_type == 'WHATSAPP':
-                wa = WhatsAppEntry.query.get(link.source_id)
+                wa = db.session.get(WhatsAppEntry, link.source_id)
                 if wa:
                     intel_data = {
                         'link_id': link.link_id,
@@ -2265,7 +2265,7 @@ def alleged_subject_profile_detail(poi_id):
                     all_intelligence.append(intel_data)
             
             elif link.source_type == 'PATROL':
-                pt = OnlinePatrolEntry.query.get(link.source_id)
+                pt = db.session.get(OnlinePatrolEntry, link.source_id)
                 if pt:
                     intel_data = {
                         'link_id': link.link_id,
@@ -2286,7 +2286,7 @@ def alleged_subject_profile_detail(poi_id):
                     all_intelligence.append(intel_data)
             
             elif link.source_type == 'SURVEILLANCE':
-                sv = SurveillanceEntry.query.get(link.source_id)
+                sv = db.session.get(SurveillanceEntry, link.source_id)
                 if sv:
                     # Convert date to datetime for consistency
                     sv_datetime = datetime.combine(sv.date, datetime.min.time()) if sv.date else None
@@ -2592,7 +2592,7 @@ def details(idx):
 # --- Update all helper functions to use CaseProfile.query instead of df_db ---
 # For example:
 def get_associated(idx):
-    cp = CaseProfile.query.get(idx)
+    cp = db.session.get(CaseProfile, idx)
     if not cp:
         return []
     subs = CaseProfile.query.filter(
@@ -5895,7 +5895,7 @@ def delete_email(email_id):
     try:
         # Delete associated CaseProfile if exists
         if email.caseprofile_id:
-            case_profile = CaseProfile.query.get(email.caseprofile_id)
+            case_profile = db.session.get(CaseProfile, email.caseprofile_id)
             if case_profile:
                 db.session.delete(case_profile)
         
@@ -5935,7 +5935,7 @@ def reorder_int_numbers_after_delete():
             
             # Update linked Email if exists
             if case_profile.email_id:
-                email = Email.query.get(case_profile.email_id)
+                email = db.session.get(Email, case_profile.email_id)
                 if email:
                     email.int_reference_number = temp_int_ref
                     email.int_reference_order = idx
@@ -5953,7 +5953,7 @@ def reorder_int_numbers_after_delete():
             
             # Update linked Email if exists
             if case_profile.email_id:
-                email = Email.query.get(case_profile.email_id)
+                email = db.session.get(Email, case_profile.email_id)
                 if email:
                     email.int_reference_number = new_int_ref
                     email.int_reference_order = new_order
@@ -6895,7 +6895,7 @@ def surveillance_detail(entry_id):
             try:
                 doc = None
                 from app1 import SurveillanceDocument
-                doc = SurveillanceDocument.query.get(int(del_doc_id))
+                doc = db.session.get(SurveillanceDocument, int(del_doc_id))
                 if doc:
                     db.session.delete(doc)
                     db.session.commit()
@@ -8667,7 +8667,7 @@ def migrate_email_attachments_folder_to_db():
 @app.route('/debug/attachment/<int:att_id>')
 @login_required
 def debug_attachment(att_id):
-    att = Attachment.query.get(att_id)
+    att = db.session.get(Attachment, att_id)
     if not att:
         return f"Attachment {att_id} not found in database."
     db_status = 'present' if att.file_data else 'missing'
@@ -8800,7 +8800,7 @@ def ai_comprehensive_analyze_email(email_id):
     # ✅ CRITICAL FIX #2: Check if email is already being analyzed (race condition protection)
     from datetime import datetime, timedelta
     
-    lock = EmailAnalysisLock.query.get(email_id)
+    lock = db.session.get(EmailAnalysisLock, email_id)
     if lock and lock.expires_at > get_hk_time():
         print(f"[AI ANALYSIS] ⚠️ Email {email_id} is already being analyzed by {lock.locked_by}")
         return jsonify({
@@ -9242,7 +9242,7 @@ def ai_comprehensive_analyze_email(email_id):
     finally:
         # ✅ CRITICAL FIX #2: Always release lock when done (success or failure)
         try:
-            lock = EmailAnalysisLock.query.get(email_id)
+            lock = db.session.get(EmailAnalysisLock, email_id)
             if lock:
                 db.session.delete(lock)
                 db.session.commit()
@@ -9506,7 +9506,7 @@ def bulk_mark_reviewed():
         
         # Update emails to reviewed status
         for email_id in email_ids:
-            email = Email.query.get(email_id)
+            email = db.session.get(Email, email_id)
             if email:
                 email.status = 'Reviewed'
         
@@ -9528,7 +9528,7 @@ def bulk_mark_pending():
         
         # Update emails to pending status
         for email_id in email_ids:
-            email = Email.query.get(email_id)
+            email = db.session.get(Email, email_id)
             if email:
                 email.status = 'Pending'
         
@@ -9550,7 +9550,7 @@ def bulk_open_case():
         
         # Update emails to case opened status
         for email_id in email_ids:
-            email = Email.query.get(email_id)
+            email = db.session.get(Email, email_id)
             if email:
                 email.status = 'Case Opened'
         
@@ -9636,7 +9636,7 @@ def bulk_delete():
         # Delete selected emails and their attachments
         deleted_count = 0
         for email_id in email_ids:
-            email = Email.query.get(email_id)
+            email = db.session.get(Email, email_id)
             if email:
                 # Delete associated attachments first
                 attachments = Attachment.query.filter_by(email_id=email_id).all()
