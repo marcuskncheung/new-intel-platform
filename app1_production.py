@@ -3563,16 +3563,14 @@ def find_duplicate_poi_profiles():
                 eng_sim = 0.0
                 if profile1.name_english and profile2.name_english:
                     eng_sim = calculate_name_similarity(
-                        profile1.name_english, profile2.name_english,
-                        '', '', 'en'
+                        profile1.name_english, profile2.name_english
                     )
                 
                 # Calculate Chinese name similarity
                 chi_sim = 0.0
                 if profile1.name_chinese and profile2.name_chinese:
                     chi_sim = calculate_name_similarity(
-                        '', '', 
-                        profile1.name_chinese, profile2.name_chinese, 'zh'
+                        profile1.name_chinese, profile2.name_chinese
                     )
                 
                 # License number exact match
