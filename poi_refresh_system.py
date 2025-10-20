@@ -40,7 +40,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # SCAN EMAILS
         # ====================================================================
         print("\n[1/4] Scanning Email assessments...")
-        emails = Email.query.filter(
+        emails = db.session.query(Email).filter(
             (Email.alleged_subject_english.isnot(None)) | 
             (Email.alleged_subject_chinese.isnot(None))
         ).all()
@@ -76,7 +76,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 
                 # Create universal link
                 if result.get('poi_id'):
-                    existing_link = POIIntelligenceLink.query.filter_by(
+                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='EMAIL',
                         source_id=email.id
@@ -101,7 +101,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # SCAN WHATSAPP
         # ====================================================================
         print("\n[2/4] Scanning WhatsApp entries...")
-        whatsapp_entries = WhatsAppEntry.query.filter(
+        whatsapp_entries = db.session.query(WhatsAppEntry).filter(
             WhatsAppEntry.alleged_person.isnot(None)
         ).all()
         
@@ -129,7 +129,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 
                 # Create universal link
                 if result.get('poi_id'):
-                    existing_link = POIIntelligenceLink.query.filter_by(
+                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='WHATSAPP',
                         source_id=entry.id
@@ -154,7 +154,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # SCAN PATROL
         # ====================================================================
         print("\n[3/4] Scanning Online Patrol entries...")
-        patrol_entries = OnlinePatrolEntry.query.filter(
+        patrol_entries = db.session.query(OnlinePatrolEntry).filter(
             OnlinePatrolEntry.alleged_person.isnot(None)
         ).all()
         
@@ -182,7 +182,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 
                 # Create universal link
                 if result.get('poi_id'):
-                    existing_link = POIIntelligenceLink.query.filter_by(
+                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='PATROL',
                         source_id=entry.id
@@ -207,7 +207,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # SCAN SURVEILLANCE
         # ====================================================================
         print("\n[4/4] Scanning Surveillance targets...")
-        targets = Target.query.all()
+        targets = db.session.query(Target).all()
         
         results['surveillance']['scanned'] = len(targets)
         
@@ -242,7 +242,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             
             # Create universal link
             if result.get('poi_id'):
-                existing_link = POIIntelligenceLink.query.filter_by(
+                existing_link = db.session.query(POIIntelligenceLink).filter_by(
                     poi_id=result['poi_id'],
                     source_type='SURVEILLANCE',
                     source_id=target.surveillance_entry_id
