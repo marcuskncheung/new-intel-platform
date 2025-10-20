@@ -3518,6 +3518,182 @@ def refresh_poi_profiles():
     
     return redirect(url_for("alleged_subject_list"))
 
+@app.route("/alleged_subject_profiles/find_duplicates", methods=["GET", "POST"])
+@login_required
+def find_duplicate_poi_profiles():
+    """
+    🔍 FIND DUPLICATE POI PROFILES
+    
+    Scans all active POI profiles for potential duplicates based on:
+    - Name similarity (English ≥85%, Chinese exact/partial)
+    - License number exact match
+    - Company name similarity
+    """
+    from alleged_person_automation import calculate_name_similarity
+    
+    if request.method == "GET":
+        # Show scan page
+        return render_template("find_duplicate_poi.html")
+    
+    # POST: Execute duplicate scan
+    try:
+        print("[DUPLICATE FINDER] Starting POI duplicate scan...")
+        
+        all_profiles = AllegedPersonProfile.query.filter(
+            AllegedPersonProfile.status != 'MERGED'
+        ).order_by(AllegedPersonProfile.id.asc()).all()
+        
+        print(f"[DUPLICATE FINDER] Scanning {len(all_profiles)} active profiles...")
+        
+        # Group duplicates
+        duplicate_groups = []
+        processed_ids = set()
+        
+        for i, profile1 in enumerate(all_profiles):
+            if profile1.id in processed_ids:
+                continue
+            
+            group = {'master': profile1, 'duplicates': [], 'scores': {}}
+            
+            for profile2 in all_profiles[i+1:]:
+                if profile2.id in processed_ids:
+                    continue
+                
+                # Calculate English name similarity
+                eng_sim = 0.0
+                if profile1.name_english and profile2.name_english:
+                    eng_sim = calculate_name_similarity(
+                        profile1.name_english, profile2.name_english,
+                        '', '', 'en'
+                    )
+                
+                # Calculate Chinese name similarity
+                chi_sim = 0.0
+                if profile1.name_chinese and profile2.name_chinese:
+                    chi_sim = calculate_name_similarity(
+                        '', '', 
+                        profile1.name_chinese, profile2.name_chinese, 'zh'
+                    )
+                
+                # License number exact match
+                license_match = False
+                if (profile1.license_number and profile2.license_number and 
+                    profile1.license_number.strip() == profile2.license_number.strip()):
+                    license_match = True
+                
+                # Overall similarity
+                max_sim = max(eng_sim, chi_sim)
+                if license_match:
+                    max_sim = 1.0  # Perfect match
+                
+                # Threshold: 85% similarity
+                if max_sim >= 0.85:
+                    group['duplicates'].append(profile2)
+                    group['scores'][profile2.id] = {
+                        'english': round(eng_sim * 100, 1),
+                        'chinese': round(chi_sim * 100, 1),
+                        'license': license_match,
+                        'overall': round(max_sim * 100, 1)
+                    }
+                    processed_ids.add(profile2.id)
+            
+            if group['duplicates']:
+                processed_ids.add(profile1.id)
+                duplicate_groups.append(group)
+        
+        print(f"[DUPLICATE FINDER] Found {len(duplicate_groups)} duplicate groups")
+        
+        return render_template("find_duplicate_poi.html", 
+                             duplicate_groups=duplicate_groups,
+                             scan_completed=True)
+    
+    except Exception as e:
+        print(f"[DUPLICATE FINDER] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Error finding duplicates: {str(e)}", "danger")
+        return redirect(url_for("alleged_subject_list"))
+
+@app.route("/alleged_subject_profiles/merge", methods=["POST"])
+@login_required
+def merge_poi_profiles():
+    """
+    🔀 MERGE DUPLICATE POI PROFILES
+    
+    Keeps master POI, transfers all intelligence links from duplicates,
+    and marks duplicates as MERGED
+    """
+    try:
+        master_poi_id = request.form.get('master_poi_id')
+        duplicate_ids = request.form.getlist('duplicate_ids')
+        
+        if not master_poi_id or not duplicate_ids:
+            flash("❌ Invalid merge request", "danger")
+            return redirect(url_for("find_duplicate_poi_profiles"))
+        
+        master = AllegedPersonProfile.query.filter_by(poi_id=master_poi_id).first()
+        if not master:
+            flash(f"❌ Master profile {master_poi_id} not found", "danger")
+            return redirect(url_for("find_duplicate_poi_profiles"))
+        
+        print(f"[MERGE] Merging {len(duplicate_ids)} duplicates into {master_poi_id}")
+        
+        for dup_id in duplicate_ids:
+            duplicate = AllegedPersonProfile.query.filter_by(poi_id=dup_id).first()
+            if not duplicate:
+                continue
+            
+            # Transfer POI intelligence links
+            links = POIIntelligenceLink.query.filter_by(poi_id=dup_id).all()
+            for link in links:
+                link.poi_id = master_poi_id
+            
+            # Transfer email links (legacy)
+            email_links = EmailAllegedPersonLink.query.filter_by(alleged_person_id=duplicate.id).all()
+            for link in email_links:
+                # Check if master already has this email link
+                existing = EmailAllegedPersonLink.query.filter_by(
+                    email_id=link.email_id,
+                    alleged_person_id=master.id
+                ).first()
+                if not existing:
+                    link.alleged_person_id = master.id
+                else:
+                    db.session.delete(link)
+            
+            # Merge missing information into master
+            if not master.name_english and duplicate.name_english:
+                master.name_english = duplicate.name_english
+            if not master.name_chinese and duplicate.name_chinese:
+                master.name_chinese = duplicate.name_chinese
+            if not master.license_number and duplicate.license_number:
+                master.license_number = duplicate.license_number
+            if not master.company and duplicate.company:
+                master.company = duplicate.company
+            
+            # Mark duplicate as MERGED
+            duplicate.status = 'MERGED'
+            duplicate.notes = f"Merged into {master_poi_id} on {get_hk_time().strftime('%Y-%m-%d %H:%M:%S')}"
+            
+            print(f"[MERGE] ✅ Merged {dup_id} into {master_poi_id}")
+        
+        # Recalculate master profile counts
+        master.email_count = EmailAllegedPersonLink.query.filter_by(alleged_person_id=master.id).count()
+        master.total_intel_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id).count()
+        
+        db.session.commit()
+        
+        flash(f"✅ Successfully merged {len(duplicate_ids)} profiles into {master_poi_id}", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[MERGE] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Error merging profiles: {str(e)}", "danger")
+    
+    return redirect(url_for("alleged_subject_list"))
+
 @app.route("/alleged_subject_profiles/<int:profile_id>")
 @login_required
 def profile_detail(profile_id):
