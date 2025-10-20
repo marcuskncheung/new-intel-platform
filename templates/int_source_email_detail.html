@@ -53,18 +53,38 @@
         </div>
       {% endif %}
 
-      <!-- Case Management Section - Simplified INT Reference Only -->
+      <!-- Case Management Section - Two-tier Reference System -->
       <div class="card border-primary mb-4">
         <div class="card-header bg-primary text-white">
           <h5 class="mb-0">
-            <i class="fas fa-hashtag"></i> Case Reference Number
+            <i class="fas fa-hashtag"></i> Reference Information
           </h5>
         </div>
         <div class="card-body">
+          <!-- Source ID (Read-only) -->
+          <div class="mb-3">
+            <label class="form-label"><strong>Source ID:</strong></label>
+            <div class="input-group">
+              <span class="input-group-text bg-info text-white">
+                <i class="fas fa-envelope"></i>
+              </span>
+              <input type="text" 
+                     class="form-control form-control-lg" 
+                     value="EMAIL-{{ email.id }}"
+                     readonly
+                     style="font-weight: bold; font-family: monospace; font-size: 1.25rem; background-color: #f8f9fa;">
+            </div>
+            <small class="text-muted mt-1 d-block">
+              <i class="bi bi-info-circle"></i> 
+              This is the unique identifier for this email (cannot be changed).
+            </small>
+          </div>
+
+          <!-- Case INT Assignment (Editable) -->
           <form method="POST" action="{{ url_for('update_int_reference', email_id=email.id) }}">
             <div class="row align-items-end">
               <div class="col-md-8">
-                <label class="form-label"><strong>INT Reference Number:</strong></label>
+                <label class="form-label"><strong>Case INT Reference:</strong></label>
                 <div class="input-group">
                   <span class="input-group-text">
                     <i class="fas fa-hashtag"></i>
@@ -72,27 +92,18 @@
                   <input type="text" 
                          class="form-control form-control-lg" 
                          name="int_reference_number" 
-                         value="{{ email.int_reference or email.case_profile.int_reference if email.case_profile else email.int_reference_number or '' }}"
+                         value="{{ get_case_int_reference(email) or '' }}"
                          placeholder="INT-001, INT-123, etc."
                          pattern="INT-\d{1,4}"
                          title="Format: INT-001, INT-123"
-                         required
                          style="font-weight: bold; font-family: monospace; font-size: 1.25rem;">
                   <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="fas fa-save"></i> Save
+                    <i class="fas fa-save"></i> Assign Case
                   </button>
                 </div>
                 <small class="text-muted mt-2 d-block">
                   <i class="bi bi-info-circle"></i> 
-                  Format: INT-XXX (e.g., INT-001, INT-123). You can edit this directly.
-                  {% if email.int_reference_manual %}
-                    <br><i class="fas fa-pencil-alt text-warning"></i> <strong>Manually edited</strong>
-                  {% elif email.int_reference_number %}
-                    <br><i class="fas fa-robot text-success"></i> Auto-assigned (Order: {{ email.int_reference_order }})
-                  {% endif %}
-                  {% if email.int_reference_updated_at %}
-                    <br><i class="fas fa-clock"></i> Last updated: {{ email.int_reference_updated_at.strftime('%Y-%m-%d %H:%M') }}
-                    {% if email.int_reference_updated_by %}by {{ email.int_reference_updated_by }}{% endif %}
+                  Assign this email to a case (Format: INT-001, INT-123). Leave empty if not part of a case.
                   {% endif %}
                 </small>
               </div>

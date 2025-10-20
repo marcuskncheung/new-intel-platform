@@ -22,14 +22,34 @@
       <div class="card border-primary mb-4">
         <div class="card-header bg-primary text-white">
           <h5 class="mb-0">
-            <i class="fas fa-hashtag"></i> Case Reference Number
+            <i class="fas fa-hashtag"></i> Reference Information
           </h5>
         </div>
         <div class="card-body">
+          <!-- Source ID (Read-only) -->
+          <div class="mb-3">
+            <label class="form-label"><strong>Source ID:</strong></label>
+            <div class="input-group">
+              <span class="input-group-text bg-info text-white">
+                <i class="bi bi-whatsapp"></i>
+              </span>
+              <input type="text" 
+                     class="form-control form-control-lg" 
+                     value="WHATSAPP-{{ entry.id }}"
+                     readonly
+                     style="font-weight: bold; font-family: monospace; font-size: 1.25rem; background-color: #f8f9fa;">
+            </div>
+            <small class="text-muted mt-1 d-block">
+              <i class="bi bi-info-circle"></i> 
+              This is the unique identifier for this WhatsApp entry (cannot be changed).
+            </small>
+          </div>
+
+          <!-- Case INT Assignment (Editable) -->
           <form method="POST" action="{{ url_for('update_whatsapp_int_reference', entry_id=entry.id) }}">
             <div class="row align-items-end">
               <div class="col-md-8">
-                <label class="form-label"><strong>INT Reference Number:</strong></label>
+                <label class="form-label"><strong>Case INT Reference:</strong></label>
                 <div class="input-group">
                   <span class="input-group-text">
                     <i class="fas fa-hashtag"></i>
@@ -37,18 +57,18 @@
                   <input type="text" 
                          class="form-control form-control-lg" 
                          name="int_reference_number" 
-                         value="{{ entry.int_reference or entry.case_profile.int_reference if entry.case_profile else '' }}"
+                         value="{{ get_case_int_reference(entry) or '' }}"
                          placeholder="INT-001, INT-123, etc."
                          pattern="INT-\d{1,4}"
                          title="Format: INT-001, INT-123"
                          style="font-weight: bold; font-family: monospace; font-size: 1.25rem;">
                   <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="fas fa-save"></i> Save
+                    <i class="fas fa-save"></i> Assign Case
                   </button>
                 </div>
                 <small class="text-muted mt-2 d-block">
                   <i class="bi bi-info-circle"></i> 
-                  Format: INT-XXX (e.g., INT-001, INT-123). You can edit this directly.
+                  Assign this intelligence to a case (Format: INT-001, INT-123). Leave empty if not part of a case.
                 </small>
               </div>
             </div>
