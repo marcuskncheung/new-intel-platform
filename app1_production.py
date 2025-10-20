@@ -2401,6 +2401,7 @@ def alleged_subject_profile_detail(poi_id):
                         'date_str': (link.link_created_at or sv_datetime).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv_datetime) else 'N/A',
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
+                        'case_int': None,  # Surveillance entries don't have caseprofile_id yet
                         'title': f'{sv.operation_type or "Surveillance"}: {sv.operation_number or f"OP-{sv.id}"}',
                         'summary': sv.allegation_summary or sv.alleged_nature or sv.details_of_finding or 'Surveillance observation',
                         'location': sv.venue,
