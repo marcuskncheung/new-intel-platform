@@ -676,7 +676,7 @@ def link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile,
             
             # Check if universal link already exists
             existing_universal_link = db.session.query(POIIntelligenceLink).filter_by(
-                poi_id=profile_id,
+                poi_id=poi_id,  # ✅ Use string POI ID ("POI-037")
                 source_type='EMAIL',
                 source_id=email_id
             ).first()
@@ -687,13 +687,12 @@ def link_email_to_profile(db, EmailAllegedPersonLink, AllegedPersonProfile,
                 
                 # Create universal link
                 universal_link = POIIntelligenceLink(
-                    poi_id=profile_id,
+                    poi_id=poi_id,  # ✅ Use string POI ID ("POI-037")
                     source_type='EMAIL',
                     source_id=email_id,
-                    case_id=email.caseprofile_id if email else None,
+                    case_profile_id=email.caseprofile_id if email else None,  # ✅ Use correct column name
                     confidence_score=0.95,
-                    extraction_method='AUTOMATION',
-                    created_by='AUTOMATION'
+                    extraction_method='AUTOMATION'
                 )
                 db.session.add(universal_link)
                 print(f"[POI v2.0] ✅ Created universal link: email {email_id} to POI {poi_id}")
