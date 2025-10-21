@@ -125,9 +125,12 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         results['email']['links_created'] += 1
                         print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← EMAIL-{email.id}")
             
+            # 🔧 FIX: Commit after processing EACH email to ensure POI profiles are visible
+            # This prevents creating duplicate POIs when the same name appears in multiple emails
+            db.session.commit()
+            
             print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {max_len} POI link(s) created based on current assessment")
         
-        db.session.commit()
         print(f"  ✅ Emails: {results['email']['scanned']} scanned, {results['email']['profiles_created']} created, {results['email']['profiles_updated']} updated, {results['email']['links_created']} links")
         
         # ====================================================================
@@ -203,9 +206,11 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         results['whatsapp']['links_created'] += 1
                         print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← WHATSAPP-{entry.id}")
             
+            # 🔧 FIX: Commit after processing EACH entry
+            db.session.commit()
+            
             print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced: {max_len} POI link(s) created")
         
-        db.session.commit()
         print(f"  ✅ WhatsApp: {results['whatsapp']['scanned']} scanned, {results['whatsapp']['profiles_created']} created, {results['whatsapp']['profiles_updated']} updated, {results['whatsapp']['links_created']} links")
         
         # ====================================================================
@@ -281,9 +286,11 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         results['patrol']['links_created'] += 1
                         print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← PATROL-{entry.id}")
             
+            # 🔧 FIX: Commit after processing EACH entry
+            db.session.commit()
+            
             print(f"[POI REFRESH] ✅ PATROL-{entry.id} synced: {max_len} POI link(s) created")
         
-        db.session.commit()
         print(f"  ✅ Patrol: {results['patrol']['scanned']} scanned, {results['patrol']['profiles_created']} created, {results['patrol']['profiles_updated']} updated, {results['patrol']['links_created']} links")
         
         # ====================================================================
@@ -361,10 +368,12 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         results['surveillance']['links_created'] += 1
                         print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← SURVEILLANCE-{entry.id}")
             
+            # 🔧 FIX: Commit after processing EACH entry
+            db.session.commit()
+            
             target_count = len(targets)
             print(f"[POI REFRESH] ✅ SURVEILLANCE-{entry.id} synced: {target_count} target(s) processed")
         
-        db.session.commit()
         print(f"  ✅ Surveillance: {results['surveillance']['scanned']} scanned, {results['surveillance']['profiles_created']} created, {results['surveillance']['profiles_updated']} updated")
         
         # ====================================================================
