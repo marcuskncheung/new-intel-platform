@@ -1943,6 +1943,9 @@ def alleged_subject_list():
     and links to all emails alleging that person.
     """
     try:
+        # 🔄 AUTO-RENUMBER: Ensure POI IDs are sequential before displaying list
+        renumber_all_poi_ids()
+        
         # Get all active alleged person profiles, ordered by creation date (newest first)
         profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').order_by(
             AllegedPersonProfile.created_at.desc()
@@ -2346,6 +2349,9 @@ def alleged_subject_profile_detail(poi_id):
     - Cross-source statistics and unified timeline
     """
     try:
+        # 🔄 AUTO-RENUMBER: Ensure POI IDs are sequential before displaying
+        renumber_all_poi_ids()
+        
         # Get the profile
         profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()
         
