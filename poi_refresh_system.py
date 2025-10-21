@@ -77,6 +77,14 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             english_names = [n.strip() for n in (email.alleged_subject_english or '').split(',') if n.strip()]
             chinese_names = [n.strip() for n in (email.alleged_subject_chinese or '').split(',') if n.strip()]
             
+            # ⚠️ CRITICAL WARNING: Check for name count mismatch
+            if len(english_names) != len(chinese_names) and english_names and chinese_names:
+                print(f"[POI REFRESH] ⚠️ WARNING: Email {email.id} has {len(english_names)} English names but {len(chinese_names)} Chinese names!")
+                print(f"[POI REFRESH] ⚠️ English: {english_names}")
+                print(f"[POI REFRESH] ⚠️ Chinese: {chinese_names}")
+                print(f"[POI REFRESH] ⚠️ Names will be paired by position - THIS MAY CREATE INCORRECT POI PROFILES!")
+                print(f"[POI REFRESH] ⚠️ Please review Email {email.id} assessment and ensure names are in matching order!")
+            
             max_len = max(len(english_names), len(chinese_names))
             
             for i in range(max_len):
@@ -106,6 +114,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
                 # This ensures POI profiles show their source in the dashboard
                 if result.get('poi_id'):
+                    print(f"[POI REFRESH] 🔍 Checking if link exists for POI {result['poi_id']} → EMAIL-{email.id}")
                     existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='EMAIL',
@@ -113,6 +122,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     ).first()
                     
                     if not existing_link:
+                        print(f"[POI REFRESH] ➕ Creating new link: {result['poi_id']} ← EMAIL-{email.id}")
                         new_link = POIIntelligenceLink(
                             poi_id=result['poi_id'],
                             source_type='EMAIL',
@@ -123,7 +133,11 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         )
                         db.session.add(new_link)
                         results['email']['links_created'] += 1
-                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← EMAIL-{email.id}")
+                        print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
+                    else:
+                        print(f"[POI REFRESH] ℹ️ Link already exists: {result['poi_id']} ← EMAIL-{email.id}")
+                else:
+                    print(f"[POI REFRESH] ⚠️ WARNING: No POI ID returned from create_or_update! Result: {result}")
             
             # 🔧 FIX: Commit after processing EACH email to ensure POI profiles are visible
             # This prevents creating duplicate POIs when the same name appears in multiple emails
@@ -375,6 +389,39 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             print(f"[POI REFRESH] ✅ SURVEILLANCE-{entry.id} synced: {target_count} target(s) processed")
         
         print(f"  ✅ Surveillance: {results['surveillance']['scanned']} scanned, {results['surveillance']['profiles_created']} created, {results['surveillance']['profiles_updated']} updated")
+        
+        # ====================================================================
+        # VERIFY ALL POIS HAVE SOURCES
+        # ====================================================================
+        print("\n[VERIFICATION] Checking for POI profiles without source links...")
+        
+        # Get all ACTIVE POI profiles
+        all_pois = db.session.query(AllegedPersonProfile).filter(
+            AllegedPersonProfile.status == 'ACTIVE'
+        ).all()
+        
+        orphaned_pois = []
+        for poi in all_pois:
+            # Check if POI has any source links
+            source_count = db.session.query(POIIntelligenceLink).filter_by(
+                poi_id=poi.poi_id
+            ).count()
+            
+            if source_count == 0:
+                orphaned_pois.append({
+                    'poi_id': poi.poi_id,
+                    'name_english': poi.name_english,
+                    'name_chinese': poi.name_chinese,
+                    'created_by': poi.created_by
+                })
+                print(f"[VERIFICATION] ⚠️ ORPHANED POI: {poi.poi_id} - {poi.name_english} ({poi.name_chinese}) - Created by: {poi.created_by}")
+        
+        if orphaned_pois:
+            print(f"\n[VERIFICATION] ⚠️ WARNING: Found {len(orphaned_pois)} POI profiles WITHOUT source links!")
+            print(f"[VERIFICATION] ⚠️ These POIs will appear in the list but clicking them shows no source!")
+            print(f"[VERIFICATION] ⚠️ This indicates a data integrity issue - please review the assessment data!")
+        else:
+            print(f"\n[VERIFICATION] ✅ All POI profiles have source links")
         
         # ====================================================================
         # SUMMARY
