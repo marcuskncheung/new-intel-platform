@@ -2248,24 +2248,25 @@ def renumber_all_poi_ids():
             print(f"[RENUMBER] {old_poi_id} → {new_poi_id}")
             
             # Update the profile's POI ID
-            # Note: Foreign keys with poi_id will cascade automatically due to ON UPDATE CASCADE
-            # But SQLite doesn't support ON UPDATE CASCADE, so we need to update manually
+            # Note: EmailAllegedPersonLink uses alleged_person_id (profile.id), not poi_id
+            # So we only need to update tables that reference poi_id as a string
             
-            # 1. Update EmailAllegedPersonLink table (email-POI relationships)
-            EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile.id).update({
-                'poi_id': new_poi_id
-            }, synchronize_session=False)
-            
-            # 2. Update POIIntelligenceLink table (cross-source links) if exists
+            # 1. Update POIIntelligenceLink table (cross-source links) if exists
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
             
-            # 3. Update merged_into_poi_id references (POI merges)
+            # 2. Update merged_into_poi_id references (POI merges)
             AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
                 'merged_into_poi_id': new_poi_id
             }, synchronize_session=False)
+            
+            # 3. Update POIAssessmentHistory if it exists
+            if POIAssessmentHistory:
+                POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
+                    'poi_id': new_poi_id
+                }, synchronize_session=False)
             
             # 4. Update the main profile's POI ID
             profile.poi_id = new_poi_id
