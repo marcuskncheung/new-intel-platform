@@ -2262,29 +2262,29 @@ def renumber_all_poi_ids():
             
             print(f"[RENUMBER] {old_poi_id} → {new_poi_id}")
             
-            # Update the profile's POI ID
-            # Note: EmailAllegedPersonLink uses alleged_person_id (profile.id), not poi_id
-            # So we only need to update tables that reference poi_id as a string
+            # ⚠️ CRITICAL: Update in correct order to avoid foreign key constraint violations
+            # Must update parent table (alleged_person_profile) BEFORE child tables
             
-            # 1. Update POIIntelligenceLink table (cross-source links) if exists
+            # 1. Update the main profile's POI ID FIRST (parent table)
+            profile.poi_id = new_poi_id
+            db.session.flush()  # Apply this change immediately before updating child tables
+            
+            # 2. Update POIIntelligenceLink table (child table with foreign key)
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
             
-            # 2. Update merged_into_poi_id references (POI merges)
+            # 3. Update merged_into_poi_id references (POI merges)
             AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
                 'merged_into_poi_id': new_poi_id
             }, synchronize_session=False)
             
-            # 3. Update POIAssessmentHistory if it exists
+            # 4. Update POIAssessmentHistory if it exists
             if POIAssessmentHistory:
                 POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
-            
-            # 4. Update the main profile's POI ID
-            profile.poi_id = new_poi_id
             
             renumber_count += 1
         
