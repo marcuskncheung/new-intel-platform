@@ -2262,27 +2262,45 @@ def renumber_all_poi_ids():
             
             print(f"[RENUMBER] {old_poi_id} → {new_poi_id}")
             
-            # ⚠️ CRITICAL: Update in correct order to avoid foreign key constraint violations
-            # Must update parent table (alleged_person_profile) BEFORE child tables
+            # ⚠️ CRITICAL: Foreign key constraint chicken-and-egg problem solution
+            # Problem: Can't update parent (alleged_person_profile) while child (poi_intelligence_link) references old value
+            # Solution: 3-step process using temporary staging ID
             
-            # 1. Update the main profile's POI ID FIRST (parent table)
-            profile.poi_id = new_poi_id
-            db.session.flush()  # Apply this change immediately before updating child tables
+            temp_poi_id = f"TEMP-{idx:03d}"
             
-            # 2. Update POIIntelligenceLink table (child table with foreign key)
+            # STEP 1: Update child tables to temporary staging ID
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
+                    'poi_id': temp_poi_id
+                }, synchronize_session=False)
+            
+            AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
+                'merged_into_poi_id': temp_poi_id
+            }, synchronize_session=False)
+            
+            if POIAssessmentHistory:
+                POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
+                    'poi_id': temp_poi_id
+                }, synchronize_session=False)
+            
+            db.session.flush()  # Apply child updates
+            
+            # STEP 2: Update parent table to final POI ID (now safe - no child references)
+            profile.poi_id = new_poi_id
+            db.session.flush()  # Apply parent update
+            
+            # STEP 3: Update child tables from temporary to final POI ID
+            if POIIntelligenceLink:
+                POIIntelligenceLink.query.filter_by(poi_id=temp_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
             
-            # 3. Update merged_into_poi_id references (POI merges)
-            AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
+            AllegedPersonProfile.query.filter_by(merged_into_poi_id=temp_poi_id).update({
                 'merged_into_poi_id': new_poi_id
             }, synchronize_session=False)
             
-            # 4. Update POIAssessmentHistory if it exists
             if POIAssessmentHistory:
-                POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
+                POIAssessmentHistory.query.filter_by(poi_id=temp_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
             
