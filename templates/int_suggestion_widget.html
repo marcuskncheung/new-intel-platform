@@ -1,0 +1,338 @@
+<!-- 
+🎯 INT Number Smart Suggestion Widget
+Include this in email/whatsapp/patrol detail pages
+
+Usage in parent template:
+{% include 'int_suggestion_widget.html' with source_type='EMAIL', source_id=email.id %}
+-->
+
+{% set widget_id = 'int-suggest-' + (source_type|lower) + '-' + (source_id|string) %}
+
+<style>
+.int-suggestion-widget {
+    position: relative;
+}
+
+.int-autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border: 2px solid #0d6efd;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1050;
+    display: none;
+    margin-top: 4px;
+}
+
+.int-autocomplete-dropdown.show {
+    display: block;
+}
+
+.int-suggestion-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.15s;
+}
+
+.int-suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.int-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.int-suggestion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.int-suggestion-number {
+    font-weight: 700;
+    font-family: monospace;
+    font-size: 1.1rem;
+    color: #0d6efd;
+}
+
+.int-suggestion-count {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.int-suggestion-context {
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 4px;
+}
+
+.int-suggestion-similarity {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.int-suggestion-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    margin-right: 4px;
+}
+
+.badge-email { background-color: #e7f3ff; color: #0066cc; }
+.badge-whatsapp { background-color: #d4edda; color: #155724; }
+.badge-patrol { background-color: #fff3cd; color: #856404; }
+
+.int-helper-section {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    border-left: 4px solid #0d6efd;
+}
+</style>
+
+<!-- Smart INT Input with Autocomplete -->
+<div class="int-suggestion-widget">
+    <div class="input-group input-group-lg">
+        <span class="input-group-text">
+            <i class="fas fa-hashtag"></i>
+        </span>
+        <input type="text" 
+               class="form-control" 
+               id="{{ widget_id }}-input"
+               name="int_reference_number" 
+               value="{{ current_int or '' }}"
+               placeholder="Type INT-XXX or search..."
+               autocomplete="off"
+               style="font-weight: bold; font-family: monospace; font-size: 1.25rem;">
+        <button type="button" 
+                class="btn btn-outline-secondary" 
+                id="{{ widget_id }}-search-btn"
+                title="Find Similar Cases">
+            <i class="fas fa-search"></i> Find Similar
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Assign
+        </button>
+    </div>
+    
+    <!-- Autocomplete Dropdown -->
+    <div class="int-autocomplete-dropdown" id="{{ widget_id }}-dropdown"></div>
+    
+    <!-- Helper Section: Recently Used INT Numbers -->
+    <div class="int-helper-section">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong><i class="bi bi-clock-history"></i> Recently Used INT Numbers:</strong>
+            <a href="{{ url_for('int_statistics_dashboard') }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                <i class="bi bi-graph-up"></i> View All Statistics
+            </a>
+        </div>
+        <div id="{{ widget_id }}-recent" class="d-flex flex-wrap gap-2">
+            <small class="text-muted">Loading...</small>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const widgetId = '{{ widget_id }}';
+    const sourceType = '{{ source_type }}';
+    const sourceId = {{ source_id }};
+    
+    const input = document.getElementById(widgetId + '-input');
+    const dropdown = document.getElementById(widgetId + '-dropdown');
+    const searchBtn = document.getElementById(widgetId + '-search-btn');
+    const recentDiv = document.getElementById(widgetId + '-recent');
+    
+    let suggestions = [];
+    let selectedIndex = -1;
+    
+    // Load recent INT numbers on page load
+    loadRecentIntNumbers();
+    
+    // Event: Input typing - autocomplete
+    input.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            hideDropdown();
+            return;
+        }
+        
+        // Check if user is typing INT-XXX format
+        if (/^INT-?\d*$/i.test(query)) {
+            // Autocomplete INT numbers
+            fetchIntAutocomplete(query);
+        } else {
+            // Search by content (subject, alleged person, etc.)
+            searchSimilarCases(query);
+        }
+    });
+    
+    // Event: Search button click
+    searchBtn.addEventListener('click', function() {
+        const query = input.value.trim() || '{{ current_subject|default("", true)|escapejs }}';
+        if (query) {
+            searchSimilarCases(query);
+        }
+    });
+    
+    // Event: Keyboard navigation
+    input.addEventListener('keydown', function(e) {
+        if (!dropdown.classList.contains('show')) return;
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+            updateSelection();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, -1);
+            updateSelection();
+        } else if (e.key === 'Enter' && selectedIndex >= 0) {
+            e.preventDefault();
+            selectSuggestion(suggestions[selectedIndex]);
+        } else if (e.key === 'Escape') {
+            hideDropdown();
+        }
+    });
+    
+    // Event: Click outside to close
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            hideDropdown();
+        }
+    });
+    
+    // === FUNCTIONS ===
+    
+    function loadRecentIntNumbers() {
+        fetch('/api/int-suggestions/recent')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.recent.length > 0) {
+                    recentDiv.innerHTML = data.recent.map(item => `
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-primary" 
+                                onclick="document.getElementById('${widgetId}-input').value = '${item.int_number}'; document.getElementById('${widgetId}-input').focus();"
+                                title="${item.subject || item.summary}">
+                            <strong>${item.int_number}</strong>
+                            <span class="badge bg-secondary ms-1">${item.count}</span>
+                        </button>
+                    `).join('');
+                } else {
+                    recentDiv.innerHTML = '<small class="text-muted">No recent INT numbers</small>';
+                }
+            })
+            .catch(err => {
+                console.error('Error loading recent INT numbers:', err);
+                recentDiv.innerHTML = '<small class="text-danger">Error loading recent numbers</small>';
+            });
+    }
+    
+    function fetchIntAutocomplete(query) {
+        fetch(`/api/int-suggestions/autocomplete?query=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.suggestions.length > 0) {
+                    suggestions = data.suggestions;
+                    renderDropdown(suggestions);
+                } else {
+                    hideDropdown();
+                }
+            })
+            .catch(err => console.error('Autocomplete error:', err));
+    }
+    
+    function searchSimilarCases(query) {
+        // Show loading
+        dropdown.innerHTML = '<div class="int-suggestion-item"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+        dropdown.classList.add('show');
+        
+        fetch('/api/int-suggestions/find-similar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: query,
+                source_type: sourceType,
+                source_id: sourceId
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.suggestions.length > 0) {
+                suggestions = data.suggestions;
+                renderDropdown(suggestions);
+            } else {
+                dropdown.innerHTML = '<div class="int-suggestion-item"><small class="text-muted">No similar cases found</small></div>';
+            }
+        })
+        .catch(err => {
+            console.error('Search error:', err);
+            dropdown.innerHTML = '<div class="int-suggestion-item"><small class="text-danger">Error searching</small></div>';
+        });
+    }
+    
+    function renderDropdown(items) {
+        dropdown.innerHTML = items.map((item, index) => `
+            <div class="int-suggestion-item ${index === selectedIndex ? 'bg-light' : ''}" 
+                 data-index="${index}">
+                <div class="int-suggestion-header">
+                    <span class="int-suggestion-number">${item.int_number}</span>
+                    <span class="int-suggestion-count">
+                        ${item.count} source${item.count > 1 ? 's' : ''}
+                        ${item.sources ? item.sources.map(s => `<span class="int-suggestion-badge badge-${s.toLowerCase()}">${s}</span>`).join('') : ''}
+                    </span>
+                </div>
+                <div class="int-suggestion-context">
+                    📋 ${item.subject || item.summary || 'No subject'}
+                </div>
+                ${item.alleged_person ? `<div class="int-suggestion-context">👤 ${item.alleged_person}</div>` : ''}
+                ${item.similarity_score ? `<div class="int-suggestion-similarity">🎯 ${item.similarity_score}% match</div>` : ''}
+            </div>
+        `).join('');
+        
+        dropdown.classList.add('show');
+        selectedIndex = -1;
+        
+        // Add click handlers
+        dropdown.querySelectorAll('.int-suggestion-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                selectSuggestion(suggestions[index]);
+            });
+        });
+    }
+    
+    function selectSuggestion(item) {
+        input.value = item.int_number;
+        hideDropdown();
+        input.focus();
+    }
+    
+    function updateSelection() {
+        const items = dropdown.querySelectorAll('.int-suggestion-item');
+        items.forEach((item, index) => {
+            item.classList.toggle('bg-light', index === selectedIndex);
+        });
+        
+        if (selectedIndex >= 0 && items[selectedIndex]) {
+            items[selectedIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+    
+    function hideDropdown() {
+        dropdown.classList.remove('show');
+        selectedIndex = -1;
+    }
+})();
+</script>
