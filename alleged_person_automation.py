@@ -163,9 +163,10 @@ def find_matching_profile(db, AllegedPersonProfile,
         # Use passed models - already has active Flask app context from route handler
         # 1. Try exact agent number match first (most reliable)
         if agent_number and agent_number.strip():
-            exact_match = AllegedPersonProfile.query.filter_by(
-                agent_number=agent_number.strip(),
-                status='ACTIVE'
+            # 🔧 FIX: Exclude MERGED profiles to prevent recreating after merge
+            exact_match = AllegedPersonProfile.query.filter(
+                AllegedPersonProfile.agent_number == agent_number.strip(),
+                AllegedPersonProfile.status != 'MERGED'
             ).first()
             
             if exact_match:
@@ -176,8 +177,11 @@ def find_matching_profile(db, AllegedPersonProfile,
         if name_english or name_chinese:
             print(f"[PROFILE MATCHING] Searching for name similarity: EN='{name_english}' CN='{name_chinese}'")
             
-            # Get all active profiles for similarity comparison
-            all_profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').all()
+            # 🔧 FIX: Exclude MERGED profiles to prevent recreating merged POIs after refresh
+            # Get all profiles that are NOT merged (ACTIVE, INACTIVE, etc. are fine)
+            all_profiles = AllegedPersonProfile.query.filter(
+                AllegedPersonProfile.status != 'MERGED'
+            ).all()
             
             best_match = None
             best_similarity = 0.0
