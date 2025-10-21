@@ -73,6 +73,8 @@ def create_email_alleged_subjects_table():
 def migrate_existing_data():
     """Migrate existing comma-separated names to new table structure"""
     
+    from sqlalchemy import text
+    
     print("\n" + "=" * 80)
     print("🔄 STEP 2: Migrating existing email alleged subjects")
     print("=" * 80)
@@ -86,7 +88,7 @@ def migrate_existing_data():
            OR alleged_subject_chinese IS NOT NULL
     """
     
-    result = db.session.execute(query)
+    result = db.session.execute(text(query))
     emails = result.fetchall()
     
     print(f"\n📊 Found {len(emails)} emails with alleged subjects")
@@ -147,7 +149,7 @@ def migrate_existing_data():
                             :license_type, :license_num, :seq)
                 """
                 
-                db.session.execute(insert_sql, {
+                db.session.execute(text(insert_sql), {
                     'email_id': email_id,
                     'english': english,
                     'chinese': chinese,
@@ -178,13 +180,15 @@ def migrate_existing_data():
 def verify_migration():
     """Verify the migration was successful"""
     
+    from sqlalchemy import text
+    
     print("\n" + "=" * 80)
     print("🔍 STEP 3: Verifying migration")
     print("=" * 80)
     
     # Count records in new table
     count_sql = "SELECT COUNT(*) FROM email_alleged_subjects"
-    result = db.session.execute(count_sql)
+    result = db.session.execute(text(count_sql))
     new_count = result.fetchone()[0]
     
     # Count emails with alleged subjects
@@ -193,7 +197,7 @@ def verify_migration():
         WHERE alleged_subject_english IS NOT NULL 
            OR alleged_subject_chinese IS NOT NULL
     """
-    result = db.session.execute(old_count_sql)
+    result = db.session.execute(text(old_count_sql))
     old_count = result.fetchone()[0]
     
     print(f"\n📊 Verification Results:")
@@ -210,7 +214,7 @@ def verify_migration():
         ORDER BY eas.email_id, eas.sequence_order
         LIMIT 10
     """
-    result = db.session.execute(sample_sql)
+    result = db.session.execute(text(sample_sql))
     samples = result.fetchall()
     
     print(f"\n📋 Sample migrated records:")
