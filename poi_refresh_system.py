@@ -103,8 +103,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 elif result.get('action') == 'updated':
                     results['email']['profiles_updated'] += 1
                 
-                # Create universal link (only if case_profile_id exists)
-                if result.get('poi_id') and email.caseprofile_id:
+                # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
+                # This ensures POI profiles show their source in the dashboard
+                if result.get('poi_id'):
                     existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='EMAIL',
@@ -116,12 +117,13 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_id=result['poi_id'],
                             source_type='EMAIL',
                             source_id=email.id,
-                            case_profile_id=email.caseprofile_id,
+                            case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
                             confidence_score=0.95,
                             extraction_method='REFRESH'
                         )
                         db.session.add(new_link)
                         results['email']['links_created'] += 1
+                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← EMAIL-{email.id}")
             
             print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {max_len} POI link(s) created based on current assessment")
         
@@ -180,8 +182,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 elif result.get('action') == 'updated':
                     results['whatsapp']['profiles_updated'] += 1
                 
-                # Create universal link (only if case_profile_id exists)
-                if result.get('poi_id') and entry.caseprofile_id:
+                # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
+                if result.get('poi_id'):
                     existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='WHATSAPP',
@@ -193,12 +195,13 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_id=result['poi_id'],
                             source_type='WHATSAPP',
                             source_id=entry.id,
-                            case_profile_id=entry.caseprofile_id,
+                            case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
                             confidence_score=0.90,
                             extraction_method='REFRESH'
                         )
                         db.session.add(new_link)
                         results['whatsapp']['links_created'] += 1
+                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← WHATSAPP-{entry.id}")
             
             print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced: {max_len} POI link(s) created")
         
@@ -257,8 +260,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 elif result.get('action') == 'updated':
                     results['patrol']['profiles_updated'] += 1
                 
-                # Create universal link (only if case_profile_id exists)
-                if result.get('poi_id') and entry.caseprofile_id:
+                # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
+                if result.get('poi_id'):
                     existing_link = db.session.query(POIIntelligenceLink).filter_by(
                         poi_id=result['poi_id'],
                         source_type='PATROL',
@@ -270,12 +273,13 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_id=result['poi_id'],
                             source_type='PATROL',
                             source_id=entry.id,
-                            case_profile_id=entry.caseprofile_id,
+                            case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
                             confidence_score=0.90,
                             extraction_method='REFRESH'
                         )
                         db.session.add(new_link)
                         results['patrol']['links_created'] += 1
+                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← PATROL-{entry.id}")
             
             print(f"[POI REFRESH] ✅ PATROL-{entry.id} synced: {max_len} POI link(s) created")
         
@@ -355,6 +359,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         )
                         db.session.add(new_link)
                         results['surveillance']['links_created'] += 1
+                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← SURVEILLANCE-{entry.id}")
             
             target_count = len(targets)
             print(f"[POI REFRESH] ✅ SURVEILLANCE-{entry.id} synced: {target_count} target(s) processed")
