@@ -86,11 +86,14 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 if not eng_name and not chi_name:
                     continue
                 
+                # 🔧 CRITICAL FIX: Don't pass email_id to avoid wrong linking!
+                # The refresh should only create/find POI profiles, not link them.
+                # Links are created separately via POIIntelligenceLink below.
                 result = create_or_update_alleged_person_profile(
                     db, AllegedPersonProfile, EmailAllegedPersonLink,
                     name_english=eng_name,
                     name_chinese=chi_name,
-                    email_id=email.id,
+                    email_id=None,  # ✅ DON'T link during refresh! Links created separately below
                     source="EMAIL",
                     update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
                 )

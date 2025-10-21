@@ -63,21 +63,33 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     is_chinese1 = bool(re.search(r'[\u4e00-\u9fff]', norm1))
     is_chinese2 = bool(re.search(r'[\u4e00-\u9fff]', norm2))
     
-    if is_chinese1 and is_chinese2:
+    # Extract Chinese characters from both names
+    chinese_chars1 = re.sub(r'[^\u4e00-\u9fff]', '', norm1)
+    chinese_chars2 = re.sub(r'[^\u4e00-\u9fff]', '', norm2)
+    
+    if chinese_chars1 and chinese_chars2:
         # For Chinese names, use stricter exact character matching
         # Chinese names are typically 2-4 characters, so high precision needed
-        if norm1 == norm2:
-            return 1.0
+        if chinese_chars1 == chinese_chars2:
+            # Exact Chinese match (ignore English suffix like "Spero")
+            # Examples: "曹越" == "曹越spero" → 0.95 (same person, different romanization)
+            return 0.95
         
-        # Check if one name contains the other (partial match)
-        if norm1 in norm2 or norm2 in norm1:
-            return 0.9
+        # Check if one Chinese name contains the other (partial match)
+        # Example: "曹越" in "曹越峰" → 0.85 (could be same person with incomplete name)
+        if chinese_chars1 in chinese_chars2:
+            # Shorter name is subset of longer name
+            ratio = len(chinese_chars1) / len(chinese_chars2)
+            return 0.85 * ratio  # Penalize if difference is large
+        elif chinese_chars2 in chinese_chars1:
+            ratio = len(chinese_chars2) / len(chinese_chars1)
+            return 0.85 * ratio
         
         # Character-by-character comparison for Chinese
-        common_chars = set(norm1) & set(norm2)
+        common_chars = set(chinese_chars1) & set(chinese_chars2)
         if common_chars:
-            char_similarity = len(common_chars) / max(len(set(norm1)), len(set(norm2)))
-            return char_similarity * 0.8  # Penalize partial matches
+            char_similarity = len(common_chars) / max(len(set(chinese_chars1)), len(set(chinese_chars2)))
+            return char_similarity * 0.7  # Penalize partial matches
         
         return 0.0  # Different Chinese names
     
@@ -86,12 +98,21 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     
     # Boost similarity for partial name matches
     # e.g., "John Smith" vs "John William Smith"
+    # e.g., "Cao Yue" vs "Cao Yue Spero" → Should be 0.95 (same person!)
     words1 = set(norm1.split())
     words2 = set(norm2.split())
     
     if words1 and words2:
         common_words = words1.intersection(words2)
         word_similarity = len(common_words) / max(len(words1), len(words2))
+        
+        # 🔧 ENHANCED: If one name is a complete subset of the other, it's likely the same person
+        # Example: {"cao", "yue"} ⊆ {"cao", "yue", "spero"} → 0.95 match
+        if words1.issubset(words2) or words2.issubset(words1):
+            # One name is completely contained in the other
+            # Return high score (0.95) if ALL words from shorter name are in longer name
+            return 0.95
+        
         # Combine character and word similarity
         similarity = max(similarity, word_similarity * 0.85)
     
@@ -136,7 +157,7 @@ def generate_next_poi_id(db, AllegedPersonProfile) -> str:
 def find_matching_profile(db, AllegedPersonProfile, 
                          name_english: str, name_chinese: str,
                          agent_number: str = None, company: str = None,
-                         similarity_threshold: float = 0.85) -> Optional[Dict]:
+                         similarity_threshold: float = 0.80) -> Optional[Dict]:
     """
     Find existing profile that matches the given person details
     
@@ -147,6 +168,8 @@ def find_matching_profile(db, AllegedPersonProfile,
         name_chinese: Chinese name to match
         agent_number: Optional agent/license number
         company: Optional company name
+        similarity_threshold: Minimum similarity score (0.0-1.0)
+                             Lowered to 0.80 to catch variations like "Cao Yue" vs "Cao Yue Spero"
         similarity_threshold: Minimum similarity score (0.0-1.0)
         
     Returns:
@@ -200,17 +223,24 @@ def find_matching_profile(db, AllegedPersonProfile,
                 # STRATEGY: If BOTH names are provided and match, it's very likely the same person
                 if name_english and name_chinese and profile.name_english and profile.name_chinese:
                     # Both English and Chinese names provided - check if they match
-                    if eng_similarity >= 0.85 and chi_similarity >= 0.85:
+                    # 🔧 CRITICAL FIX: REQUIRE BOTH names to match for dual-name comparison
+                    # Example: "Peter Chan (陈伟)" vs "Peter Chan (张明)" should NOT match
+                    # English matches but Chinese different = DIFFERENT PEOPLE!
+                    if eng_similarity >= 0.80 and chi_similarity >= 0.80:
                         # Both names match well - definitely same person!
                         overall_similarity = 1.0
-                        print(f"[PROFILE MATCHING] 🎯 Strong match: {profile.poi_id} - EN:{eng_similarity:.3f} CN:{chi_similarity:.3f}")
-                    elif eng_similarity >= 0.85 or chi_similarity >= 0.85:
-                        # One name matches strongly, the other exists but doesn't match as well
-                        # This could be a partial match or name variation
-                        overall_similarity = max(eng_similarity, chi_similarity) * 0.9
+                        print(f"[PROFILE MATCHING] 🎯 Strong dual-name match: {profile.poi_id} - EN:{eng_similarity:.3f} CN:{chi_similarity:.3f}")
+                    elif eng_similarity >= 0.95 and chi_similarity >= 0.50:
+                        # English is near-perfect match, Chinese is partial - could be name variation
+                        # Example: "Cao Yue (曹越)" vs "Cao Yue Spero (曹越)" → 0.95 match
+                        overall_similarity = 0.90
+                        print(f"[PROFILE MATCHING] 🤔 Partial dual-name match: {profile.poi_id} - EN:{eng_similarity:.3f} CN:{chi_similarity:.3f}")
                     else:
-                        # Neither name matches well enough
-                        overall_similarity = max(eng_similarity, chi_similarity)
+                        # 🚨 CRITICAL: If BOTH names provided but one doesn't match → Different people!
+                        # Don't use the higher score, use the LOWER score to prevent false matches
+                        overall_similarity = min(eng_similarity, chi_similarity)
+                        if overall_similarity < similarity_threshold:
+                            print(f"[PROFILE MATCHING] ❌ Different people (dual-name mismatch): {profile.poi_id} - EN:{eng_similarity:.3f} CN:{chi_similarity:.3f}")
                 else:
                     # Only one name provided or profile has only one name
                     # Use the higher similarity score
