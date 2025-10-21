@@ -123,7 +123,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             poi_profile_id=poi_profile_id,
                             intelligence_type="EMAIL",
                             intelligence_id=email.id,
-                            case_profile_id=email.case_profile_id  # May be None
+                            case_profile_id=email.caseprofile_id  # May be None
                         )
             else:
                 # ✅ NEW METHOD: Iterate email_alleged_subjects rows (guaranteed correct pairing)
@@ -167,20 +167,31 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                             db.session.flush()  # Force write to check for errors immediately
                             results['email']['links_created'] += 1
                             print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
-                    except Exception as link_error:
-                        print(f"[POI REFRESH] ❌ ERROR creating link for {result['poi_id']} ← EMAIL-{email.id}: {link_error}")
-                        import traceback
-                        traceback.print_exc()
-                else:
-                    print(f"[POI REFRESH] ⚠️ WARNING: No POI ID returned from create_or_update! Result: {result}")
+                        except Exception as link_error:
+                            print(f"[POI REFRESH] ❌ ERROR creating link for {result['poi_id']} ← EMAIL-{email.id}: {link_error}")
+                            import traceback
+                            traceback.print_exc()
+                    else:
+                        print(f"[POI REFRESH] ⚠️ WARNING: No POI ID returned from create_or_update! Result: {result}")
             
             # 🔧 FIX: Commit after processing EACH email to ensure POI profiles are visible
             # This prevents creating duplicate POIs when the same name appears in multiple emails
             db.session.commit()
             
             # Count how many alleged subjects were processed
-            subject_count = len(alleged_subjects) if alleged_subjects else max(len(english_names) if 'english_names' in locals() else 0, len(chinese_names) if 'chinese_names' in locals() else 0)
-            print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {subject_count} alleged subject(s) processed from {'NEW table' if alleged_subjects else 'LEGACY columns'}")
+            if alleged_subjects:
+                subject_count = len(alleged_subjects)
+                data_source = 'NEW table'
+            elif 'english_names' in locals() or 'chinese_names' in locals():
+                english_count = len(english_names) if 'english_names' in locals() else 0
+                chinese_count = len(chinese_names) if 'chinese_names' in locals() else 0
+                subject_count = max(english_count, chinese_count)
+                data_source = 'LEGACY columns'
+            else:
+                subject_count = 0
+                data_source = 'NONE (empty email)'
+            
+            print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {subject_count} alleged subject(s) processed from {data_source}")
         
         print(f"  ✅ Emails: {results['email']['scanned']} scanned, {results['email']['profiles_created']} created, {results['email']['profiles_updated']} updated, {results['email']['links_created']} links")
         
