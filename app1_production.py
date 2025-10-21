@@ -1962,14 +1962,29 @@ def alleged_subject_list():
             
             display_name = " ".join(name_parts) if name_parts else profile.poi_id
             
+            # ✅ FIX: Calculate actual email count from database links
+            # Count from POIIntelligenceLink table (cross-source links)
+            actual_email_count = 0
+            if POIIntelligenceLink:
+                actual_email_count = POIIntelligenceLink.query.filter_by(
+                    poi_id=profile.poi_id,
+                    source_type='EMAIL'
+                ).count()
+            
+            # Fallback: Count from legacy EmailAllegedPersonLink table
+            if actual_email_count == 0 and EmailAllegedPersonLink:
+                actual_email_count = EmailAllegedPersonLink.query.filter_by(
+                    alleged_person_id=profile.id
+                ).count()
+            
             # Build subtitle with additional info
             subtitle_parts = []
             if profile.agent_number:
                 subtitle_parts.append(f"Agent: {profile.agent_number}")
             if profile.company:
                 subtitle_parts.append(f"Company: {profile.company}")
-            if profile.email_count > 0:
-                subtitle_parts.append(f"{profile.email_count} email(s)")
+            if actual_email_count > 0:
+                subtitle_parts.append(f"{actual_email_count} email(s)")
             
             subtitle = " | ".join(subtitle_parts) if subtitle_parts else ""
             
@@ -1979,7 +1994,7 @@ def alleged_subject_list():
                 "label": display_name,
                 "subtitle": subtitle,
                 "time": profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "",
-                "email_count": profile.email_count,
+                "email_count": actual_email_count,  # ✅ Use actual count from database
                 "created_by": profile.created_by,
                 "agent_number": profile.agent_number,
                 "company": profile.company,
