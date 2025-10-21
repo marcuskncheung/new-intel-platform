@@ -73,67 +73,106 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             
             db.session.flush()  # Apply deletions before creating new links
             
-            # Now create fresh links based on CURRENT assessment details
-            english_names = [n.strip() for n in (email.alleged_subject_english or '').split(',') if n.strip()]
-            chinese_names = [n.strip() for n in (email.alleged_subject_chinese or '').split(',') if n.strip()]
+            # MIGRATION: Use new email_alleged_subjects table (guaranteed correct pairing)
+            from app1_production import EmailAllegedSubject
+            alleged_subjects = EmailAllegedSubject.query.filter_by(email_id=email.id).order_by(EmailAllegedSubject.sequence_order).all()
             
-            # ⚠️ CRITICAL WARNING: Check for name count mismatch
-            if len(english_names) != len(chinese_names) and english_names and chinese_names:
-                print(f"[POI REFRESH] ⚠️ WARNING: Email {email.id} has {len(english_names)} English names but {len(chinese_names)} Chinese names!")
-                print(f"[POI REFRESH] ⚠️ English: {english_names}")
-                print(f"[POI REFRESH] ⚠️ Chinese: {chinese_names}")
-                print(f"[POI REFRESH] ⚠️ Names will be paired by position - THIS MAY CREATE INCORRECT POI PROFILES!")
-                print(f"[POI REFRESH] ⚠️ Please review Email {email.id} assessment and ensure names are in matching order!")
-            
-            max_len = max(len(english_names), len(chinese_names))
-            
-            for i in range(max_len):
-                eng_name = english_names[i] if i < len(english_names) else None
-                chi_name = chinese_names[i] if i < len(chinese_names) else None
+            if not alleged_subjects:
+                # FALLBACK: If new table is empty, use old comma-separated fields
+                print(f"[POI REFRESH] ⚠️ Email {email.id}: No records in email_alleged_subjects table, using legacy fields")
+                english_names = [n.strip() for n in (email.alleged_subject_english or '').split(',') if n.strip()]
+                chinese_names = [n.strip() for n in (email.alleged_subject_chinese or '').split(',') if n.strip()]
                 
-                if not eng_name and not chi_name:
-                    continue
+                # ⚠️ CRITICAL WARNING: Check for name count mismatch
+                if len(english_names) != len(chinese_names) and english_names and chinese_names:
+                    print(f"[POI REFRESH] ⚠️ WARNING: Email {email.id} has {len(english_names)} English names but {len(chinese_names)} Chinese names!")
+                    print(f"[POI REFRESH] ⚠️ English: {english_names}")
+                    print(f"[POI REFRESH] ⚠️ Chinese: {chinese_names}")
+                    print(f"[POI REFRESH] ⚠️ Names will be paired by position - THIS MAY CREATE INCORRECT POI PROFILES!")
+                    print(f"[POI REFRESH] ⚠️ Please review Email {email.id} assessment and ensure names are in matching order!")
                 
-                # 🔧 CRITICAL FIX: Don't pass email_id to avoid wrong linking!
-                # The refresh should only create/find POI profiles, not link them.
-                # Links are created separately via POIIntelligenceLink below.
-                result = create_or_update_alleged_person_profile(
-                    db, AllegedPersonProfile, EmailAllegedPersonLink,
-                    name_english=eng_name,
-                    name_chinese=chi_name,
-                    email_id=None,  # ✅ DON'T link during refresh! Links created separately below
-                    source="EMAIL",
-                    update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
-                )
+                max_len = max(len(english_names), len(chinese_names))
                 
-                if result.get('action') == 'created':
-                    results['email']['profiles_created'] += 1
-                elif result.get('action') == 'updated':
-                    results['email']['profiles_updated'] += 1
+                for i in range(max_len):
+                    eng_name = english_names[i] if i < len(english_names) else None
+                    chi_name = chinese_names[i] if i < len(chinese_names) else None
+                    
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    # 🔧 CRITICAL FIX: Don't pass email_id to avoid wrong linking!
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,  # ✅ DON'T link during refresh! Links created separately below
+                        source="EMAIL",
+                        update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
+                    )
+                    
+                    if result.get('action') == 'created':
+                        results['email']['profiles_created'] += 1
+                    elif result.get('action') == 'updated':
+                        results['email']['profiles_updated'] += 1
+                    
+                    # Create universal link
+                    poi_profile_id = result.get('profile_id')
+                    if poi_profile_id:
+                        create_poi_intelligence_link(
+                            db, POIIntelligenceLink,
+                            poi_profile_id=poi_profile_id,
+                            intelligence_type="EMAIL",
+                            intelligence_id=email.id,
+                            case_profile_id=email.case_profile_id  # May be None
+                        )
+            else:
+                # ✅ NEW METHOD: Iterate email_alleged_subjects rows (guaranteed correct pairing)
+                print(f"[POI REFRESH] ✅ Email {email.id}: Processing {len(alleged_subjects)} alleged subjects from relational table")
                 
-                # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
-                # This ensures POI profiles show their source in the dashboard
-                if result.get('poi_id'):
-                    try:
-                        print(f"[POI REFRESH] 🔍 Checking if link exists for POI {result['poi_id']} → EMAIL-{email.id}")
-                        existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                            poi_id=result['poi_id'],
-                            source_type='EMAIL',
-                            source_id=email.id
-                        ).first()
-                        
-                        if not existing_link:
-                            print(f"[POI REFRESH] ➕ Creating new link: {result['poi_id']} ← EMAIL-{email.id} (case_id={email.caseprofile_id})")
-                            new_link = POIIntelligenceLink(
+                for subject in alleged_subjects:
+                    eng_name = subject.english_name
+                    chi_name = subject.chinese_name
+                    
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,  # ✅ DON'T link during refresh! Links created separately below
+                        source="EMAIL",
+                        update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
+                    )
+                    
+                    if result.get('action') == 'created':
+                        results['email']['profiles_created'] += 1
+                    elif result.get('action') == 'updated':
+                        results['email']['profiles_updated'] += 1
+                    
+                    # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
+                    # This ensures POI profiles show their source in the dashboard
+                    if result.get('poi_id'):
+                        try:
+                            print(f"[POI REFRESH] 🔍 Checking if link exists for POI {result['poi_id']} → EMAIL-{email.id}")
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
                                 poi_id=result['poi_id'],
                                 source_type='EMAIL',
-                                source_id=email.id,
-                                case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
-                                confidence_score=0.95,
-                                extraction_method='REFRESH'
-                            )
-                            db.session.add(new_link)
-                            db.session.flush()  # Force write to check for errors immediately
+                                source_id=email.id
+                            ).first()
+                            
+                            if not existing_link:
+                                print(f"[POI REFRESH] ➕ Creating new link: {result['poi_id']} ← EMAIL-{email.id} (case_id={email.caseprofile_id})")
+                                new_link = POIIntelligenceLink(
+                                    poi_id=result['poi_id'],
+                                    source_type='EMAIL',
+                                    source_id=email.id,
+                                    case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
+                                    confidence_score=0.95,
+                                    extraction_method='REFRESH'
+                                )
+                                db.session.add(new_link)
+                                db.session.flush()  # Force write to check for errors immediately
                             results['email']['links_created'] += 1
                             print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
                         else:

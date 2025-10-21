@@ -1036,6 +1036,31 @@ class Attachment(db.Model):
     filepath = db.Column(db.String(512), nullable=True)  # For migration
     file_data = db.Column(db.LargeBinary, nullable=True)
 
+class EmailAllegedSubject(db.Model):
+    """
+    Relational table for email alleged subjects.
+    Each alleged person is a separate row with guaranteed correct English-Chinese pairing.
+    """
+    __tablename__ = 'email_alleged_subjects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email_id = db.Column(db.Integer, db.ForeignKey('email.id', ondelete='CASCADE'), nullable=False)
+    english_name = db.Column(db.String(255), nullable=True)
+    chinese_name = db.Column(db.String(255), nullable=True)
+    is_insurance_intermediary = db.Column(db.Boolean, default=False)
+    license_type = db.Column(db.String(100), nullable=True)
+    license_number = db.Column(db.String(100), nullable=True)
+    sequence_order = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.CheckConstraint('english_name IS NOT NULL OR chinese_name IS NOT NULL', name='check_has_name'),
+        db.UniqueConstraint('email_id', 'sequence_order', name='unique_email_subject'),
+        db.Index('idx_email_alleged_subjects_email_id', 'email_id'),
+        db.Index('idx_email_alleged_subjects_english', 'english_name'),
+        db.Index('idx_email_alleged_subjects_chinese', 'chinese_name'),
+    )
+
 class WhatsAppEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     received_time = db.Column(db.DateTime)
@@ -8068,7 +8093,33 @@ def int_source_update_assessment(email_id):
                 license_info.append(license_num if license_num else "")
                 intermediary_info.append(license_type if license_type else "")
     
-    # Update email with processed subjects - Store separately
+    # MIGRATION: Save to new email_alleged_subjects table (guaranteed correct pairing)
+    # Delete old alleged subjects for this email
+    EmailAllegedSubject.query.filter_by(email_id=email.id).delete()
+    
+    # Insert new alleged subjects with correct pairing
+    for i in range(max(len(processed_english), len(processed_chinese))):
+        english = processed_english[i].strip() if i < len(processed_english) else None
+        chinese = processed_chinese[i].strip() if i < len(processed_chinese) else None
+        license_num = license_info[i].strip() if i < len(license_info) and license_info[i] else None
+        license_type = intermediary_info[i].strip() if i < len(intermediary_info) and intermediary_info[i] else None
+        
+        # Skip if both names are empty
+        if not english and not chinese:
+            continue
+        
+        subject = EmailAllegedSubject(
+            email_id=email.id,
+            english_name=english if english else None,
+            chinese_name=chinese if chinese else None,
+            is_insurance_intermediary=bool(license_num),
+            license_type=license_type if license_type else None,
+            license_number=license_num if license_num else None,
+            sequence_order=i + 1
+        )
+        db.session.add(subject)
+    
+    # SAFETY: Keep old columns for rollback (can be removed after validation period)
     email.alleged_subject_english = ', '.join(processed_english) if processed_english else None
     email.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
     
@@ -8089,7 +8140,7 @@ def int_source_update_assessment(email_id):
     elif processed_english:
         email.alleged_subject = ', '.join(processed_english)
     elif processed_chinese:
-        email.alleged_subject = ', '.join(processed_chinese)
+        email.alleged_subject = ', '.join(combined_subjects)
     else:
         email.alleged_subject = None
     
