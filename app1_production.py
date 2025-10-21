@@ -4003,7 +4003,21 @@ def merge_poi_profiles():
             # Transfer POI intelligence links
             links = POIIntelligenceLink.query.filter_by(poi_id=dup_id).all()
             for link in links:
-                link.poi_id = master_poi_id
+                # ✅ FIX: Check if master already has this intelligence link
+                existing_link = POIIntelligenceLink.query.filter_by(
+                    poi_id=master_poi_id,
+                    source_type=link.source_type,
+                    source_id=link.source_id
+                ).first()
+                
+                if existing_link:
+                    # Master already has this link - delete duplicate
+                    print(f"[MERGE] 🗑️ Deleting duplicate link: {link.source_type}-{link.source_id} (already linked to {master_poi_id})")
+                    db.session.delete(link)
+                else:
+                    # Transfer link to master
+                    link.poi_id = master_poi_id
+                    print(f"[MERGE] 🔗 Transferred link: {link.source_type}-{link.source_id} → {master_poi_id}")
             
             # Transfer email links (legacy)
             email_links = EmailAllegedPersonLink.query.filter_by(alleged_person_id=duplicate.id).all()
