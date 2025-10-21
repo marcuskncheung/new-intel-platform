@@ -2250,57 +2250,56 @@ def renumber_all_poi_ids():
         
         print(f"[RENUMBER] Found {len(all_profiles)} active POI profiles to renumber")
         
-        # Renumber each profile sequentially
-        renumber_count = 0
+        # ⚠️ CRITICAL: Batch renaming strategy to avoid foreign key conflicts
+        # Strategy: Rename in REVERSE order (highest to lowest)
+        # This ensures we never create duplicate POI IDs during the process
+        
+        # Build renaming map
+        renaming_map = []
         for idx, profile in enumerate(all_profiles, start=1):
             old_poi_id = profile.poi_id
             new_poi_id = f"POI-{idx:03d}"
-            
-            # Skip if already correct
-            if old_poi_id == new_poi_id:
-                continue
+            if old_poi_id != new_poi_id:
+                renaming_map.append({
+                    'profile': profile,
+                    'old_id': old_poi_id,
+                    'new_id': new_poi_id,
+                    'order': idx
+                })
+        
+        if not renaming_map:
+            print("[RENUMBER] All POI IDs already correct - no renumbering needed")
+            return 0
+        
+        print(f"[RENUMBER] Need to renumber {len(renaming_map)} POI profiles")
+        
+        # Process in REVERSE order to avoid conflicts
+        renaming_map.reverse()
+        
+        renumber_count = 0
+        for item in renaming_map:
+            profile = item['profile']
+            old_poi_id = item['old_id']
+            new_poi_id = item['new_id']
             
             print(f"[RENUMBER] {old_poi_id} → {new_poi_id}")
             
-            # ⚠️ CRITICAL: Foreign key constraint chicken-and-egg problem solution
-            # Problem: Can't update parent (alleged_person_profile) while child (poi_intelligence_link) references old value
-            # Solution: 3-step process using temporary staging ID
+            # Update parent table first
+            profile.poi_id = new_poi_id
+            db.session.flush()
             
-            temp_poi_id = f"TEMP-{idx:03d}"
-            
-            # STEP 1: Update child tables to temporary staging ID
+            # Update all child tables
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
-                    'poi_id': temp_poi_id
-                }, synchronize_session=False)
-            
-            AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
-                'merged_into_poi_id': temp_poi_id
-            }, synchronize_session=False)
-            
-            if POIAssessmentHistory:
-                POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
-                    'poi_id': temp_poi_id
-                }, synchronize_session=False)
-            
-            db.session.flush()  # Apply child updates
-            
-            # STEP 2: Update parent table to final POI ID (now safe - no child references)
-            profile.poi_id = new_poi_id
-            db.session.flush()  # Apply parent update
-            
-            # STEP 3: Update child tables from temporary to final POI ID
-            if POIIntelligenceLink:
-                POIIntelligenceLink.query.filter_by(poi_id=temp_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
             
-            AllegedPersonProfile.query.filter_by(merged_into_poi_id=temp_poi_id).update({
+            AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
                 'merged_into_poi_id': new_poi_id
             }, synchronize_session=False)
             
             if POIAssessmentHistory:
-                POIAssessmentHistory.query.filter_by(poi_id=temp_poi_id).update({
+                POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
                     'poi_id': new_poi_id
                 }, synchronize_session=False)
             
