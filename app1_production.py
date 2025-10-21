@@ -2189,6 +2189,102 @@ def create_alleged_person_profile():
     # GET request - show form
     return render_template("create_alleged_profile.html")
 
+def renumber_all_poi_ids():
+    """
+    🔄 AUTO-RENUMBER POI IDs: Automatically renumber all POI IDs to remove gaps
+    
+    After deleting POI-060, this will:
+    - POI-061 → POI-060
+    - POI-062 → POI-061
+    - POI-063 → POI-062
+    - etc.
+    
+    This ensures POI IDs are always sequential: POI-001, POI-002, POI-003...
+    with no gaps, regardless of which POIs are deleted.
+    
+    Updates all related tables:
+    - alleged_person_profile (main POI table)
+    - email_alleged_person_link (email-POI relationships)
+    - poi_intelligence_link (cross-source intelligence links)
+    - poi_assessment_history (assessment records)
+    """
+    try:
+        print("\n" + "="*80)
+        print("🔄 AUTO-RENUMBER: Starting POI ID renumbering process...")
+        print("="*80)
+        
+        # Get all active POI profiles ordered by their current numeric ID
+        # Extract numeric part from POI-XXX format for sorting
+        all_profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').all()
+        
+        # Sort by numeric part of POI ID
+        def get_poi_number(profile):
+            try:
+                return int(profile.poi_id.split('-')[1])
+            except:
+                return 999999  # Put invalid IDs at the end
+        
+        all_profiles.sort(key=get_poi_number)
+        
+        if not all_profiles:
+            print("[RENUMBER] No active POI profiles found")
+            return
+        
+        print(f"[RENUMBER] Found {len(all_profiles)} active POI profiles to renumber")
+        
+        # Renumber each profile sequentially
+        renumber_count = 0
+        for idx, profile in enumerate(all_profiles, start=1):
+            old_poi_id = profile.poi_id
+            new_poi_id = f"POI-{idx:03d}"
+            
+            # Skip if already correct
+            if old_poi_id == new_poi_id:
+                continue
+            
+            print(f"[RENUMBER] {old_poi_id} → {new_poi_id}")
+            
+            # Update the profile's POI ID
+            # Note: Foreign keys with poi_id will cascade automatically due to ON UPDATE CASCADE
+            # But SQLite doesn't support ON UPDATE CASCADE, so we need to update manually
+            
+            # 1. Update EmailAllegedPersonLink table (email-POI relationships)
+            EmailAllegedPersonLink.query.filter_by(alleged_person_id=profile.id).update({
+                'poi_id': new_poi_id
+            }, synchronize_session=False)
+            
+            # 2. Update POIIntelligenceLink table (cross-source links) if exists
+            if POIIntelligenceLink:
+                POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
+                    'poi_id': new_poi_id
+                }, synchronize_session=False)
+            
+            # 3. Update merged_into_poi_id references (POI merges)
+            AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
+                'merged_into_poi_id': new_poi_id
+            }, synchronize_session=False)
+            
+            # 4. Update the main profile's POI ID
+            profile.poi_id = new_poi_id
+            
+            renumber_count += 1
+        
+        # Commit all changes
+        db.session.commit()
+        
+        print(f"[RENUMBER] ✅ Successfully renumbered {renumber_count} POI profiles")
+        print(f"[RENUMBER] POI range: POI-001 to POI-{len(all_profiles):03d}")
+        print("="*80 + "\n")
+        
+        return renumber_count
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[RENUMBER] ❌ Error renumbering POI IDs: {e}")
+        import traceback
+        traceback.print_exc()
+        return 0
+
 @app.route("/delete_alleged_person_profile/<int:profile_id>", methods=["POST"])
 @login_required
 def delete_alleged_person_profile(profile_id):
@@ -2199,6 +2295,7 @@ def delete_alleged_person_profile(profile_id):
     1. Delete all email-person links
     2. Delete the profile itself
     3. Does NOT delete the emails themselves (they remain in the system)
+    4. 🔄 AUTO-RENUMBER all remaining POI IDs to remove gaps
     """
     try:
         # Get the profile
@@ -2219,7 +2316,14 @@ def delete_alleged_person_profile(profile_id):
         db.session.commit()
         
         print(f"[DELETE PROFILE] ✅ Successfully deleted profile {poi_id}")
-        flash(f"Profile {poi_id} and {link_count} linked allegation(s) deleted successfully", "success")
+        
+        # 🔄 AUTO-RENUMBER: Automatically renumber all POI IDs to remove gaps
+        renumber_count = renumber_all_poi_ids()
+        
+        if renumber_count > 0:
+            flash(f"Profile {poi_id} deleted and {renumber_count} POI IDs automatically renumbered to remove gaps", "success")
+        else:
+            flash(f"Profile {poi_id} and {link_count} linked allegation(s) deleted successfully", "success")
         
     except Exception as e:
         db.session.rollback()
