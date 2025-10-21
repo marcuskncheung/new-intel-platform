@@ -2250,59 +2250,68 @@ def renumber_all_poi_ids():
         
         print(f"[RENUMBER] Found {len(all_profiles)} active POI profiles to renumber")
         
-        # ⚠️ CRITICAL: Batch renaming strategy to avoid foreign key conflicts
-        # Strategy: Rename in REVERSE order (highest to lowest)
-        # This ensures we never create duplicate POI IDs during the process
-        
-        # Build renaming map
-        renaming_map = []
-        for idx, profile in enumerate(all_profiles, start=1):
-            old_poi_id = profile.poi_id
-            new_poi_id = f"POI-{idx:03d}"
-            if old_poi_id != new_poi_id:
-                renaming_map.append({
-                    'profile': profile,
-                    'old_id': old_poi_id,
-                    'new_id': new_poi_id,
-                    'order': idx
-                })
-        
-        if not renaming_map:
-            print("[RENUMBER] All POI IDs already correct - no renumbering needed")
-            return 0
-        
-        print(f"[RENUMBER] Need to renumber {len(renaming_map)} POI profiles")
-        
-        # Process in REVERSE order to avoid conflicts
-        renaming_map.reverse()
+        # ⚠️ CRITICAL: Two-phase renaming to avoid unique constraint violations
+        # Phase 1: Rename ALL to temporary IDs (TEMP-RENUMBER-001, TEMP-RENUMBER-002...)
+        # Phase 2: Rename ALL from temporary to final IDs (POI-001, POI-002...)
         
         renumber_count = 0
-        for item in renaming_map:
-            profile = item['profile']
-            old_poi_id = item['old_id']
-            new_poi_id = item['new_id']
+        
+        # PHASE 1: Move everyone to temporary IDs
+        print("[RENUMBER] Phase 1: Moving all POIs to temporary IDs...")
+        for idx, profile in enumerate(all_profiles, start=1):
+            old_poi_id = profile.poi_id
+            temp_poi_id = f"TEMP-RENUMBER-{idx:03d}"
             
-            print(f"[RENUMBER] {old_poi_id} → {new_poi_id}")
-            
-            # Update parent table first
-            profile.poi_id = new_poi_id
+            # Update parent table
+            profile.poi_id = temp_poi_id
             db.session.flush()
             
-            # Update all child tables
+            # Update child tables
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
-                    'poi_id': new_poi_id
+                    'poi_id': temp_poi_id
                 }, synchronize_session=False)
             
             AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
-                'merged_into_poi_id': new_poi_id
+                'merged_into_poi_id': temp_poi_id
             }, synchronize_session=False)
             
             if POIAssessmentHistory:
                 POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
-                    'poi_id': new_poi_id
+                    'poi_id': temp_poi_id
                 }, synchronize_session=False)
             
+            print(f"[RENUMBER] Phase 1: {old_poi_id} → {temp_poi_id}")
+        
+        db.session.flush()
+        print("[RENUMBER] Phase 1 complete - all POIs now have temporary IDs")
+        
+        # PHASE 2: Move from temporary to final sequential IDs
+        print("[RENUMBER] Phase 2: Assigning final sequential POI IDs...")
+        for idx, profile in enumerate(all_profiles, start=1):
+            temp_poi_id = f"TEMP-RENUMBER-{idx:03d}"
+            final_poi_id = f"POI-{idx:03d}"
+            
+            # Update parent table
+            profile.poi_id = final_poi_id
+            db.session.flush()
+            
+            # Update child tables
+            if POIIntelligenceLink:
+                POIIntelligenceLink.query.filter_by(poi_id=temp_poi_id).update({
+                    'poi_id': final_poi_id
+                }, synchronize_session=False)
+            
+            AllegedPersonProfile.query.filter_by(merged_into_poi_id=temp_poi_id).update({
+                'merged_into_poi_id': final_poi_id
+            }, synchronize_session=False)
+            
+            if POIAssessmentHistory:
+                POIAssessmentHistory.query.filter_by(poi_id=temp_poi_id).update({
+                    'poi_id': final_poi_id
+                }, synchronize_session=False)
+            
+            print(f"[RENUMBER] Phase 2: {temp_poi_id} → {final_poi_id}")
             renumber_count += 1
         
         # Commit all changes
