@@ -24,6 +24,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
     - Updates statistics and counts
     """
     from alleged_person_automation import create_or_update_alleged_person_profile
+    from datetime import datetime
     import re
     
     results = {
@@ -466,8 +467,27 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         
         if orphaned_pois:
             print(f"\n[VERIFICATION] ⚠️ WARNING: Found {len(orphaned_pois)} POI profiles WITHOUT source links!")
-            print(f"[VERIFICATION] ⚠️ These POIs will appear in the list but clicking them shows no source!")
-            print(f"[VERIFICATION] ⚠️ This indicates a data integrity issue - please review the assessment data!")
+            print(f"[VERIFICATION] 🧹 AUTO-CLEANUP: Marking orphaned POIs as INACTIVE...")
+            
+            # Mark orphaned POIs as INACTIVE (they lost all their sources after re-assessment)
+            # This handles the case where:
+            # - Old POI-071 had wrong "English A + Chinese B" pairing
+            # - User edited email to separate into correct "English A + Chinese C" and "English D + Chinese B"
+            # - Refresh creates new POI for correct pairings
+            # - Old POI-071 becomes orphaned (no sources point to it anymore)
+            for orphan in orphaned_pois:
+                poi = db.session.query(AllegedPersonProfile).filter_by(
+                    poi_id=orphan['poi_id']
+                ).first()
+                
+                if poi:
+                    poi.status = 'INACTIVE'
+                    poi.notes = (poi.notes or '') + f"\n[AUTO-CLEANUP {datetime.now().strftime('%Y-%m-%d %H:%M')}] Marked INACTIVE - No source links found after POI refresh. Likely due to corrected name pairing in assessments."
+                    print(f"[VERIFICATION] ✅ Marked INACTIVE: {poi.poi_id} - {poi.name_english} ({poi.name_chinese})")
+            
+            db.session.commit()
+            print(f"[VERIFICATION] ✅ Auto-cleanup completed: {len(orphaned_pois)} orphaned POIs marked as INACTIVE")
+            print(f"[VERIFICATION] 💡 TIP: These POIs are now hidden from active list. Review them in admin panel if needed.")
         else:
             print(f"\n[VERIFICATION] ✅ All POI profiles have source links")
         
@@ -478,6 +498,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         total_created = sum(r['profiles_created'] for r in results.values())
         total_updated = sum(r['profiles_updated'] for r in results.values())
         total_links = sum(r['links_created'] for r in results.values())
+        orphaned_count = len(orphaned_pois)
         
         print("\n" + "=" * 80)
         print("✅ POI PROFILE REFRESH COMPLETED")
@@ -486,6 +507,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         print(f"POI Profiles Created: {total_created}")
         print(f"POI Profiles Updated: {total_updated}")
         print(f"Universal Links Created: {total_links}")
+        print(f"Orphaned POIs Cleaned: {orphaned_count}")
         print("=" * 80)
         
         return {
@@ -495,7 +517,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 'total_scanned': total_scanned,
                 'total_created': total_created,
                 'total_updated': total_updated,
-                'total_links': total_links
+                'total_links': total_links,
+                'orphaned_cleaned': orphaned_count
             }
         }
         
