@@ -1944,7 +1944,17 @@ def alleged_subject_list():
     """
     try:
         # 🔄 AUTO-RENUMBER: Ensure POI IDs are sequential before displaying list
-        renumber_all_poi_ids()
+        # ✅ FIX: Skip renumber if there are transaction conflicts (e.g., during merge)
+        try:
+            renumber_all_poi_ids()
+        except Exception as renumber_error:
+            # Don't fail the page if renumber fails - log and continue
+            print(f"[ALLEGED SUBJECT LIST] ⚠️ Skipping renumber due to: {renumber_error}")
+            # Rollback any partial changes from renumber
+            try:
+                db.session.rollback()
+            except:
+                pass
         
         # Get all active alleged person profiles, ordered by creation date (newest first)
         profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').order_by(
@@ -4042,11 +4052,13 @@ def merge_poi_profiles():
             if not master.company and duplicate.company:
                 master.company = duplicate.company
             
-            # Mark duplicate as MERGED
-            duplicate.status = 'MERGED'
-            duplicate.notes = f"Merged into {master_poi_id} on {get_hk_time().strftime('%Y-%m-%d %H:%M:%S')}"
+            # ✅ FIX: DELETE duplicate instead of marking as MERGED
+            # Marking as MERGED keeps the POI ID in database, causing unique constraint violations
+            # during auto-renumber. Instead, delete the duplicate completely.
+            duplicate_poi_id = duplicate.poi_id
+            db.session.delete(duplicate)
             
-            print(f"[MERGE] ✅ Merged {dup_id} into {master_poi_id}")
+            print(f"[MERGE] ✅ Merged {dup_id} into {master_poi_id} (duplicate deleted)")
         
         # Recalculate master profile counts from POIIntelligenceLink table
         master.email_count = POIIntelligenceLink.query.filter_by(poi_id=master_poi_id, source_type='EMAIL').count()
