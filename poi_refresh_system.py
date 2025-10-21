@@ -48,6 +48,32 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         results['email']['scanned'] = len(emails)
         
         for email in emails:
+            # 🔄 CRITICAL FIX: Remove ALL old POI links for this email first
+            # This ensures we sync with current assessment details, not stale data
+            print(f"[POI REFRESH] 🧹 Syncing EMAIL-{email.id} with current assessment details")
+            
+            # Delete old POIIntelligenceLink entries
+            old_universal_links = db.session.query(POIIntelligenceLink).filter_by(
+                source_type='EMAIL',
+                source_id=email.id
+            ).all()
+            for old_link in old_universal_links:
+                print(f"[POI REFRESH] 🗑️ Removing old link: {old_link.poi_id} → EMAIL-{email.id}")
+                db.session.delete(old_link)
+            
+            # Delete old EmailAllegedPersonLink entries (POI v1.0)
+            old_email_links = db.session.query(EmailAllegedPersonLink).filter_by(
+                email_id=email.id
+            ).all()
+            for old_link in old_email_links:
+                profile = db.session.query(AllegedPersonProfile).get(old_link.alleged_person_id)
+                poi_id = profile.poi_id if profile else "UNKNOWN"
+                print(f"[POI REFRESH] 🗑️ Removing old legacy link: {poi_id} → EMAIL-{email.id}")
+                db.session.delete(old_link)
+            
+            db.session.flush()  # Apply deletions before creating new links
+            
+            # Now create fresh links based on CURRENT assessment details
             english_names = [n.strip() for n in (email.alleged_subject_english or '').split(',') if n.strip()]
             chinese_names = [n.strip() for n in (email.alleged_subject_chinese or '').split(',') if n.strip()]
             
@@ -66,7 +92,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     name_chinese=chi_name,
                     email_id=email.id,
                     source="EMAIL",
-                    update_mode="merge"
+                    update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
                 )
                 
                 if result.get('action') == 'created':
@@ -93,6 +119,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         )
                         db.session.add(new_link)
                         results['email']['links_created'] += 1
+            
+            print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {max_len} POI link(s) created based on current assessment")
         
         db.session.commit()
         print(f"  ✅ Emails: {results['email']['scanned']} scanned, {results['email']['profiles_created']} created, {results['email']['profiles_updated']} updated, {results['email']['links_created']} links")
@@ -102,21 +130,43 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # ====================================================================
         print("\n[2/4] Scanning WhatsApp entries...")
         whatsapp_entries = db.session.query(WhatsAppEntry).filter(
-            WhatsAppEntry.alleged_person.isnot(None)
+            (WhatsAppEntry.alleged_subject_english.isnot(None)) | 
+            (WhatsAppEntry.alleged_subject_chinese.isnot(None))
         ).all()
         
         results['whatsapp']['scanned'] = len(whatsapp_entries)
         
         for entry in whatsapp_entries:
-            alleged_persons = [p.strip() for p in (entry.alleged_person or '').split(',') if p.strip()]
+            # 🔄 CRITICAL FIX: Remove ALL old POI links for this WhatsApp first
+            print(f"[POI REFRESH] 🧹 Syncing WHATSAPP-{entry.id} with current assessment details")
             
-            for person_name in alleged_persons:
-                is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+            old_universal_links = db.session.query(POIIntelligenceLink).filter_by(
+                source_type='WHATSAPP',
+                source_id=entry.id
+            ).all()
+            for old_link in old_universal_links:
+                print(f"[POI REFRESH] 🗑️ Removing old link: {old_link.poi_id} → WHATSAPP-{entry.id}")
+                db.session.delete(old_link)
+            
+            db.session.flush()
+            
+            # Now create fresh links based on CURRENT assessment details
+            english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
+            chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
+            
+            max_len = max(len(english_names), len(chinese_names))
+            
+            for i in range(max_len):
+                eng_name = english_names[i] if i < len(english_names) else None
+                chi_name = chinese_names[i] if i < len(chinese_names) else None
+                
+                if not eng_name and not chi_name:
+                    continue
                 
                 result = create_or_update_alleged_person_profile(
                     db, AllegedPersonProfile, EmailAllegedPersonLink,
-                    name_english=None if is_chinese else person_name,
-                    name_chinese=person_name if is_chinese else None,
+                    name_english=eng_name,
+                    name_chinese=chi_name,
                     email_id=None,
                     source="WHATSAPP",
                     update_mode="merge"
@@ -146,6 +196,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         )
                         db.session.add(new_link)
                         results['whatsapp']['links_created'] += 1
+            
+            print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced: {max_len} POI link(s) created")
         
         db.session.commit()
         print(f"  ✅ WhatsApp: {results['whatsapp']['scanned']} scanned, {results['whatsapp']['profiles_created']} created, {results['whatsapp']['profiles_updated']} updated, {results['whatsapp']['links_created']} links")
@@ -155,21 +207,43 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # ====================================================================
         print("\n[3/4] Scanning Online Patrol entries...")
         patrol_entries = db.session.query(OnlinePatrolEntry).filter(
-            OnlinePatrolEntry.alleged_person.isnot(None)
+            (OnlinePatrolEntry.alleged_subject_english.isnot(None)) | 
+            (OnlinePatrolEntry.alleged_subject_chinese.isnot(None))
         ).all()
         
         results['patrol']['scanned'] = len(patrol_entries)
         
         for entry in patrol_entries:
-            alleged_persons = [p.strip() for p in (entry.alleged_person or '').split(',') if p.strip()]
+            # 🔄 CRITICAL FIX: Remove ALL old POI links for this Patrol first
+            print(f"[POI REFRESH] 🧹 Syncing PATROL-{entry.id} with current assessment details")
             
-            for person_name in alleged_persons:
-                is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+            old_universal_links = db.session.query(POIIntelligenceLink).filter_by(
+                source_type='PATROL',
+                source_id=entry.id
+            ).all()
+            for old_link in old_universal_links:
+                print(f"[POI REFRESH] 🗑️ Removing old link: {old_link.poi_id} → PATROL-{entry.id}")
+                db.session.delete(old_link)
+            
+            db.session.flush()
+            
+            # Now create fresh links based on CURRENT assessment details
+            english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
+            chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
+            
+            max_len = max(len(english_names), len(chinese_names))
+            
+            for i in range(max_len):
+                eng_name = english_names[i] if i < len(english_names) else None
+                chi_name = chinese_names[i] if i < len(chinese_names) else None
+                
+                if not eng_name and not chi_name:
+                    continue
                 
                 result = create_or_update_alleged_person_profile(
                     db, AllegedPersonProfile, EmailAllegedPersonLink,
-                    name_english=None if is_chinese else person_name,
-                    name_chinese=person_name if is_chinese else None,
+                    name_english=eng_name,
+                    name_chinese=chi_name,
                     email_id=None,
                     source="PATROL",
                     update_mode="merge"
@@ -199,6 +273,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                         )
                         db.session.add(new_link)
                         results['patrol']['links_created'] += 1
+            
+            print(f"[POI REFRESH] ✅ PATROL-{entry.id} synced: {max_len} POI link(s) created")
         
         db.session.commit()
         print(f"  ✅ Patrol: {results['patrol']['scanned']} scanned, {results['patrol']['profiles_created']} created, {results['patrol']['profiles_updated']} updated, {results['patrol']['links_created']} links")
@@ -207,41 +283,78 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # SCAN SURVEILLANCE
         # ====================================================================
         print("\n[4/4] Scanning Surveillance targets...")
-        targets = db.session.query(Target).all()
         
-        results['surveillance']['scanned'] = len(targets)
+        # Get all surveillance entries (not individual targets)
+        surveillance_entries = db.session.query(SurveillanceEntry).all()
+        results['surveillance']['scanned'] = len(surveillance_entries)
         
-        for target in targets:
-            if not target.name:
-                continue
+        for entry in surveillance_entries:
+            # 🔄 CRITICAL FIX: Remove ALL old POI links for this Surveillance first
+            print(f"[POI REFRESH] 🧹 Syncing SURVEILLANCE-{entry.id} with current targets")
             
-            is_chinese = bool(re.search(r'[\u4e00-\u9fff]', target.name))
+            old_universal_links = db.session.query(POIIntelligenceLink).filter_by(
+                source_type='SURVEILLANCE',
+                source_id=entry.id
+            ).all()
+            for old_link in old_universal_links:
+                print(f"[POI REFRESH] 🗑️ Removing old link: {old_link.poi_id} → SURVEILLANCE-{entry.id}")
+                db.session.delete(old_link)
             
-            # Prepare additional info
-            additional_info = {}
-            if target.license_number:
-                additional_info['license_number'] = target.license_number
-                additional_info['agent_number'] = target.license_number
-            if target.license_type:
-                additional_info['role'] = target.license_type
+            db.session.flush()
             
-            result = create_or_update_alleged_person_profile(
-                db, AllegedPersonProfile, EmailAllegedPersonLink,
-                name_english=None if is_chinese else target.name,
-                name_chinese=target.name if is_chinese else None,
-                email_id=None,
-                source="SURVEILLANCE",
-                update_mode="merge",
-                additional_info=additional_info
-            )
+            # Now create fresh links based on CURRENT targets
+            targets = db.session.query(Target).filter_by(surveillance_id=entry.id).all()
             
-            if result.get('action') == 'created':
-                results['surveillance']['profiles_created'] += 1
-            elif result.get('action') == 'updated':
-                results['surveillance']['profiles_updated'] += 1
+            for target in targets:
+                if not target.name or not target.name.strip():
+                    continue
+                
+                # Detect if name is Chinese or English
+                is_chinese = bool(re.search(r'[\u4e00-\u9fff]', target.name))
+                
+                # Extract license info
+                license_num = target.license_number if target.license_number else ""
+                license_type = target.license_type if target.license_type else ""
+                
+                result = create_or_update_alleged_person_profile(
+                    db, AllegedPersonProfile, EmailAllegedPersonLink,
+                    name_english=None if is_chinese else target.name.strip(),
+                    name_chinese=target.name.strip() if is_chinese else None,
+                    agent_number=license_num,
+                    license_number=license_num,
+                    role=license_type,
+                    email_id=None,
+                    source="SURVEILLANCE",
+                    update_mode="merge"
+                )
+                
+                if result.get('action') == 'created':
+                    results['surveillance']['profiles_created'] += 1
+                elif result.get('action') == 'updated':
+                    results['surveillance']['profiles_updated'] += 1
+                
+                # Create universal link
+                if result.get('poi_id'):
+                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                        poi_id=result['poi_id'],
+                        source_type='SURVEILLANCE',
+                        source_id=entry.id
+                    ).first()
+                    
+                    if not existing_link:
+                        new_link = POIIntelligenceLink(
+                            poi_id=result['poi_id'],
+                            source_type='SURVEILLANCE',
+                            source_id=entry.id,
+                            case_profile_id=None,  # Surveillance doesn't have case_profile_id
+                            confidence_score=0.95,
+                            extraction_method='REFRESH'
+                        )
+                        db.session.add(new_link)
+                        results['surveillance']['links_created'] += 1
             
-            # Note: Surveillance entries don't have case_profile_id, 
-            # so we skip creating POIIntelligenceLink for surveillance sources
+            target_count = len(targets)
+            print(f"[POI REFRESH] ✅ SURVEILLANCE-{entry.id} synced: {target_count} target(s) processed")
         
         db.session.commit()
         print(f"  ✅ Surveillance: {results['surveillance']['scanned']} scanned, {results['surveillance']['profiles_created']} created, {results['surveillance']['profiles_updated']} updated")
