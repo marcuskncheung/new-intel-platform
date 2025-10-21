@@ -8050,8 +8050,9 @@ def import_emails_from_exchange_ews(account, folder_name='Inbox', commit_to_db=T
         
         print(f"📧 Found {total_items} emails in Intelligence folder. Processing...")
         
-        # Process emails (sorted by datetime_received descending - newest first)
-        for i, item in enumerate(folder.all().order_by('-datetime_received')):
+        # Process emails (sorted by datetime_received ASCENDING - oldest first)
+        # This ensures oldest email gets ID=1, newest gets biggest ID
+        for i, item in enumerate(folder.all().order_by('datetime_received')):
             try:
                 # Generate a unique entry_id from Exchange item ID
                 entry_id = None
