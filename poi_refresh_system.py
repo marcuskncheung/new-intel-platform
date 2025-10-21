@@ -154,29 +154,19 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     # This ensures POI profiles show their source in the dashboard
                     if result.get('poi_id'):
                         try:
-                            print(f"[POI REFRESH] 🔍 Checking if link exists for POI {result['poi_id']} → EMAIL-{email.id}")
-                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                            print(f"[POI REFRESH] ➕ Creating link: {result['poi_id']} ← EMAIL-{email.id} (case_id={email.caseprofile_id})")
+                            new_link = POIIntelligenceLink(
                                 poi_id=result['poi_id'],
                                 source_type='EMAIL',
-                                source_id=email.id
-                            ).first()
-                            
-                            if not existing_link:
-                                print(f"[POI REFRESH] ➕ Creating new link: {result['poi_id']} ← EMAIL-{email.id} (case_id={email.caseprofile_id})")
-                                new_link = POIIntelligenceLink(
-                                    poi_id=result['poi_id'],
-                                    source_type='EMAIL',
-                                    source_id=email.id,
-                                    case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
-                                    confidence_score=0.95,
-                                    extraction_method='REFRESH'
-                                )
-                                db.session.add(new_link)
-                                db.session.flush()  # Force write to check for errors immediately
+                                source_id=email.id,
+                                case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
+                                confidence_score=0.95,
+                                extraction_method='REFRESH'
+                            )
+                            db.session.add(new_link)
+                            db.session.flush()  # Force write to check for errors immediately
                             results['email']['links_created'] += 1
                             print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
-                        else:
-                            print(f"[POI REFRESH] ℹ️ Link already exists: {result['poi_id']} ← EMAIL-{email.id}")
                     except Exception as link_error:
                         print(f"[POI REFRESH] ❌ ERROR creating link for {result['poi_id']} ← EMAIL-{email.id}: {link_error}")
                         import traceback
@@ -188,7 +178,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             # This prevents creating duplicate POIs when the same name appears in multiple emails
             db.session.commit()
             
-            print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {max_len} POI link(s) created based on current assessment")
+            # Count how many alleged subjects were processed
+            subject_count = len(alleged_subjects) if alleged_subjects else max(len(english_names) if 'english_names' in locals() else 0, len(chinese_names) if 'chinese_names' in locals() else 0)
+            print(f"[POI REFRESH] ✅ EMAIL-{email.id} synced: {subject_count} alleged subject(s) processed from {'NEW table' if alleged_subjects else 'LEGACY columns'}")
         
         print(f"  ✅ Emails: {results['email']['scanned']} scanned, {results['email']['profiles_created']} created, {results['email']['profiles_updated']} updated, {results['email']['links_created']} links")
         
