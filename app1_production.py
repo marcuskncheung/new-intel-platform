@@ -839,9 +839,9 @@ class Email(db.Model):
     content_validity = db.Column(db.Integer)
     intelligence_case_opened = db.Column(db.Boolean, default=False)
     assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
-    alleged_subject = db.Column(db.String(255))     # Encrypted - sensitive PII (Legacy field)
-    alleged_subject_english = db.Column(db.String(500))  # English names separated by commas
-    alleged_subject_chinese = db.Column(db.String(500))  # Chinese names separated by commas
+    alleged_subject = db.Column(db.Text)            # Encrypted - sensitive PII (Legacy field - TEXT to support long lists)
+    alleged_subject_english = db.Column(db.Text)    # English names separated by commas (TEXT for unlimited names)
+    alleged_subject_chinese = db.Column(db.Text)    # Chinese names separated by commas (TEXT for unlimited names)
     alleged_nature = db.Column(db.String(255))      # Encrypted - sensitive content (standardized categories)
     allegation_summary = db.Column(db.Text)         # Encrypted - detailed allegation description
     ai_analysis_summary = db.Column(db.Text)        # AI comprehensive analysis results and reasoning
