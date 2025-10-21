@@ -114,28 +114,34 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
                 # This ensures POI profiles show their source in the dashboard
                 if result.get('poi_id'):
-                    print(f"[POI REFRESH] 🔍 Checking if link exists for POI {result['poi_id']} → EMAIL-{email.id}")
-                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                        poi_id=result['poi_id'],
-                        source_type='EMAIL',
-                        source_id=email.id
-                    ).first()
-                    
-                    if not existing_link:
-                        print(f"[POI REFRESH] ➕ Creating new link: {result['poi_id']} ← EMAIL-{email.id}")
-                        new_link = POIIntelligenceLink(
+                    try:
+                        print(f"[POI REFRESH] 🔍 Checking if link exists for POI {result['poi_id']} → EMAIL-{email.id}")
+                        existing_link = db.session.query(POIIntelligenceLink).filter_by(
                             poi_id=result['poi_id'],
                             source_type='EMAIL',
-                            source_id=email.id,
-                            case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
-                            confidence_score=0.95,
-                            extraction_method='REFRESH'
-                        )
-                        db.session.add(new_link)
-                        results['email']['links_created'] += 1
-                        print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
-                    else:
-                        print(f"[POI REFRESH] ℹ️ Link already exists: {result['poi_id']} ← EMAIL-{email.id}")
+                            source_id=email.id
+                        ).first()
+                        
+                        if not existing_link:
+                            print(f"[POI REFRESH] ➕ Creating new link: {result['poi_id']} ← EMAIL-{email.id} (case_id={email.caseprofile_id})")
+                            new_link = POIIntelligenceLink(
+                                poi_id=result['poi_id'],
+                                source_type='EMAIL',
+                                source_id=email.id,
+                                case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
+                                confidence_score=0.95,
+                                extraction_method='REFRESH'
+                            )
+                            db.session.add(new_link)
+                            db.session.flush()  # Force write to check for errors immediately
+                            results['email']['links_created'] += 1
+                            print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
+                        else:
+                            print(f"[POI REFRESH] ℹ️ Link already exists: {result['poi_id']} ← EMAIL-{email.id}")
+                    except Exception as link_error:
+                        print(f"[POI REFRESH] ❌ ERROR creating link for {result['poi_id']} ← EMAIL-{email.id}: {link_error}")
+                        import traceback
+                        traceback.print_exc()
                 else:
                     print(f"[POI REFRESH] ⚠️ WARNING: No POI ID returned from create_or_update! Result: {result}")
             
