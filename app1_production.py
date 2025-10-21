@@ -7086,8 +7086,16 @@ def int_source_email_detail(email_id):
     # Get attachments for this email
     attachments = Attachment.query.filter_by(email_id=email.id).all()
     
-    # Get alleged subjects for this email
-    alleged_subjects = []
+    # Get alleged subjects from NEW table (with correct English-Chinese pairing)
+    alleged_subjects = EmailAllegedSubject.query.filter_by(email_id=email.id)\
+                                                 .order_by(EmailAllegedSubject.sequence_order)\
+                                                 .all()
+    
+    # FALLBACK: If no records in new table, use old comma-separated columns
+    if not alleged_subjects and (email.alleged_subject_english or email.alleged_subject_chinese):
+        print(f"[EMAIL DETAIL] ⚠️ Email {email.id}: No records in email_alleged_subjects table, using legacy fields")
+        # Note: This fallback uses index-based pairing which may be incorrect
+        # Recommended: Edit the assessment to migrate data to new table
     
     return render_template(
         "int_source_email_detail.html",

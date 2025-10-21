@@ -302,7 +302,75 @@
             <td><b>Alleged Subject(s)</b></td>
             <td>
               <div id="alleged-subjects">
-                {% if email.alleged_subject_english or email.alleged_subject_chinese %}
+                {# NEW: Use email_alleged_subjects table (correct pairing guaranteed) #}
+                {% if alleged_subjects %}
+                  {% for subject in alleged_subjects %}
+                    <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
+                          🗑️ Remove
+                        </button>
+                      </div>
+                      
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label">📝 English Name</label>
+                          <input type="text" name="alleged_subjects_en[]" class="form-control" 
+                                 value="{{ subject.english_name or '' }}" 
+                                 placeholder="Enter English name">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">🈚 Chinese Name (中文姓名)</label>
+                          <input type="text" name="alleged_subjects_cn[]" class="form-control" 
+                                 value="{{ subject.chinese_name or '' }}"
+                                 placeholder="Enter Chinese name">
+                        </div>
+                      </div>
+                      
+                      {# License info from new table #}
+                      {% set has_license = subject.license_number %}
+                      {% set license_type = subject.license_type or '' %}
+                      {% set license_num = subject.license_number or '' %}
+                      
+                      <div class="mb-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="is_insurance_intermediary[]" onchange="toggleInsuranceFields(this)" {% if has_license %}checked{% endif %}>
+                          <label class="form-check-label">Is this an insurance intermediary?</label>
+                        </div>
+                      </div>
+                      
+                      <div class="insurance-fields" style="display: {% if has_license %}block{% else %}none{% endif %}; background-color: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <div class="row">
+                          <div class="col-6">
+                            <label class="form-label">License Type:</label>
+                            <select name="intermediary_type[]" class="form-select">
+                              <option value="">Select Type</option>
+                              <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
+                              <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
+                              <option value="Other" {% if license_type == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label">License Number:</label>
+                            <input type="text" name="license_numbers[]" class="form-control" value="{{ license_num }}" placeholder="Enter license number">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p class="text-muted mt-2 mb-0">
+                        <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                      </p>
+                    </div>
+                  {% endfor %}
+                
+                {# FALLBACK: Use old comma-separated columns if new table is empty #}
+                {% elif email.alleged_subject_english or email.alleged_subject_chinese %}
+                  <div class="alert alert-warning mb-3">
+                    ⚠️ <strong>Old Data Format Detected:</strong> This email uses the old storage method. 
+                    Please save the assessment to migrate to the new format with correct name pairing.
+                  </div>
+                  
                   {% set english_names = email.alleged_subject_english.split(',') if email.alleged_subject_english else [] %}
                   {% set chinese_names = email.alleged_subject_chinese.split(',') if email.alleged_subject_chinese else [] %}
                   {% set max_len = [english_names|length, chinese_names|length] | max %}
@@ -318,9 +386,9 @@
                   {% endif %}
                   
                   {% for i in range(max_len) %}
-                    <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
+                    <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #fff3cd;">
                       <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
+                        <h6 class="text-warning mb-0">📋 Alleged Subject {{ loop.index }} (Old Format)</h6>
                         <button type="button" class="btn btn-sm btn-outline-danger remove-subject-btn" onclick="removeAllegedSubject(this)">
                           🗑️ Remove
                         </button>
@@ -372,10 +440,11 @@
                       </div>
                       
                       <p class="text-muted mt-2 mb-0">
-                        <i class="bi bi-info-circle"></i> You can enter both English and Chinese names for the same person
+                        <i class="bi bi-exclamation-triangle"></i> Save to migrate to new format with guaranteed correct pairing
                       </p>
                     </div>
                   {% endfor %}
+                  
                 {% elif email.alleged_subject %}
                   {% set subjects = email.alleged_subject.split(',') %}
                   {% for subject in subjects %}
