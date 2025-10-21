@@ -7503,7 +7503,95 @@ def surveillance_detail(entry_id):
         # TODO: handle uploads if needed later
         try:
             db.session.commit()
-            flash('Surveillance entry updated', 'success')
+            
+            # 🤖 AUTO-UPDATE POI PROFILES FOR SURVEILLANCE TARGETS
+            if ALLEGED_PERSON_AUTOMATION and target_names:
+                try:
+                    print(f"[SURVEILLANCE UPDATE] 🚀 Auto-updating POI profiles for Surveillance {entry.id}")
+                    
+                    # ✅ CRITICAL FIX: Remove ALL old POI links for this Surveillance before creating new ones
+                    print(f"[POI RELINK] 🧹 Removing old POI links for SURVEILLANCE-{entry.id}")
+                    
+                    # Remove from new universal link table (POI v2.0)
+                    if POIIntelligenceLink:
+                        old_universal_links = POIIntelligenceLink.query.filter_by(
+                            source_type='SURVEILLANCE',
+                            source_id=entry.id
+                        ).all()
+                        for old_link in old_universal_links:
+                            print(f"[POI RELINK] 🗑️ Removing universal link: {old_link.poi_id} → SURVEILLANCE-{entry.id}")
+                            db.session.delete(old_link)
+                    
+                    db.session.flush()  # Apply deletions before creating new links
+                    print(f"[POI RELINK] ✅ Old links removed for SURVEILLANCE-{entry.id}, creating new links based on updated targets")
+                    
+                    # Process each target with updated names
+                    processed_count = 0
+                    for idx, name in enumerate(target_names):
+                        name = name.strip()
+                        if not name:
+                            continue
+                        
+                        # Try to determine if it's English or Chinese name
+                        is_chinese = bool(re.search(r'[\u4e00-\u9fff]', name))
+                        
+                        # Get license info for this target
+                        license_type = license_types[idx] if idx < len(license_types) else None
+                        license_number = license_numbers[idx] if idx < len(license_numbers) else None
+                        
+                        # Prepare additional info
+                        additional_info = {}
+                        if license_number:
+                            additional_info['license_number'] = license_number
+                            additional_info['agent_number'] = license_number
+                        if license_type:
+                            additional_info['role'] = license_type
+                        
+                        result = create_or_update_alleged_person_profile(
+                            db, AllegedPersonProfile, EmailAllegedPersonLink,
+                            name_english=None if is_chinese else name,
+                            name_chinese=name if is_chinese else None,
+                            email_id=None,
+                            source="SURVEILLANCE",
+                            update_mode="overwrite",  # Allow updating existing POI names
+                            additional_info=additional_info
+                        )
+                        
+                        if result.get('success') and result.get('poi_id'):
+                            processed_count += 1
+                            # Create universal link in POI v2.0 table
+                            try:
+                                existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                    poi_id=result['poi_id'],
+                                    source_type='SURVEILLANCE',
+                                    source_id=entry.id
+                                ).first()
+                                
+                                if not existing_link:
+                                    universal_link = POIIntelligenceLink(
+                                        poi_id=result['poi_id'],
+                                        source_type='SURVEILLANCE',
+                                        source_id=entry.id,
+                                        case_profile_id=None,
+                                        confidence_score=0.95,
+                                        extraction_method='MANUAL'
+                                    )
+                                    db.session.add(universal_link)
+                                    print(f"[POI RELINK] ✅ Created new link: {result['poi_id']} → SURVEILLANCE-{entry.id}")
+                            except Exception as link_error:
+                                print(f"[SURVEILLANCE UPDATE] ⚠️ Could not create universal link: {link_error}")
+                    
+                    db.session.commit()
+                    flash(f'Surveillance entry updated and {processed_count} POI profile(s) re-linked', 'success')
+                    
+                except Exception as automation_error:
+                    print(f"[SURVEILLANCE UPDATE] ❌ Error in POI automation: {automation_error}")
+                    import traceback
+                    traceback.print_exc()
+                    flash("Surveillance entry updated, but POI re-linking had an error. Check logs.", "warning")
+            else:
+                flash('Surveillance entry updated', 'success')
+                
         except Exception as e:
             db.session.rollback()
             flash(f'Error saving entry: {e}', 'danger')
@@ -7650,6 +7738,22 @@ def int_source_whatsapp_update_assessment(entry_id):
         if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
             try:
                 print(f"[WHATSAPP AUTOMATION] 🚀 Auto-updating POI profiles for WhatsApp {entry.id}")
+                
+                # ✅ CRITICAL FIX: Remove ALL old POI links for this WhatsApp before creating new ones
+                print(f"[POI RELINK] 🧹 Removing old POI links for WHATSAPP-{entry.id}")
+                
+                # Remove from new universal link table (POI v2.0)
+                if POIIntelligenceLink:
+                    old_universal_links = POIIntelligenceLink.query.filter_by(
+                        source_type='WHATSAPP',
+                        source_id=entry.id
+                    ).all()
+                    for old_link in old_universal_links:
+                        print(f"[POI RELINK] 🗑️ Removing universal link: {old_link.poi_id} → WHATSAPP-{entry.id}")
+                        db.session.delete(old_link)
+                
+                db.session.flush()  # Apply deletions before creating new links
+                print(f"[POI RELINK] ✅ Old links removed for WHATSAPP-{entry.id}, creating new links based on updated names")
                 
                 for i in range(max_len):
                     english_name = processed_english[i] if i < len(processed_english) else ""
@@ -7821,6 +7925,22 @@ def int_source_patrol_update_assessment(entry_id):
         if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
             try:
                 print(f"[PATROL AUTOMATION] 🚀 Auto-updating POI profiles for Patrol {entry.id}")
+                
+                # ✅ CRITICAL FIX: Remove ALL old POI links for this Patrol before creating new ones
+                print(f"[POI RELINK] 🧹 Removing old POI links for PATROL-{entry.id}")
+                
+                # Remove from new universal link table (POI v2.0)
+                if POIIntelligenceLink:
+                    old_universal_links = POIIntelligenceLink.query.filter_by(
+                        source_type='PATROL',
+                        source_id=entry.id
+                    ).all()
+                    for old_link in old_universal_links:
+                        print(f"[POI RELINK] 🗑️ Removing universal link: {old_link.poi_id} → PATROL-{entry.id}")
+                        db.session.delete(old_link)
+                
+                db.session.flush()  # Apply deletions before creating new links
+                print(f"[POI RELINK] ✅ Old links removed for PATROL-{entry.id}, creating new links based on updated names")
                 
                 for i in range(max_len):
                     english_name = processed_english[i] if i < len(processed_english) else ""
@@ -8006,6 +8126,34 @@ def int_source_update_assessment(email_id):
             try:
                 print(f"[MANUAL AUTOMATION] 🚀 Auto-creating profiles for manually entered alleged persons from email {email.id}")
                 
+                # ✅ CRITICAL FIX: Remove ALL old POI links for this email before creating new ones
+                # This ensures that when names change, the old incorrect links are removed
+                print(f"[POI RELINK] 🧹 Removing old POI links for email {email.id}")
+                
+                # Remove from new universal link table (POI v2.0)
+                if POIIntelligenceLink:
+                    old_universal_links = POIIntelligenceLink.query.filter_by(
+                        source_type='EMAIL',
+                        source_id=email.id
+                    ).all()
+                    for old_link in old_universal_links:
+                        print(f"[POI RELINK] 🗑️ Removing universal link: {old_link.poi_id} → EMAIL-{email.id}")
+                        db.session.delete(old_link)
+                
+                # Remove from old link table (POI v1.0 - backward compatibility)
+                if EmailAllegedPersonLink:
+                    old_email_links = EmailAllegedPersonLink.query.filter_by(
+                        email_id=email.id
+                    ).all()
+                    for old_link in old_email_links:
+                        profile = AllegedPersonProfile.query.get(old_link.alleged_person_id)
+                        poi_id = profile.poi_id if profile else "UNKNOWN"
+                        print(f"[POI RELINK] 🗑️ Removing legacy link: {poi_id} → EMAIL-{email.id}")
+                        db.session.delete(old_link)
+                
+                db.session.flush()  # Apply deletions before creating new links
+                print(f"[POI RELINK] ✅ Old links removed, creating new links based on updated names")
+                
                 # Prepare additional info from form data
                 # Each alleged person can have their own license info
                 # We'll match them up by index
@@ -8052,20 +8200,26 @@ def int_source_update_assessment(email_id):
                 # Log results
                 created_count = sum(1 for r in profile_results if r.get('action') == 'created')
                 updated_count = sum(1 for r in profile_results if r.get('action') == 'updated')
+                relinked_count = len(processed_english) + len(processed_chinese)
                 
                 automation_messages = []
                 if created_count > 0:
-                    automation_messages.append(f"Created {created_count} new alleged person profile(s)")
+                    automation_messages.append(f"Created {created_count} new POI profile(s)")
                     print(f"[MANUAL AUTOMATION] ✅ Created {created_count} new alleged person profiles")
                 if updated_count > 0:
-                    automation_messages.append(f"Updated {updated_count} existing alleged person profile(s)")
+                    automation_messages.append(f"Updated {updated_count} existing POI profile(s)")
                     print(f"[MANUAL AUTOMATION] ✅ Updated {updated_count} existing alleged person profiles")
+                if relinked_count > 0:
+                    automation_messages.append(f"Re-linked email to correct POI profiles")
+                    print(f"[POI RELINK] ✅ Successfully re-linked email to {relinked_count} POI profile(s)")
                 
                 if automation_messages:
                     flash(" | ".join(automation_messages), "info")
                 
             except Exception as automation_error:
                 print(f"[MANUAL AUTOMATION] ❌ Error in profile automation: {automation_error}")
+                import traceback
+                traceback.print_exc()
                 # Don't fail the entire save if automation fails
                 flash("Assessment saved, but profile automation had an error. Check logs.", "warning")
         
