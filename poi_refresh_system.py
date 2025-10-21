@@ -76,7 +76,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             
             # MIGRATION: Use new email_alleged_subjects table (guaranteed correct pairing)
             from app1_production import EmailAllegedSubject
-            alleged_subjects = EmailAllegedSubject.query.filter_by(email_id=email.id).order_by(EmailAllegedSubject.sequence_order).all()
+            alleged_subjects = db.session.query(EmailAllegedSubject).filter_by(email_id=email.id).order_by(EmailAllegedSubject.sequence_order).all()
             
             if not alleged_subjects:
                 # FALLBACK: If new table is empty, use old comma-separated fields
