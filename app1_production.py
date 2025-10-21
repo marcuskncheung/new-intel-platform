@@ -2225,11 +2225,19 @@ def renumber_all_poi_ids():
     - email_alleged_person_link (email-POI relationships)
     - poi_intelligence_link (cross-source intelligence links)
     - poi_assessment_history (assessment records)
+    
+    ⚠️ CRITICAL: Uses two-phase renaming with parent-then-child update order
     """
     try:
         print("\n" + "="*80)
         print("🔄 AUTO-RENUMBER: Starting POI ID renumbering process...")
         print("="*80)
+        
+        # ✅ CRITICAL: Start a transaction and defer constraint checking
+        # This allows us to update parent IDs before updating child references
+        # PostgreSQL will only check constraints at COMMIT time
+        db.session.execute(text("SET CONSTRAINTS ALL DEFERRED"))
+        print("[RENUMBER] ✅ Deferred foreign key constraint checking")
         
         # Get all active POI profiles ordered by their current numeric ID
         # Extract numeric part from POI-XXX format for sorting
@@ -2262,32 +2270,27 @@ def renumber_all_poi_ids():
             old_poi_id = profile.poi_id
             temp_poi_id = f"TEMP-RENUMBER-{idx:03d}"
             
-            # ✅ CRITICAL FIX: Update CHILD tables FIRST (before parent)
-            # This allows child references to be updated before changing the parent ID
+            # ✅ With constraints deferred, we can update PARENT first
+            # Child table foreign keys will be validated only at commit time
+            profile.poi_id = temp_poi_id
+            db.session.flush()
             
-            # 1. Update poi_intelligence_link (child references poi_id)
+            # Update child tables that reference poi_id
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=old_poi_id).update({
                     'poi_id': temp_poi_id
                 }, synchronize_session=False)
             
-            # 2. Update merged_into_poi_id references (child references poi_id)
+            # Update merged_into_poi_id references
             AllegedPersonProfile.query.filter_by(merged_into_poi_id=old_poi_id).update({
                 'merged_into_poi_id': temp_poi_id
             }, synchronize_session=False)
             
-            # 3. Update POI assessment history (child references poi_id)
+            # Update POI assessment history if exists
             if POIAssessmentHistory:
                 POIAssessmentHistory.query.filter_by(poi_id=old_poi_id).update({
                     'poi_id': temp_poi_id
                 }, synchronize_session=False)
-            
-            # Flush child table updates BEFORE updating parent
-            db.session.flush()
-            
-            # 4. NOW update parent table (alleged_person_profile.poi_id)
-            profile.poi_id = temp_poi_id
-            db.session.flush()
             
             print(f"[RENUMBER] Phase 1: {old_poi_id} → {temp_poi_id}")
         
@@ -2300,31 +2303,26 @@ def renumber_all_poi_ids():
             temp_poi_id = f"TEMP-RENUMBER-{idx:03d}"
             final_poi_id = f"POI-{idx:03d}"
             
-            # ✅ CRITICAL FIX: Update CHILD tables FIRST (before parent)
+            # ✅ With constraints deferred, update PARENT first
+            profile.poi_id = final_poi_id
+            db.session.flush()
             
-            # 1. Update poi_intelligence_link (child references poi_id)
+            # Update child tables that reference poi_id
             if POIIntelligenceLink:
                 POIIntelligenceLink.query.filter_by(poi_id=temp_poi_id).update({
                     'poi_id': final_poi_id
                 }, synchronize_session=False)
             
-            # 2. Update merged_into_poi_id references (child references poi_id)
+            # Update merged_into_poi_id references
             AllegedPersonProfile.query.filter_by(merged_into_poi_id=temp_poi_id).update({
                 'merged_into_poi_id': final_poi_id
             }, synchronize_session=False)
             
-            # 3. Update POI assessment history (child references poi_id)
+            # Update POI assessment history if exists
             if POIAssessmentHistory:
                 POIAssessmentHistory.query.filter_by(poi_id=temp_poi_id).update({
                     'poi_id': final_poi_id
                 }, synchronize_session=False)
-            
-            # Flush child table updates BEFORE updating parent
-            db.session.flush()
-            
-            # 4. NOW update parent table (alleged_person_profile.poi_id)
-            profile.poi_id = final_poi_id
-            db.session.flush()
             
             print(f"[RENUMBER] Phase 2: {temp_poi_id} → {final_poi_id}")
             renumber_count += 1
