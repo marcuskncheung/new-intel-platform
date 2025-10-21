@@ -118,14 +118,27 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                     
                     # Create universal link
                     poi_profile_id = result.get('profile_id')
-                    if poi_profile_id:
-                        create_poi_intelligence_link(
-                            db, POIIntelligenceLink,
-                            poi_profile_id=poi_profile_id,
-                            intelligence_type="EMAIL",
-                            intelligence_id=email.id,
-                            case_profile_id=email.caseprofile_id  # May be None
-                        )
+                    if result.get('poi_id'):
+                        try:
+                            print(f"[POI REFRESH] ➕ Creating link: {result['poi_id']} ← EMAIL-{email.id} (case_id={email.caseprofile_id})")
+                            new_link = POIIntelligenceLink(
+                                poi_id=result['poi_id'],
+                                source_type='EMAIL',
+                                source_id=email.id,
+                                case_profile_id=email.caseprofile_id if email.caseprofile_id else None,
+                                confidence_score=0.95,
+                                extraction_method='REFRESH'
+                            )
+                            db.session.add(new_link)
+                            db.session.flush()
+                            results['email']['links_created'] += 1
+                            print(f"[POI REFRESH] ✅ Source link created: {result['poi_id']} ← EMAIL-{email.id}")
+                        except Exception as link_error:
+                            print(f"[POI REFRESH] ❌ ERROR creating link for {result['poi_id']} ← EMAIL-{email.id}: {link_error}")
+                            import traceback
+                            traceback.print_exc()
+                    else:
+                        print(f"[POI REFRESH] ⚠️ WARNING: No POI ID returned from create_or_update! Result: {result}")
             else:
                 # ✅ NEW METHOD: Iterate email_alleged_subjects rows (guaranteed correct pairing)
                 print(f"[POI REFRESH] ✅ Email {email.id}: Processing {len(alleged_subjects)} alleged subjects from relational table")
