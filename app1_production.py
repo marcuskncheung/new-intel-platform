@@ -2233,11 +2233,13 @@ def renumber_all_poi_ids():
         print("🔄 AUTO-RENUMBER: Starting POI ID renumbering process...")
         print("="*80)
         
-        # ✅ CRITICAL: Start a transaction and defer constraint checking
-        # This allows us to update parent IDs before updating child references
-        # PostgreSQL will only check constraints at COMMIT time
-        db.session.execute(text("SET CONSTRAINTS ALL DEFERRED"))
-        print("[RENUMBER] ✅ Deferred foreign key constraint checking")
+        # ✅ CRITICAL: Temporarily drop foreign key constraint
+        # PostgreSQL constraint was created as NOT DEFERRABLE, so SET CONSTRAINTS won't work
+        # We must drop it, do renumbering, then recreate it
+        print("[RENUMBER] ⚠️ Temporarily dropping foreign key constraint...")
+        db.session.execute(text("ALTER TABLE poi_intelligence_link DROP CONSTRAINT IF EXISTS poi_intelligence_link_poi_id_fkey"))
+        db.session.flush()
+        print("[RENUMBER] ✅ Foreign key constraint dropped")
         
         # Get all active POI profiles ordered by their current numeric ID
         # Extract numeric part from POI-XXX format for sorting
@@ -2330,6 +2332,17 @@ def renumber_all_poi_ids():
         # Commit all changes
         db.session.commit()
         
+        # ✅ CRITICAL: Recreate foreign key constraint
+        print("[RENUMBER] 🔧 Recreating foreign key constraint...")
+        db.session.execute(text("""
+            ALTER TABLE poi_intelligence_link 
+            ADD CONSTRAINT poi_intelligence_link_poi_id_fkey 
+            FOREIGN KEY (poi_id) REFERENCES alleged_person_profile(poi_id) 
+            ON DELETE CASCADE
+        """))
+        db.session.commit()
+        print("[RENUMBER] ✅ Foreign key constraint recreated")
+        
         print(f"[RENUMBER] ✅ Successfully renumbered {renumber_count} POI profiles")
         print(f"[RENUMBER] POI range: POI-001 to POI-{len(all_profiles):03d}")
         print("="*80 + "\n")
@@ -2338,6 +2351,21 @@ def renumber_all_poi_ids():
         
     except Exception as e:
         db.session.rollback()
+        
+        # Try to recreate constraint even if renumbering failed
+        try:
+            print("[RENUMBER] 🔧 Attempting to recreate foreign key constraint after error...")
+            db.session.execute(text("""
+                ALTER TABLE poi_intelligence_link 
+                ADD CONSTRAINT poi_intelligence_link_poi_id_fkey 
+                FOREIGN KEY (poi_id) REFERENCES alleged_person_profile(poi_id) 
+                ON DELETE CASCADE
+            """))
+            db.session.commit()
+            print("[RENUMBER] ✅ Foreign key constraint recreated after error")
+        except Exception as constraint_error:
+            print(f"[RENUMBER] ⚠️ Could not recreate constraint: {constraint_error}")
+        
         print(f"[RENUMBER] ❌ Error renumbering POI IDs: {e}")
         import traceback
         traceback.print_exc()
