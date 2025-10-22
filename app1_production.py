@@ -8336,11 +8336,21 @@ def reorder_all_unified_int_references():
 def update_int_reference(email_id):
     """API endpoint to update INT reference number for an email"""
     try:
-        data = request.get_json()
-        new_int_number = data.get('int_reference_number', '').strip().upper()
+        # Support both JSON (AJAX) and form data submissions
+        if request.is_json:
+            data = request.get_json()
+            new_int_number = data.get('int_reference_number', '').strip().upper()
+            is_ajax = True
+        else:
+            new_int_number = request.form.get('int_reference_number', '').strip().upper()
+            is_ajax = False
         
         if not new_int_number:
-            return jsonify({'success': False, 'error': 'INT reference number is required'}), 400
+            if is_ajax:
+                return jsonify({'success': False, 'error': 'INT reference number is required'}), 400
+            else:
+                flash('INT reference number is required', 'error')
+                return redirect(url_for('int_source_email_detail', email_id=email_id))
         
         # Update the INT reference
         result = update_int_reference_number(
@@ -8350,18 +8360,30 @@ def update_int_reference(email_id):
         )
         
         if result['success']:
-            # Optional: Reorder other INT numbers to fill gaps
-            if data.get('reorder', False):
-                reorder_result = reorder_int_references_after_change()
-                result['reorder_info'] = reorder_result
-            
-            return jsonify(result), 200
+            if is_ajax:
+                # Optional: Reorder other INT numbers to fill gaps
+                if request.get_json().get('reorder', False):
+                    reorder_result = reorder_int_references_after_change()
+                    result['reorder_info'] = reorder_result
+                
+                return jsonify(result), 200
+            else:
+                flash('INT Reference Number updated successfully', 'success')
+                return redirect(url_for('int_source_email_detail', email_id=email_id))
         else:
-            return jsonify(result), 400
+            if is_ajax:
+                return jsonify(result), 400
+            else:
+                flash(f"Error updating INT reference: {result.get('error', 'Unknown error')}", 'error')
+                return redirect(url_for('int_source_email_detail', email_id=email_id))
             
     except Exception as e:
         print(f"[INT-REF API] Error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        else:
+            flash(f'Error updating INT reference: {str(e)}', 'error')
+            return redirect(url_for('int_source_email_detail', email_id=email_id))
 
 @app.route("/int_source/int_reference/reorder_all", methods=["POST"])
 @login_required
