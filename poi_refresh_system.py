@@ -495,7 +495,6 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
                 
                 if poi:
                     poi.status = 'INACTIVE'
-                    poi.notes = (poi.notes or '') + f"\n[AUTO-CLEANUP {datetime.now().strftime('%Y-%m-%d %H:%M')}] Marked INACTIVE - No source links found after POI refresh. Likely due to corrected name pairing in assessments."
                     print(f"[VERIFICATION] ✅ Marked INACTIVE: {poi.poi_id} - {poi.name_english} ({poi.name_chinese})")
             
             db.session.commit()
