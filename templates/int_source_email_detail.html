@@ -6,7 +6,7 @@
     <div class="card-header d-flex justify-content-between align-items-center" style="background: #1669d2; color: #fff;">
       <div>
         <h5 class="mb-0">{{ email.subject or "(No Subject)" }}</h5>
-        <small>From: {{ email.sender }} | Received: {{ email.received }}</small>
+        <small>From: {{ email.sender }} | Received: {{ email.received.strftime('%d %B %Y, %I:%M %p') if email.received else 'N/A' }}</small>
       </div>
       <div class="btn-group">
         <!-- AI Analysis Button (comprehensive only) -->
@@ -636,13 +636,32 @@
               {% set reviewer_name = (email.reviewer_name or '').strip() %}
               {% set reviewer_comment = (email.reviewer_comment or '').strip() %}
               {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
+              {% set has_assessment = email.source_reliability is not none or email.content_validity is not none or email.alleged_nature or email.allegation_summary or email.preparer %}
+              
               <span class="fw-bold">{{ combined_score }}</span>
+              
               {% if email.source_reliability is none or email.content_validity is none or not reviewer_name or not reviewer_comment %}
-                <span class="badge bg-light text-muted ms-2">Pending</span>
-              {% elif combined_score >= 8 %}
-                <span class="badge bg-success ms-2">Case Opened</span>
+                {% if has_assessment %}
+                  <span class="badge bg-info ms-2">
+                    <i class="fas fa-edit"></i> Assessment Inputted
+                  </span>
+                {% else %}
+                  <span class="badge bg-light text-muted ms-2">
+                    <i class="fas fa-clock"></i> Pending
+                  </span>
+                {% endif %}
+              {% elif combined_score >= 8 and email.reviewer_decision == 'agree' %}
+                <span class="badge bg-success ms-2">
+                  <i class="fas fa-check-circle"></i> Case Opened
+                </span>
+              {% elif email.reviewer_decision == 'disagree' %}
+                <span class="badge bg-danger ms-2">
+                  <i class="fas fa-times-circle"></i> Disagreed
+                </span>
               {% else %}
-                <span class="badge bg-secondary ms-2">Unsubstantial</span>
+                <span class="badge bg-secondary ms-2">
+                  <i class="fas fa-info-circle"></i> Unsubstantial
+                </span>
               {% endif %}
             </td>
           </tr>
