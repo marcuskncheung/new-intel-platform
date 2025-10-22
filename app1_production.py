@@ -8352,33 +8352,63 @@ def update_int_reference(email_id):
                 flash('INT reference number is required', 'error')
                 return redirect(url_for('int_source_email_detail', email_id=email_id))
         
-        # Update the INT reference
-        result = update_int_reference_number(
-            email_id=email_id,
-            new_int_number=new_int_number,
-            updated_by=current_user.username
-        )
+        # Validate format
+        import re
+        if not re.match(r'^INT-\d{1,4}$', new_int_number.upper()):
+            if is_ajax:
+                return jsonify({'success': False, 'error': 'Invalid format. Use INT-XXX (e.g., INT-001)'}), 400
+            else:
+                flash('Invalid format. Use INT-XXX (e.g., INT-001)', 'error')
+                return redirect(url_for('int_source_email_detail', email_id=email_id))
         
-        if result['success']:
+        # Get email
+        email = db.session.get(Email, email_id)
+        if not email:
             if is_ajax:
-                # Optional: Reorder other INT numbers to fill gaps
-                if request.get_json().get('reorder', False):
-                    reorder_result = reorder_int_references_after_change()
-                    result['reorder_info'] = reorder_result
-                
-                return jsonify(result), 200
+                return jsonify({'success': False, 'error': 'Email not found'}), 404
             else:
-                flash('INT Reference Number updated successfully', 'success')
-                return redirect(url_for('int_source_email_detail', email_id=email_id))
+                flash('Email not found', 'error')
+                return redirect(url_for('int_source'))
+        
+        # Check if CaseProfile with this INT reference already exists
+        case_profile = CaseProfile.query.filter_by(int_reference=new_int_number.upper()).first()
+        
+        if not case_profile:
+            # Create new CaseProfile for this INT reference
+            case_profile = CaseProfile(
+                int_reference=new_int_number.upper(),
+                date_of_receipt=email.received or get_hk_time()
+            )
+            db.session.add(case_profile)
+            db.session.flush()  # Get the ID
+            print(f"[INT-REF] Created new CaseProfile with INT {new_int_number} (id={case_profile.id})")
+        
+        # Link email to this CaseProfile
+        old_case_id = email.caseprofile_id
+        email.caseprofile_id = case_profile.id
+        
+        # Also update email INT columns (for backward compatibility)
+        email.email_id = case_profile.id
+        
+        db.session.commit()
+        
+        print(f"[INT-REF] Linked email {email_id} to CaseProfile {case_profile.id} (INT: {new_int_number})")
+        
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'message': f'Email assigned to case {new_int_number}',
+                'int_reference': new_int_number.upper()
+            }), 200
         else:
-            if is_ajax:
-                return jsonify(result), 400
-            else:
-                flash(f"Error updating INT reference: {result.get('error', 'Unknown error')}", 'error')
-                return redirect(url_for('int_source_email_detail', email_id=email_id))
+            flash(f'Email successfully assigned to case {new_int_number}', 'success')
+            return redirect(url_for('int_source_email_detail', email_id=email_id))
             
     except Exception as e:
+        db.session.rollback()
         print(f"[INT-REF API] Error: {e}")
+        import traceback
+        traceback.print_exc()
         if request.is_json:
             return jsonify({'success': False, 'error': str(e)}), 500
         else:
