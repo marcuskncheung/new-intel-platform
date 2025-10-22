@@ -393,7 +393,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             db.session.flush()
             
             # Now create fresh links based on CURRENT targets
-            targets = db.session.query(Target).filter_by(surveillance_id=entry.id).all()
+            targets = db.session.query(Target).filter_by(surveillance_entry_id=entry.id).all()
             
             for target in targets:
                 if not target.name or not target.name.strip():
