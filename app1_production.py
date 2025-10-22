@@ -8265,7 +8265,8 @@ def int_source_update_assessment(email_id):
                         alleged_subject_english=english_name,
                         alleged_subject_chinese=chinese_name,
                         additional_info=person_additional_info,
-                        update_mode="overwrite"  # Allow updating existing POI names
+                        update_mode="overwrite",  # Allow updating existing POI names
+                        source_date=email.received  # Use email received date for POI first_mentioned_date
                     )
                     
                     profile_results.extend(result)
