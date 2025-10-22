@@ -21,7 +21,7 @@ from app1_production import (
     Email,
     WhatsAppEntry,
     OnlinePatrolEntry,
-    SurveillanceTarget
+    SurveillanceEntry
 )
 
 def force_poi_rebuild():
@@ -90,9 +90,9 @@ def force_poi_rebuild():
         ).count()
         print(f"  - Online Patrol entries with subjects: {patrol_with_subjects}")
         
-        # Surveillance targets
-        surveillance_targets = SurveillanceTarget.query.count()
-        print(f"  - Surveillance targets: {surveillance_targets}")
+        # Surveillance entries with targets
+        surveillance_count = SurveillanceEntry.query.count()
+        print(f"  - Surveillance entries: {surveillance_count}")
         print()
         
         # Step 4: Trigger POI refresh
