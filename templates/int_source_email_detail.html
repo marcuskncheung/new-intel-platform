@@ -91,16 +91,31 @@
                   </span>
                   <input type="text" 
                          class="form-control form-control-lg" 
+                         id="int_reference_input"
                          name="int_reference_number" 
                          value="{{ get_case_int_reference(email) or '' }}"
                          placeholder="INT-001, INT-123, etc."
                          pattern="INT-\d{1,4}"
                          title="Format: INT-001, INT-123"
-                         style="font-weight: bold; font-family: monospace; font-size: 1.25rem;">
+                         style="font-weight: bold; font-family: monospace; font-size: 1.25rem;"
+                         list="int_reference_suggestions"
+                         autocomplete="off">
+                  <button type="button" class="btn btn-info" id="btn_next_int" title="Get Next Available INT">
+                    <i class="fas fa-plus-circle"></i> Next
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn_search_int" title="Search Existing INT References">
+                    <i class="fas fa-search"></i> Search
+                  </button>
                   <button type="submit" class="btn btn-primary btn-lg">
                     <i class="fas fa-save"></i> Assign Case
                   </button>
                 </div>
+                <!-- Datalist for autocomplete suggestions -->
+                <datalist id="int_reference_suggestions"></datalist>
+                
+                <!-- Search results dropdown -->
+                <div id="int_search_results" class="list-group mt-2" style="display: none; max-height: 300px; overflow-y: auto;"></div>
+                
                 <small class="text-muted mt-2 d-block">
                   <i class="bi bi-info-circle"></i> 
                   Assign this email to a case (Format: INT-001, INT-123). Leave empty if not part of a case.
@@ -1281,6 +1296,118 @@ function addAllegedSubjectWithData(englishName, chineseName, isIntermediary, lic
   `;
   container.appendChild(newRow);
 }
+
+// ========================================
+// INT REFERENCE AUTO-SUGGESTION FEATURES
+// ========================================
+
+// Load all INT references on page load for autocomplete
+document.addEventListener('DOMContentLoaded', function() {
+  loadIntReferences();
+});
+
+// Load existing INT references for autocomplete
+function loadIntReferences() {
+  fetch('/api/int_references/list')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const datalist = document.getElementById('int_reference_suggestions');
+        datalist.innerHTML = '';
+        
+        data.int_references.forEach(ref => {
+          const option = document.createElement('option');
+          option.value = ref.int_reference;
+          option.text = `${ref.int_reference} - ${ref.description} (${ref.total_sources} sources)`;
+          datalist.appendChild(option);
+        });
+      }
+    })
+    .catch(error => console.error('Error loading INT references:', error));
+}
+
+// Get next available INT number
+document.getElementById('btn_next_int').addEventListener('click', function() {
+  fetch('/api/int_references/next_available')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('int_reference_input').value = data.next_int_reference;
+        alert(`Next available INT reference: ${data.next_int_reference}`);
+      } else {
+        alert('Error getting next INT reference');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error getting next INT reference');
+    });
+});
+
+// Search existing INT references
+document.getElementById('btn_search_int').addEventListener('click', function() {
+  const query = prompt('Search INT references by person name, nature, or keyword:');
+  if (!query) return;
+  
+  fetch(`/api/int_references/search?q=${encodeURIComponent(query)}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const resultsDiv = document.getElementById('int_search_results');
+        resultsDiv.innerHTML = '';
+        
+        if (data.results.length === 0) {
+          resultsDiv.innerHTML = `
+            <div class="list-group-item">
+              <i class="fas fa-info-circle"></i> No matching INT references found for "${data.query}"
+            </div>
+          `;
+        } else {
+          data.results.forEach(result => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${result.int_reference}</h6>
+                <small>${result.date_created}</small>
+              </div>
+              <p class="mb-1">${result.match_reason}</p>
+              <small>Total sources: ${result.total_sources}</small>
+            `;
+            item.addEventListener('click', function(e) {
+              e.preventDefault();
+              document.getElementById('int_reference_input').value = result.int_reference;
+              resultsDiv.style.display = 'none';
+            });
+            resultsDiv.appendChild(item);
+          });
+        }
+        
+        resultsDiv.style.display = 'block';
+      } else {
+        alert('Error searching INT references');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error searching INT references');
+    });
+});
+
+// Hide search results when clicking outside
+document.addEventListener('click', function(event) {
+  const resultsDiv = document.getElementById('int_search_results');
+  const searchBtn = document.getElementById('btn_search_int');
+  const inputField = document.getElementById('int_reference_input');
+  
+  if (!resultsDiv.contains(event.target) && 
+      event.target !== searchBtn && 
+      event.target !== inputField) {
+    resultsDiv.style.display = 'none';
+  }
+});
+
 </script>
 
 {% endblock %}
