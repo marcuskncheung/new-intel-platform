@@ -2458,8 +2458,9 @@ def alleged_subject_profile_detail(poi_id):
     - Cross-source statistics and unified timeline
     """
     try:
-        # 🔄 AUTO-RENUMBER: Ensure POI IDs are sequential before displaying
-        renumber_all_poi_ids()
+        # 🔄 AUTO-RENUMBER: Disabled to prevent conflicts with INACTIVE POIs
+        # The renumber function conflicts with orphaned POIs marked INACTIVE by cleanup
+        # renumber_all_poi_ids()
         
         # Get the profile
         profile = AllegedPersonProfile.query.filter_by(poi_id=poi_id, status='ACTIVE').first()
