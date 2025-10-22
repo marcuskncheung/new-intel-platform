@@ -8259,7 +8259,7 @@ def int_source_update_assessment(email_id):
     elif processed_english:
         email.alleged_subject = ', '.join(processed_english)
     elif processed_chinese:
-        email.alleged_subject = ', '.join(combined_subjects)
+        email.alleged_subject = ', '.join(processed_chinese)  # ✅ FIX: use processed_chinese, not undefined combined_subjects
     else:
         email.alleged_subject = None
     
@@ -8286,24 +8286,23 @@ def int_source_update_assessment(email_id):
         email.intelligence_case_opened = False
 
     # ✅ AUTO-UPDATE EMAIL STATUS based on assessment completion
-    # Check if assessment details have been inputted
-    has_assessment_details = (
-        email.source_reliability is not None and 
-        email.content_validity is not None and 
-        email.reviewer_name and 
-        email.reviewer_name.strip() and
-        email.reviewer_comment and 
-        email.reviewer_comment.strip()
-    )
+    # Check if ANY assessment work has been done (more flexible criteria)
+    has_scores = email.source_reliability is not None or email.content_validity is not None
+    has_reviewer = (email.reviewer_name and email.reviewer_name.strip()) or (email.reviewer_comment and email.reviewer_comment.strip())
+    has_nature_or_summary = email.alleged_nature or email.allegation_summary
+    has_alleged_subjects = processed_english or processed_chinese
     
-    if has_assessment_details:
-        # If assessment is complete, update status based on score
+    # Consider assessment "inputted" if user has filled ANY assessment fields
+    has_any_assessment = has_scores or has_reviewer or has_nature_or_summary or has_alleged_subjects or email.preparer
+    
+    if has_any_assessment:
+        # If assessment work has started, update status based on completeness
         if combined_score >= 8 and reviewer_decision == 'agree':
             email.status = 'Case Opened'
         else:
-            email.status = 'Assessment Inputted'  # New status for completed assessments
+            email.status = 'Assessment Inputted'  # Assessment in progress or completed
     else:
-        # If no assessment details, keep as Pending
+        # If no assessment details at all, keep as Pending
         if not email.status or email.status == 'Pending':
             email.status = 'Pending'
 
