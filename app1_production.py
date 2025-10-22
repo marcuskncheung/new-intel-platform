@@ -2003,24 +2003,32 @@ def alleged_subject_list():
                     alleged_person_id=profile.id
                 ).count()
             
-            # Build subtitle with additional info
+            # Build subtitle with additional info (NO email count display)
             subtitle_parts = []
             if profile.agent_number:
                 subtitle_parts.append(f"Agent: {profile.agent_number}")
             if profile.company:
                 subtitle_parts.append(f"Company: {profile.company}")
-            if actual_email_count > 0:
-                subtitle_parts.append(f"{actual_email_count} email(s)")
+            # ❌ REMOVED: Don't show email count in dashboard list
+            # if actual_email_count > 0:
+            #     subtitle_parts.append(f"{actual_email_count} email(s)")
             
             subtitle = " | ".join(subtitle_parts) if subtitle_parts else ""
+            
+            # Use first_mentioned_date (source date) instead of created_at
+            display_time = ""
+            if profile.first_mentioned_date:
+                display_time = profile.first_mentioned_date.strftime("%Y-%m-%d %H:%M")
+            elif profile.created_at:
+                display_time = profile.created_at.strftime("%Y-%m-%d %H:%M")
             
             targets.append({
                 "idx": profile.id,
                 "poi_id": profile.poi_id,  # For direct POI navigation
                 "label": display_name,
                 "subtitle": subtitle,
-                "time": profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "",
-                "email_count": actual_email_count,  # ✅ Use actual count from database
+                "time": display_time,  # ✅ Use source date (first_mentioned_date) not creation date
+                "email_count": actual_email_count,  # Keep for internal use, just don't display
                 "created_by": profile.created_by,
                 "agent_number": profile.agent_number,
                 "company": profile.company,
