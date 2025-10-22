@@ -2512,13 +2512,35 @@ def alleged_subject_profile_detail(poi_id):
                 'confidence': link.confidence_score,
                 'case_name': link.case_name,
                 'case_id': link.case_id,
-                'date': link.link_created_at,
-                'date_str': link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A'
+                'date': link.link_created_at,  # Will be overwritten with source date below
+                'date_str': link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A'  # Will be overwritten
             }
             
             if link.source_type == 'EMAIL':
                 email = db.session.get(Email, link.source_id)
                 if email:
+                    # Parse email received date to datetime
+                    email_date = None
+                    if email.received:
+                        try:
+                            from datetime import datetime
+                            if isinstance(email.received, str):
+                                # Try multiple date formats
+                                for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d %b %Y at %I:%M %p', '%d %b %Y']:
+                                    try:
+                                        email_date = datetime.strptime(email.received, fmt)
+                                        break
+                                    except:
+                                        continue
+                            else:
+                                email_date = email.received
+                        except:
+                            email_date = link.link_created_at
+                    
+                    # Use email received date, NOT link creation date
+                    intel_data['date'] = email_date or link.link_created_at
+                    intel_data['date_str'] = email_date.strftime('%Y-%m-%d %H:%M') if email_date else (link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A')
+                    
                     intel_data.update({
                         'id': email.id,
                         'reference': email.int_reference_number or f'EMAIL-{email.id}',
@@ -2564,14 +2586,17 @@ def alleged_subject_profile_detail(poi_id):
             if link.source_type == 'WHATSAPP':
                 wa = db.session.get(WhatsAppEntry, link.source_id)
                 if wa:
+                    # Use WhatsApp received_time as the date, NOT link creation date
+                    wa_date = wa.received_time or link.link_created_at
+                    
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'WHATSAPP',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or wa.received_time,
-                        'date_str': (link.link_created_at or wa.received_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or wa.received_time) else 'N/A',
+                        'date': wa_date,  # Use WhatsApp source date
+                        'date_str': wa_date.strftime('%Y-%m-%d %H:%M') if wa_date else 'N/A',
                         'id': wa.id,
                         'reference': wa.int_reference or f'WHATSAPP-{wa.id}',
                         'case_int': get_case_int_reference(wa),
@@ -2587,14 +2612,17 @@ def alleged_subject_profile_detail(poi_id):
             elif link.source_type == 'PATROL':
                 pt = db.session.get(OnlinePatrolEntry, link.source_id)
                 if pt:
+                    # Use Patrol complaint_time as the date, NOT link creation date
+                    pt_date = pt.complaint_time or link.link_created_at
+                    
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'PATROL',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or pt.complaint_time,
-                        'date_str': (link.link_created_at or pt.complaint_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or pt.complaint_time) else 'N/A',
+                        'date': pt_date,  # Use Patrol source date
+                        'date_str': pt_date.strftime('%Y-%m-%d %H:%M') if pt_date else 'N/A',
                         'id': pt.id,
                         'reference': pt.int_reference or f'PATROL-{pt.id}',
                         'case_int': get_case_int_reference(pt),
@@ -2609,16 +2637,17 @@ def alleged_subject_profile_detail(poi_id):
             elif link.source_type == 'SURVEILLANCE':
                 sv = db.session.get(SurveillanceEntry, link.source_id)
                 if sv:
-                    # Convert date to datetime for consistency
-                    sv_datetime = datetime.combine(sv.date, datetime.min.time()) if sv.date else None
+                    # Convert surveillance date to datetime for consistency, NOT link creation date
+                    sv_datetime = datetime.combine(sv.date, datetime.min.time()) if sv.date else link.link_created_at
+                    
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'SURVEILLANCE',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or sv_datetime,
-                        'date_str': (link.link_created_at or sv_datetime).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv_datetime) else 'N/A',
+                        'date': sv_datetime,  # Use Surveillance source date
+                        'date_str': sv_datetime.strftime('%Y-%m-%d %H:%M') if sv_datetime else 'N/A',
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
                         'case_int': None,  # Surveillance entries don't have caseprofile_id yet
