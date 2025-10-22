@@ -7291,6 +7291,125 @@ def get_case_statistics():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ========================================
+# INT Reference Auto-Suggestion API Routes
+# ========================================
+
+@app.route('/api/int_references/list')
+@login_required
+def get_int_references_list():
+    """Get all existing INT references for autocomplete"""
+    try:
+        # Query all CaseProfiles with INT references
+        case_profiles = CaseProfile.query.filter(
+            CaseProfile.int_reference != None,
+            CaseProfile.int_reference != ''
+        ).order_by(CaseProfile.int_reference.asc()).all()
+        
+        references = []
+        for profile in case_profiles:
+            # Get email count for this case
+            email_count = Email.query.filter_by(caseprofile_id=profile.id).count()
+            
+            references.append({
+                'int_reference': profile.int_reference,
+                'nature': profile.nature or 'Not specified',
+                'description': profile.description or 'No description',
+                'email_count': email_count
+            })
+        
+        return jsonify({
+            'success': True,
+            'references': references,
+            'total_count': len(references)
+        })
+    except Exception as e:
+        print(f"[INT API] Error loading INT references: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/int_references/next_available')
+@login_required
+def get_next_int_reference():
+    """Get the next available INT reference number"""
+    try:
+        # Find the highest INT reference number
+        highest_int = db.session.query(CaseProfile.int_reference).filter(
+            CaseProfile.int_reference.like('INT-%')
+        ).order_by(CaseProfile.int_reference.desc()).first()
+        
+        if highest_int and highest_int[0]:
+            # Extract number from INT-XXX format
+            try:
+                current_num = int(highest_int[0].split('-')[1])
+                next_num = current_num + 1
+                next_int = f"INT-{next_num:03d}"
+            except (IndexError, ValueError):
+                # Fallback if parsing fails
+                total_count = CaseProfile.query.filter(
+                    CaseProfile.int_reference.like('INT-%')
+                ).count()
+                next_int = f"INT-{(total_count + 1):03d}"
+        else:
+            # No INT references exist yet
+            next_int = "INT-001"
+        
+        return jsonify({
+            'success': True,
+            'next_int': next_int
+        })
+    except Exception as e:
+        print(f"[INT API] Error getting next INT: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/int_references/search')
+@login_required
+def search_int_references():
+    """Search INT references by keyword"""
+    try:
+        query = request.args.get('q', '').strip()
+        if not query:
+            return jsonify({'success': False, 'error': 'No search query provided'}), 400
+        
+        # Search in CaseProfile table
+        search_pattern = f"%{query}%"
+        case_profiles = CaseProfile.query.filter(
+            db.or_(
+                CaseProfile.int_reference.ilike(search_pattern),
+                CaseProfile.nature.ilike(search_pattern),
+                CaseProfile.description.ilike(search_pattern)
+            )
+        ).filter(
+            CaseProfile.int_reference != None,
+            CaseProfile.int_reference != ''
+        ).order_by(CaseProfile.int_reference.asc()).limit(20).all()
+        
+        results = []
+        for profile in case_profiles:
+            # Get email count
+            email_count = Email.query.filter_by(caseprofile_id=profile.id).count()
+            
+            # Get first email for preview
+            first_email = Email.query.filter_by(caseprofile_id=profile.id).first()
+            
+            results.append({
+                'int_reference': profile.int_reference,
+                'nature': profile.nature or 'Not specified',
+                'description': profile.description or 'No description',
+                'email_count': email_count,
+                'first_email_subject': first_email.subject if first_email else 'N/A',
+                'first_email_id': first_email.id if first_email else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'count': len(results),
+            'query': query
+        })
+    except Exception as e:
+        print(f"[INT API] Error searching INT references: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route("/whatsapp/<int:entry_id>", methods=["GET", "POST"])
 @login_required
 def whatsapp_detail(entry_id):

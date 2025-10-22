@@ -112,8 +112,8 @@
                         <strong>Created By:</strong> {{ profile.created_by }}
                     </div>
                     <div>
-                        <i class="bi bi-calendar-plus me-1"></i>
-                        <strong>Created:</strong> {{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}
+                        <i class="bi bi-calendar-event me-1"></i>
+                        <strong>First Mentioned:</strong> {{ profile.first_mentioned_date.strftime('%Y-%m-%d') if profile.first_mentioned_date else (profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A') }}
                     </div>
                 </div>
             </div>
