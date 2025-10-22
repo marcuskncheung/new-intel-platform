@@ -1968,18 +1968,9 @@ def alleged_subject_list():
     and links to all emails alleging that person.
     """
     try:
-        # 🔄 AUTO-RENUMBER: Ensure POI IDs are sequential before displaying list
-        # ✅ FIX: Skip renumber if there are transaction conflicts (e.g., during merge)
-        try:
-            renumber_all_poi_ids()
-        except Exception as renumber_error:
-            # Don't fail the page if renumber fails - log and continue
-            print(f"[ALLEGED SUBJECT LIST] ⚠️ Skipping renumber due to: {renumber_error}")
-            # Rollback any partial changes from renumber
-            try:
-                db.session.rollback()
-            except:
-                pass
+        # 🔄 AUTO-RENUMBER: Disabled to prevent conflicts after POI refresh
+        # The renumber function conflicts with INACTIVE POIs created during cleanup
+        # User can manually renumber if needed via dedicated button
         
         # Get all active alleged person profiles, ordered by creation date (newest first)
         profiles = AllegedPersonProfile.query.filter_by(status='ACTIVE').order_by(
