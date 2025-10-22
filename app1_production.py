@@ -8166,6 +8166,28 @@ def int_source_update_assessment(email_id):
     elif reviewer_decision == 'disagree':
         email.intelligence_case_opened = False
 
+    # ✅ AUTO-UPDATE EMAIL STATUS based on assessment completion
+    # Check if assessment details have been inputted
+    has_assessment_details = (
+        email.source_reliability is not None and 
+        email.content_validity is not None and 
+        email.reviewer_name and 
+        email.reviewer_name.strip() and
+        email.reviewer_comment and 
+        email.reviewer_comment.strip()
+    )
+    
+    if has_assessment_details:
+        # If assessment is complete, update status based on score
+        if combined_score >= 8 and reviewer_decision == 'agree':
+            email.status = 'Case Opened'
+        else:
+            email.status = 'Assessment Inputted'  # New status for completed assessments
+    else:
+        # If no assessment details, keep as Pending
+        if not email.status or email.status == 'Pending':
+            email.status = 'Pending'
+
     try:
         # Update timestamp
         email.assessment_updated_at = get_hk_time()
