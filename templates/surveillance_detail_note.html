@@ -585,6 +585,163 @@
     </div>
     {% endif %}
 
+    <!-- Assessment Section -->
+    <form method="POST" action="{{ url_for('surveillance_detail', entry_id=entry.id) }}" class="mt-4">
+      <input type="hidden" name="update_assessment" value="1">
+      
+      <div class="content-section" style="background: linear-gradient(135deg, #fefefe 0%, #f0f9ff 100%); border: 2px solid #0ea5e9;">
+        <div class="section-header">
+          <div class="section-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);">
+            <i class="bi bi-clipboard-check"></i>
+          </div>
+          <h2 class="section-title">📋 Operation Assessment</h2>
+        </div>
+
+        <div style="background: white; padding: 2rem; border-radius: 16px; border: 1px solid #e5e7eb; margin-top: 1.5rem;">
+          
+          <!-- Assessment Date -->
+          <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb;">
+            <label style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; display: block;">
+              📅 Assessment Date:
+            </label>
+            <div style="color: #64748b; font-size: 1rem;">
+              {{ entry.assessment_updated_at.strftime('%B %d, %Y at %H:%M:%S') if entry.assessment_updated_at else 'Not yet assessed' }}
+            </div>
+          </div>
+
+          <!-- Adverse Finding Checkbox -->
+          <div style="margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 12px; border: 2px solid #fca5a5;">
+            <div class="form-check" style="display: flex; align-items: center; gap: 1rem;">
+              <input type="checkbox" 
+                     id="has_adverse_finding" 
+                     name="has_adverse_finding" 
+                     value="true" 
+                     class="form-check-input" 
+                     {% if entry.has_adverse_finding %}checked{% endif %}
+                     style="width: 24px; height: 24px; cursor: pointer;">
+              <label for="has_adverse_finding" 
+                     class="form-check-label" 
+                     style="font-size: 1.1rem; font-weight: 600; color: #dc2626; cursor: pointer; margin: 0;">
+                ⚠️ Adverse Finding Detected
+              </label>
+            </div>
+          </div>
+
+          <!-- Operation Findings -->
+          <div style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 600; color: #1e293b; margin-bottom: 0.75rem; display: block; font-size: 1.05rem;">
+              🔍 Operation Findings:
+            </label>
+            <textarea name="operation_finding" 
+                      rows="5" 
+                      class="form-control" 
+                      style="border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; font-size: 1rem; resize: vertical;"
+                      placeholder="Describe the findings from this surveillance operation...">{{ entry.operation_finding or '' }}</textarea>
+          </div>
+
+          <!-- Adverse Finding Details (conditional) -->
+          <div id="adverse-details" style="margin-bottom: 1.5rem; {% if not entry.has_adverse_finding %}display: none;{% endif %}">
+            <label style="font-weight: 600; color: #dc2626; margin-bottom: 0.75rem; display: block; font-size: 1.05rem;">
+              🚨 Adverse Finding Details:
+            </label>
+            <textarea name="adverse_finding_details" 
+                      rows="4" 
+                      class="form-control" 
+                      style="border: 2px solid #fca5a5; border-radius: 10px; padding: 1rem; font-size: 1rem; background: #fef2f2; resize: vertical;"
+                      placeholder="Provide detailed information about the adverse finding...">{{ entry.adverse_finding_details or '' }}</textarea>
+          </div>
+
+          <!-- Observation Notes -->
+          <div style="margin-bottom: 2rem;">
+            <label style="font-weight: 600; color: #1e293b; margin-bottom: 0.75rem; display: block; font-size: 1.05rem;">
+              📝 Observation Notes:
+            </label>
+            <textarea name="observation_notes" 
+                      rows="5" 
+                      class="form-control" 
+                      style="border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; font-size: 1rem; resize: vertical;"
+                      placeholder="Record any additional observations from the operation...">{{ entry.observation_notes or '' }}</textarea>
+          </div>
+
+          <!-- Preparer / Reviewer Section -->
+          <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid #cbd5e1;">
+            <h6 style="color: #0ea5e9; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.1rem;">
+              <i class="bi bi-person-badge"></i> Preparer & Reviewer
+            </h6>
+            
+            <div class="row">
+              <!-- Preparer -->
+              <div class="col-md-6" style="margin-bottom: 1rem;">
+                <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
+                  👤 Preparer:
+                </label>
+                <select name="preparer" class="form-select" style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem;">
+                  <option value="">Select Preparer...</option>
+                  <option value="Nicola" {% if entry.preparer == 'Nicola' %}selected{% endif %}>Nicola</option>
+                  <option value="Erney" {% if entry.preparer == 'Erney' %}selected{% endif %}>Erney</option>
+                  <option value="Alex" {% if entry.preparer == 'Alex' %}selected{% endif %}>Alex</option>
+                  <option value="Queenie" {% if entry.preparer == 'Queenie' %}selected{% endif %}>Queenie</option>
+                  <option value="Charlie" {% if entry.preparer == 'Charlie' %}selected{% endif %}>Charlie</option>
+                  <option value="Eunice" {% if entry.preparer == 'Eunice' %}selected{% endif %}>Eunice</option>
+                  <option value="Marcus" {% if entry.preparer == 'Marcus' %}selected{% endif %}>Marcus</option>
+                </select>
+              </div>
+
+              <!-- Reviewer -->
+              <div class="col-md-6" style="margin-bottom: 1rem;">
+                <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
+                  ✅ Reviewer:
+                </label>
+                <select name="reviewer_name" class="form-select" style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem;">
+                  <option value="">Select Reviewer...</option>
+                  <option value="Nicola" {% if entry.reviewer_name == 'Nicola' %}selected{% endif %}>Nicola</option>
+                  <option value="Erney" {% if entry.reviewer_name == 'Erney' %}selected{% endif %}>Erney</option>
+                  <option value="Alex" {% if entry.reviewer_name == 'Alex' %}selected{% endif %}>Alex</option>
+                  <option value="Queenie" {% if entry.reviewer_name == 'Queenie' %}selected{% endif %}>Queenie</option>
+                  <option value="Charlie" {% if entry.reviewer_name == 'Charlie' %}selected{% endif %}>Charlie</option>
+                  <option value="Eunice" {% if entry.reviewer_name == 'Eunice' %}selected{% endif %}>Eunice</option>
+                  <option value="Marcus" {% if entry.reviewer_name == 'Marcus' %}selected{% endif %}>Marcus</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Reviewer Comment -->
+            <div style="margin-bottom: 1rem;">
+              <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
+                💬 Reviewer Comment:
+              </label>
+              <textarea name="reviewer_comment" 
+                        rows="3" 
+                        class="form-control" 
+                        style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; resize: vertical;"
+                        placeholder="Reviewer's comments on the assessment...">{{ entry.reviewer_comment or '' }}</textarea>
+            </div>
+
+            <!-- Reviewer Decision -->
+            <div>
+              <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
+                ⚖️ Reviewer Decision:
+              </label>
+              <select name="reviewer_decision" class="form-select" style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem;">
+                <option value="">-- Select Decision --</option>
+                <option value="agree" {% if entry.reviewer_decision == 'agree' %}selected{% endif %}>✅ Agree</option>
+                <option value="disagree" {% if entry.reviewer_decision == 'disagree' %}selected{% endif %}>❌ Disagree</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div style="text-align: center; margin-top: 2rem;">
+            <button type="submit" 
+                    class="btn btn-primary btn-lg" 
+                    style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); border: none; padding: 1rem 3rem; font-size: 1.1rem; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
+              <i class="bi bi-check-circle"></i> Save Assessment
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
     <!-- Footer Actions -->
     <div class="footer-actions">
       <a href="{{ url_for('surveillance_detail', entry_id=entry.id, edit='1') }}" class="footer-btn footer-btn-primary">
@@ -596,4 +753,28 @@
     </div>
   </div>
 </div>
+
+<script>
+// Show/hide adverse finding details based on checkbox
+document.getElementById('has_adverse_finding').addEventListener('change', function() {
+  const adverseDetails = document.getElementById('adverse-details');
+  if (this.checked) {
+    adverseDetails.style.display = 'block';
+    adverseDetails.style.animation = 'fadeIn 0.3s ease';
+  } else {
+    adverseDetails.style.display = 'none';
+  }
+});
+
+// Add fade-in animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+document.head.appendChild(style);
+</script>
+
 {% endblock %}
