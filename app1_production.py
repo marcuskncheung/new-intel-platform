@@ -6869,35 +6869,35 @@ def add_surveillance():
                     
                     # Process each target
                     processed_count = 0
-                for idx, name in enumerate(target_names):
-                    name = name.strip()
-                    if not name:
-                        continue
-                    
-                    # Try to determine if it's English or Chinese name
-                    is_chinese = bool(re.search(r'[\u4e00-\u9fff]', name))
-                    
-                    # Get license info for this target
-                    license_type = license_types[idx] if idx < len(license_types) else None
-                    license_number = license_numbers[idx] if idx < len(license_numbers) else None
-                    
-                    # Prepare additional info
-                    additional_info = {}
-                    if license_number:
-                        additional_info['license_number'] = license_number
-                        additional_info['agent_number'] = license_number
-                    if license_type:
-                        additional_info['role'] = license_type
-                    
-                    result = create_or_update_alleged_person_profile(
-                        db, AllegedPersonProfile, EmailAllegedPersonLink,
-                        name_english=None if is_chinese else name,
-                        name_chinese=name if is_chinese else None,
-                        email_id=None,
-                        source="SURVEILLANCE",
-                        update_mode="merge",
-                        additional_info=additional_info
-                    )
+                    for idx, name in enumerate(target_names):
+                        name = name.strip()
+                        if not name:
+                            continue
+                        
+                        # Try to determine if it's English or Chinese name
+                        is_chinese = bool(re.search(r'[\u4e00-\u9fff]', name))
+                        
+                        # Get license info for this target
+                        license_type = license_types[idx] if idx < len(license_types) else None
+                        license_number = license_numbers[idx] if idx < len(license_numbers) else None
+                        
+                        # Prepare additional info
+                        additional_info = {}
+                        if license_number:
+                            additional_info['license_number'] = license_number
+                            additional_info['agent_number'] = license_number
+                        if license_type:
+                            additional_info['role'] = license_type
+                        
+                        result = create_or_update_alleged_person_profile(
+                            db, AllegedPersonProfile, EmailAllegedPersonLink,
+                            name_english=None if is_chinese else name,
+                            name_chinese=name if is_chinese else name,
+                            email_id=None,
+                            source="SURVEILLANCE",
+                            update_mode="merge",
+                            additional_info=additional_info
+                        )
                     
                     if result.get('profile_id'):
                         processed_count += 1
@@ -6925,9 +6925,9 @@ def add_surveillance():
                                 print(f"[SURVEILLANCE AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
                         except Exception as link_error:
                             print(f"[SURVEILLANCE AUTOMATION] ⚠️ Could not create universal link: {link_error}")
-                
-                flash(f"Surveillance entry created and {processed_count} POI profile(s) processed.", "success")
-                
+                    
+                    flash(f"Surveillance entry created and {processed_count} POI profile(s) processed.", "success")
+                    
                 except Exception as automation_error:
                     print(f"[SURVEILLANCE AUTOMATION] ❌ Error in POI automation: {automation_error}")
                     flash("Surveillance entry created, but POI automation had an error.", "warning")
