@@ -6898,33 +6898,33 @@ def add_surveillance():
                             update_mode="merge",
                             additional_info=additional_info
                         )
-                    
-                    if result.get('profile_id'):
-                        processed_count += 1
-                        # Create universal link in POI v2.0 table
-                        try:
-                            from app1_production import POIIntelligenceLink
-                            
-                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                poi_id=result['profile_id'],
-                                source_type='SURVEILLANCE',
-                                source_id=entry.id
-                            ).first()
-                            
-                            if not existing_link:
-                                universal_link = POIIntelligenceLink(
+                        
+                        if result.get('profile_id'):
+                            processed_count += 1
+                            # Create universal link in POI v2.0 table
+                            try:
+                                from app1_production import POIIntelligenceLink
+                                
+                                existing_link = db.session.query(POIIntelligenceLink).filter_by(
                                     poi_id=result['profile_id'],
                                     source_type='SURVEILLANCE',
-                                    source_id=entry.id,
-                                    case_profile_id=None,  # Surveillance doesn't have case_profile_id
-                                    confidence_score=0.95,  # High confidence - physical surveillance
-                                    created_by=f"USER-{current_user.username}"
-                                )
-                                db.session.add(universal_link)
-                                db.session.commit()
-                                print(f"[SURVEILLANCE AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
-                        except Exception as link_error:
-                            print(f"[SURVEILLANCE AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                                    source_id=entry.id
+                                ).first()
+                                
+                                if not existing_link:
+                                    universal_link = POIIntelligenceLink(
+                                        poi_id=result['profile_id'],
+                                        source_type='SURVEILLANCE',
+                                        source_id=entry.id,
+                                        case_profile_id=None,  # Surveillance doesn't have case_profile_id
+                                        confidence_score=0.95,  # High confidence - physical surveillance
+                                        created_by=f"USER-{current_user.username}"
+                                    )
+                                    db.session.add(universal_link)
+                                    db.session.commit()
+                                    print(f"[SURVEILLANCE AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                            except Exception as link_error:
+                                print(f"[SURVEILLANCE AUTOMATION] ⚠️ Could not create universal link: {link_error}")
                     
                     flash(f"Surveillance entry created and {processed_count} POI profile(s) processed.", "success")
                     
@@ -6933,6 +6933,11 @@ def add_surveillance():
                     flash("Surveillance entry created, but POI automation had an error.", "warning")
             else:
                 flash("Surveillance entry created", "success")
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating surveillance entry: {e}', 'danger')
+            print(f"[SURVEILLANCE] Error: {e}")
         
         return redirect(url_for("int_source"))
     return render_template("int_source_surveillance_edit.html", entry=None)
