@@ -450,54 +450,73 @@
           <div class="section-icon">
             <i class="bi bi-info-circle"></i>
           </div>
-          <h2 class="section-title">Basic Information</h2>
+          <h2 class="section-title">📋 Basic Information</h2>
         </div>
         
-        <div class="form-grid">
-          <div class="form-group">
+        <div class="row g-3">
+          <!-- Row 1: Operation Number & Type -->
+          <div class="col-md-6">
             <label for="operation_number" class="form-label">
-              <i class="bi bi-hash"></i> Operation Number
+              <i class="bi bi-hash"></i> Operation Number <span class="text-danger">*</span>
             </label>
             <input type="text" class="form-control" id="operation_number" name="operation_number" 
                    value="{{ entry.operation_number if entry else '' }}" required readonly>
+            <small class="text-muted">Auto-generated</small>
           </div>
           
-          <div class="form-group">
+          <div class="col-md-6">
             <label for="operation_type" class="form-label">
-              <i class="bi bi-gear"></i> Operation Type
+              <i class="bi bi-gear"></i> Operation Type <span class="text-danger">*</span>
             </label>
             <select name="operation_type" class="form-select" id="operation_type" required>
-              <option value="">Select Operation Type...</option>
-              <option value="Mystery Shopping" {% if entry and entry.operation_type == 'Mystery Shopping' %}selected{% endif %}>Mystery Shopping</option>
-              <option value="Surveillance" {% if entry and entry.operation_type == 'Surveillance' %}selected{% endif %}>Surveillance</option>
+              <option value="">Select Type...</option>
+              <option value="Mystery Shopping" {% if entry and entry.operation_type == 'Mystery Shopping' %}selected{% endif %}>🛍️ Mystery Shopping</option>
+              <option value="Surveillance" {% if entry and entry.operation_type == 'Surveillance' %}selected{% endif %}>👁️ Surveillance</option>
             </select>
           </div>
           
-          <div class="form-group">
+          <!-- Row 2: Date & Venue -->
+          <div class="col-md-6">
             <label for="date" class="form-label">
-              <i class="bi bi-calendar-event"></i> Operation Date
+              <i class="bi bi-calendar-event"></i> Operation Date <span class="text-danger">*</span>
             </label>
             <input type="date" class="form-control" id="date" name="date" 
                    value="{{ entry.date.strftime('%Y-%m-%d') if entry and entry.date else '' }}" required>
           </div>
           
-          <div class="form-group">
+          <div class="col-md-6">
             <label for="venue" class="form-label">
-              <i class="bi bi-geo-alt"></i> Venue
+              <i class="bi bi-geo-alt"></i> Venue/Location <span class="text-danger">*</span>
             </label>
             <input type="text" class="form-control" id="venue" name="venue" 
-                   value="{{ entry.venue if entry else '' }}" placeholder="Enter operation venue">
+                   value="{{ entry.venue if entry else '' }}" placeholder="e.g., Central Office, Causeway Bay" required>
           </div>
           
-          <div class="form-group">
+          <!-- Row 3: Conducted By & Preparer -->
+          <div class="col-md-6">
             <label for="conducted_by" class="form-label">
-              <i class="bi bi-person-badge"></i> Conducted By
+              <i class="bi bi-person-badge"></i> Conducted By <span class="text-danger">*</span>
             </label>
             <select class="form-select" id="conducted_by" name="conducted_by" required>
-              <option value="">Select Conductor...</option>
-              <option value="Private investigator" {% if entry and entry.conducted_by == 'Private investigator' %}selected{% endif %}>Private investigator</option>
-              <option value="IA staff" {% if entry and entry.conducted_by == 'IA staff' %}selected{% endif %}>IA staff</option>
+              <option value="">Select...</option>
+              <option value="Private investigator" {% if entry and entry.conducted_by == 'Private investigator' %}selected{% endif %}>🕵️ Private Investigator</option>
+              <option value="IA staff" {% if entry and entry.conducted_by == 'IA staff' %}selected{% endif %}>👔 IA Staff</option>
             </select>
+          </div>
+          
+          <div class="col-md-6">
+            <label for="preparer" class="form-label">
+              <i class="bi bi-pencil-square"></i> Prepared By
+            </label>
+            <select class="form-select" id="preparer" name="preparer">
+              <option value="">Select Preparer...</option>
+              <option value="Marcus" {% if entry and entry.preparer == 'Marcus' %}selected{% endif %}>Marcus</option>
+              <option value="Kitty" {% if entry and entry.preparer == 'Kitty' %}selected{% endif %}>Kitty</option>
+              <option value="Helen" {% if entry and entry.preparer == 'Helen' %}selected{% endif %}>Helen</option>
+              <option value="Ceci" {% if entry and entry.preparer == 'Ceci' %}selected{% endif %}>Ceci</option>
+              <option value="Fion" {% if entry and entry.preparer == 'Fion' %}selected{% endif %}>Fion</option>
+            </select>
+            <small class="text-muted">Who prepared this report</small>
           </div>
         </div>
       </div>
@@ -508,89 +527,147 @@
           <div class="section-icon">
             <i class="bi bi-bullseye"></i>
           </div>
-          <h2 class="section-title">Surveillance Targets</h2>
+          <h2 class="section-title">🎯 Surveillance Targets</h2>
         </div>
         
-        <div class="targets-container" id="targets-list">
+        <p class="text-muted mb-3">
+          <i class="bi bi-info-circle"></i> Add all individuals or entities under surveillance. You can add multiple targets.
+        </p>
+        
+        <div id="targets-container">
           {% if entry and entry.targets %}
             {% for t in entry.targets %}
-              <div class="target-input-group">
-                <input type="text" class="target-input" name="target_name[]" value="{{ t.name }}" placeholder="Target name" required>
-                <select class="form-select target-license-type" name="license_type[]">
-                  <option value="" {% if not t.license_type %}selected{% endif %}>N/A</option>
-                  <option value="Agent" {% if t.license_type=='Agent' %}selected{% endif %}>Agent</option>
-                  <option value="Broker" {% if t.license_type=='Broker' %}selected{% endif %}>Broker</option>
-                </select>
-                <input type="text" class="target-license-number form-control" name="license_number[]" value="{{ t.license_number or '' }}" placeholder="License # (if any)">
-                <button type="button" class="btn-remove-target remove-target"><i class="bi bi-trash"></i> Remove</button>
+              <div class="target-row" data-row-id="{{ loop.index }}">
+                <div class="row g-3 align-items-end mb-3">
+                  <div class="col-md-5">
+                    <label class="form-label">
+                      <i class="bi bi-person"></i> Target Name <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" class="form-control target-input" name="target_name[]" 
+                           value="{{ t.name }}" placeholder="Enter target full name" required>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label">
+                      <i class="bi bi-award"></i> License Type
+                    </label>
+                    <select class="form-select" name="license_type[]">
+                      <option value="" {% if not t.license_type %}selected{% endif %}>N/A</option>
+                      <option value="Agent" {% if t.license_type=='Agent' %}selected{% endif %}>Insurance Agent</option>
+                      <option value="Broker" {% if t.license_type=='Broker' %}selected{% endif %}>Insurance Broker</option>
+                    </select>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label">
+                      <i class="bi bi-credit-card"></i> License Number
+                    </label>
+                    <input type="text" class="form-control" name="license_number[]" 
+                           value="{{ t.license_number or '' }}" placeholder="e.g., FA12345">
+                  </div>
+                  
+                  <div class="col-md-1">
+                    <button type="button" class="btn btn-danger w-100 remove-target-btn" 
+                            onclick="removeTarget(this)" title="Remove this target">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             {% endfor %}
           {% else %}
-            <div class="target-input-group">
-              <input type="text" class="target-input" name="target_name[]" placeholder="Target name" required>
-              <select class="form-select target-license-type" name="license_type[]">
-                <option value="" selected>N/A</option>
-                <option value="Agent">Agent</option>
-                <option value="Broker">Broker</option>
-              </select>
-              <input type="text" class="target-license-number form-control" name="license_number[]" placeholder="License # (if any)">
-              <button type="button" class="btn-remove-target remove-target"><i class="bi bi-trash"></i> Remove</button>
+            <div class="target-row" data-row-id="1">
+              <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-5">
+                  <label class="form-label">
+                    <i class="bi bi-person"></i> Target Name <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control target-input" name="target_name[]" 
+                         placeholder="Enter target full name" required>
+                </div>
+                
+                <div class="col-md-3">
+                  <label class="form-label">
+                    <i class="bi bi-award"></i> License Type
+                  </label>
+                  <select class="form-select" name="license_type[]">
+                    <option value="" selected>N/A</option>
+                    <option value="Agent">Insurance Agent</option>
+                    <option value="Broker">Insurance Broker</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-3">
+                  <label class="form-label">
+                    <i class="bi bi-credit-card"></i> License Number
+                  </label>
+                  <input type="text" class="form-control" name="license_number[]" 
+                         placeholder="e.g., FA12345">
+                </div>
+                
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-danger w-100 remove-target-btn" 
+                          onclick="removeTarget(this)" title="Remove this target">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           {% endif %}
         </div>
         
-        <button type="button" class="btn-add-target" id="add-target">
+        <button type="button" class="btn-add-target" onclick="addTarget()">
           <i class="bi bi-plus-circle"></i> Add Another Target
         </button>
       </div>
 
-      <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          const list = document.getElementById('targets-list');
-          document.getElementById('add-target').addEventListener('click', () => {
-            const group = document.createElement('div');
-            group.className = 'target-input-group';
-            group.innerHTML = `
-              <input type="text" class="target-input" name="target_name[]" placeholder="Target name" required>
-              <select class="form-select target-license-type" name="license_type[]">
-                <option value="" selected>N/A</option>
-                <option value="Agent">Agent</option>
-                <option value="Broker">Broker</option>
-              </select>
-              <input type="text" class="target-license-number form-control" name="license_number[]" placeholder="License # (if any)">
-              <button type="button" class="btn-remove-target remove-target"><i class="bi bi-trash"></i> Remove</button>
-            `;
-            list.appendChild(group);
-          });
-
-          list.addEventListener('click', (e) => {
-            if (e.target.closest('.remove-target')) {
-              const group = e.target.closest('.target-input-group');
-              if (group) group.remove();
-            }
-          });
-        });
-      </script>
-
-      <!-- Details Section -->
-      <div class="form-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="bi bi-file-text"></i>
+      <!-- Details Section (Optional) -->
+      <div class="form-section" id="details-section">
+        <div class="section-header d-flex justify-content-between align-items-center w-100">
+          <div class="d-flex align-items-center gap-3">
+            <div class="section-icon">
+              <i class="bi bi-file-text"></i>
+            </div>
+            <h2 class="section-title mb-0">📝 Additional Findings (Optional)</h2>
           </div>
-          <h2 class="section-title">Operation Details</h2>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleDetailsSection()" 
+                  id="toggle-details-btn">
+            <i class="bi bi-eye-slash"></i> Hide
+          </button>
         </div>
         
-        <div class="form-group">
-          <label for="details_of_finding" class="form-label">
-            <i class="bi bi-journal-text"></i> Details of Finding
-          </label>
-          <textarea class="form-control textarea-enhanced" id="details_of_finding" name="details_of_finding" 
-                    placeholder="Enter detailed findings and observations from the surveillance operation...">{{ entry.details_of_finding if entry else '' }}</textarea>
+        <div id="details-content">
+          <p class="text-muted mb-3">
+            <i class="bi bi-info-circle"></i> Optional section. Leave blank if not applicable.
+          </p>
+          
+          <div class="form-group">
+            <label for="details_of_finding" class="form-label">
+              <i class="bi bi-journal-text"></i> Detailed Findings & Observations
+            </label>
+            <textarea class="form-control textarea-enhanced" id="details_of_finding" name="details_of_finding" 
+                      rows="5" placeholder="Optional: Enter detailed findings, observations, or any additional notes from the surveillance operation...">{{ entry.details_of_finding if entry else '' }}</textarea>
+            <small class="text-muted">
+              💡 Tip: You can hide this entire section using the "Hide" button above if not needed.
+            </small>
+          </div>
         </div>
       </div>
 
-      <!-- Documents Section -->
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="submit" class="btn-primary-enhanced">
+          <i class="bi bi-check-circle"></i>
+          {{ entry and "💾 Update Operation" or "✅ Create Operation" }}
+        </button>
+        <a href="{{ url_for('int_source') }}#surveillance" class="btn-secondary-enhanced">
+          <i class="bi bi-x-circle"></i>
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>      <!-- Documents Section -->
       {% if documents %}
       <div class="form-section">
         <div class="section-header">
@@ -635,55 +712,193 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Add target functionality
-  document.getElementById('add-target').addEventListener('click', function() {
-    var container = document.getElementById('targets-list');
-    var div = document.createElement('div');
-    div.className = 'target-input-group';
-    div.innerHTML = `
-      <input type="text" class="target-input" name="targets[]" placeholder="Enter target name" required>
-      <button type="button" class="btn-remove-target remove-target">
-        <i class="bi bi-trash"></i> Remove
-      </button>
-    `;
-    container.appendChild(div);
-  });
+let targetRowCounter = {{ (entry.targets|length if entry and entry.targets else 1) }};
 
-  // Remove target functionality
-  document.getElementById('targets-list').addEventListener('click', function(e) {
-    if (e.target.classList.contains('remove-target') || e.target.closest('.remove-target')) {
-      const targetGroup = e.target.closest('.target-input-group');
-      const container = document.getElementById('targets-list');
+// Add new target row
+function addTarget() {
+  targetRowCounter++;
+  const container = document.getElementById('targets-container');
+  const newRow = document.createElement('div');
+  newRow.className = 'target-row';
+  newRow.setAttribute('data-row-id', targetRowCounter);
+  newRow.innerHTML = `
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-md-5">
+        <label class="form-label">
+          <i class="bi bi-person"></i> Target Name <span class="text-danger">*</span>
+        </label>
+        <input type="text" class="form-control target-input" name="target_name[]" 
+               placeholder="Enter target full name" required>
+      </div>
       
-      // Ensure at least one target input remains
-      if (container.children.length > 1) {
-        targetGroup.remove();
-      } else {
-        // Clear the input instead of removing if it's the last one
-        const input = targetGroup.querySelector('.target-input');
-        input.value = '';
-      }
-    }
-  });
+      <div class="col-md-3">
+        <label class="form-label">
+          <i class="bi bi-award"></i> License Type
+        </label>
+        <select class="form-select" name="license_type[]">
+          <option value="" selected>N/A</option>
+          <option value="Agent">Insurance Agent</option>
+          <option value="Broker">Insurance Broker</option>
+        </select>
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label">
+          <i class="bi bi-credit-card"></i> License Number
+        </label>
+        <input type="text" class="form-control" name="license_number[]" 
+               placeholder="e.g., FA12345">
+      </div>
+      
+      <div class="col-md-1">
+        <button type="button" class="btn btn-danger w-100 remove-target-btn" 
+                onclick="removeTarget(this)" title="Remove this target">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  container.appendChild(newRow);
+  
+  // Scroll to new row
+  newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  
+  // Focus on the name input
+  setTimeout(() => {
+    newRow.querySelector('.target-input').focus();
+  }, 300);
+}
 
-  // Enhanced form validation
+// Remove target row
+function removeTarget(button) {
+  const targetRow = button.closest('.target-row');
+  const container = document.getElementById('targets-container');
+  
+  // Keep at least one target row
+  if (container.children.length > 1) {
+    targetRow.remove();
+    showToast('Target removed successfully', 'info');
+  } else {
+    showToast('At least one target is required', 'warning');
+  }
+}
+
+// Toggle details section visibility
+function toggleDetailsSection() {
+  const detailsContent = document.getElementById('details-content');
+  const detailsSection = document.getElementById('details-section');
+  const toggleBtn = document.getElementById('toggle-details-btn');
+  
+  if (detailsContent.style.display === 'none') {
+    detailsContent.style.display = 'block';
+    toggleBtn.innerHTML = '<i class="bi bi-eye-slash"></i> Hide Section';
+    detailsSection.style.opacity = '1';
+  } else {
+    detailsContent.style.display = 'none';
+    toggleBtn.innerHTML = '<i class="bi bi-eye"></i> Show Section';
+    detailsSection.style.opacity = '0.6';
+  }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+  const colors = {
+    'success': '#10b981',
+    'warning': '#f59e0b',
+    'danger': '#ef4444',
+    'info': '#3b82f6'
+  };
+  
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${colors[type] || colors.info};
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    z-index: 9999;
+    font-weight: 600;
+    animation: slideInRight 0.3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOutRight 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  
+  .target-row {
+    transition: all 0.3s ease;
+  }
+  
+  .target-row:hover {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 0.5rem;
+    margin: -0.5rem;
+  }
+  
+  .remove-target-btn {
+    transition: all 0.3s ease;
+  }
+  
+  .remove-target-btn:hover {
+    transform: scale(1.1);
+  }
+`;
+document.head.appendChild(style);
+
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   form.addEventListener('submit', function(e) {
     const targetInputs = document.querySelectorAll('.target-input');
     let hasValidTarget = false;
     
-    targetInputs.forEach(input => {
+    for (const input of targetInputs) {
       if (input.value.trim()) {
         hasValidTarget = true;
+        break;
       }
-    });
+    }
     
     if (!hasValidTarget) {
       e.preventDefault();
-      alert('Please enter at least one surveillance target.');
+      showToast('Please enter at least one surveillance target', 'danger');
       return false;
     }
+    
+    showToast('Saving operation...', 'info');
   });
 });
 </script>
