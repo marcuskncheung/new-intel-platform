@@ -6,7 +6,7 @@
     <div class="card-header d-flex justify-content-between align-items-center" style="background: #1669d2; color: #fff;">
       <div>
         <h5 class="mb-0">{{ email.subject or "(No Subject)" }}</h5>
-        <small>From: {{ email.sender }} | Received: {{ email.received.strftime('%d %B %Y, %I:%M %p') if email.received else 'N/A' }}</small>
+        <small>From: {{ email.sender }} | Received: {% if email.received %}{{ email.received if email.received is string else email.received.strftime('%d %B %Y, %I:%M %p') }}{% else %}N/A{% endif %}</small>
       </div>
       <div class="btn-group">
         <!-- AI Analysis Button (comprehensive only) -->
