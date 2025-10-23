@@ -130,6 +130,8 @@ def get_case_int_reference(source_record):
         
     Returns:
         Case INT reference (e.g., "INT-007") or None if not assigned
+    
+    NOTE: This is a helper function. API routes are defined after Flask app initialization.
     """
     try:
         if hasattr(source_record, 'caseprofile_id') and source_record.caseprofile_id:
@@ -140,155 +142,10 @@ def get_case_int_reference(source_record):
         print(f"[CASE INT] Error getting case reference: {e}")
         return None
 
-@app.route("/api/int_references/list")
-@login_required
-def list_int_references():
-    """Get list of all existing INT references with descriptions"""
-    try:
-        import traceback
-        # Get all CaseProfiles with their INT references
-        case_profiles = CaseProfile.query.order_by(CaseProfile.int_reference).all()
-        
-        int_refs = []
-        for cp in case_profiles:
-            # Count linked sources
-            email_count = Email.query.filter_by(caseprofile_id=cp.id).count()
-            
-            total_sources = email_count
-            
-            # Get first email for description
-            first_email = Email.query.filter_by(caseprofile_id=cp.id).order_by(Email.received).first()
-            description = ""
-            if first_email:
-                # Extract alleged person names for description
-                if first_email.alleged_subject_english:
-                    description = first_email.alleged_subject_english.split(',')[0].strip()
-                elif first_email.alleged_subject_chinese:
-                    description = first_email.alleged_subject_chinese.split(',')[0].strip()
-                
-                # Add alleged nature if available
-                if first_email.alleged_nature:
-                    description += f" - {first_email.alleged_nature}"
-            
-            int_refs.append({
-                'int_reference': cp.int_reference,
-                'total_sources': total_sources,
-                'email_count': email_count,
-                'description': description,
-                'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
-            })
-        
-        return jsonify({
-            'success': True,
-            'int_references': int_refs
-        })
-        
-    except Exception as e:
-        print(f"[INT API] Error loading INT references: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route("/api/int_references/next_available")
-@login_required
-def get_next_available_int():
-    """Get the next available INT reference number"""
-    try:
-        import re
-        # Get the highest INT number currently in use
-        highest_case = CaseProfile.query.order_by(CaseProfile.int_reference.desc()).first()
-        
-        if not highest_case:
-            # No cases yet, start with INT-001
-            next_number = 1
-        else:
-            # Extract number from INT-XXX format
-            match = re.search(r'INT-(\d+)', highest_case.int_reference)
-            if match:
-                current_number = int(match.group(1))
-                next_number = current_number + 1
-            else:
-                next_number = 1
-        
-        next_int_ref = f"INT-{next_number:03d}"
-        
-        return jsonify({
-            'success': True,
-            'next_int_reference': next_int_ref,
-            'next_number': next_number
-        })
-        
-    except Exception as e:
-        print(f"[INT API] Error getting next INT: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route("/api/int_references/search")
-@login_required
-def search_int_references():
-    """Search INT references by keyword (person name, nature, etc.)"""
-    try:
-        query = request.args.get('q', '').strip()
-        
-        if not query:
-            return jsonify({'success': False, 'error': 'Search query required'}), 400
-        
-        # Search in CaseProfiles and their linked emails
-        results = []
-        
-        # Get all case profiles
-        case_profiles = CaseProfile.query.all()
-        
-        for cp in case_profiles:
-            # Get linked emails to search in their content
-            linked_emails = Email.query.filter_by(caseprofile_id=cp.id).all()
-            
-            match_found = False
-            match_reason = []
-            
-            for email in linked_emails:
-                # Search in alleged person names
-                if email.alleged_subject_english and query.lower() in email.alleged_subject_english.lower():
-                    match_found = True
-                    match_reason.append(f"Person: {email.alleged_subject_english.split(',')[0].strip()}")
-                    break
-                if email.alleged_subject_chinese and query.lower() in email.alleged_subject_chinese.lower():
-                    match_found = True
-                    match_reason.append(f"Person: {email.alleged_subject_chinese.split(',')[0].strip()}")
-                    break
-                
-                # Search in alleged nature
-                if email.alleged_nature and query.lower() in email.alleged_nature.lower():
-                    match_found = True
-                    match_reason.append(f"Nature: {email.alleged_nature}")
-                    break
-                
-                # Search in subject line
-                if email.subject and query.lower() in email.subject.lower():
-                    match_found = True
-                    match_reason.append(f"Subject: {email.subject[:50]}...")
-                    break
-            
-            if match_found:
-                results.append({
-                    'int_reference': cp.int_reference,
-                    'total_sources': len(linked_emails),
-                    'match_reason': ', '.join(match_reason),
-                    'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
-                })
-        
-        return jsonify({
-            'success': True,
-            'results': results,
-            'query': query
-        })
-        
-    except Exception as e:
-        print(f"[INT API] Error searching INT references: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+# ========================================
+# 🔗 INT REFERENCE API ROUTES
+# These routes are defined AFTER Flask app initialization (see line ~810)
+# ========================================
 
 def format_intelligence_reference(source_type, source_id, include_case=True):
     """
@@ -1451,6 +1308,157 @@ EmailAllegedPersonLink = None  # Placeholder, will be imported from models_poi_e
 # NOTE: This import MUST happen after db is initialized
 POIIntelligenceLink = None  # Will be imported later after app context is ready
 POIIntelligenceLink = None  # Will be imported later after app context is ready
+
+# ========================================
+# 🔗 INT REFERENCE API ROUTES
+# ========================================
+
+@app.route("/api/int_references/list")
+@login_required
+def list_int_references():
+    """Get list of all existing INT references with descriptions"""
+    try:
+        import traceback
+        # Get all CaseProfiles with their INT references
+        case_profiles = CaseProfile.query.order_by(CaseProfile.int_reference).all()
+        
+        int_refs = []
+        for cp in case_profiles:
+            # Count linked sources
+            email_count = Email.query.filter_by(caseprofile_id=cp.id).count()
+            
+            total_sources = email_count
+            
+            # Get first email for description
+            first_email = Email.query.filter_by(caseprofile_id=cp.id).order_by(Email.received).first()
+            description = ""
+            if first_email:
+                # Extract alleged person names for description
+                if first_email.alleged_subject_english:
+                    description = first_email.alleged_subject_english.split(',')[0].strip()
+                elif first_email.alleged_subject_chinese:
+                    description = first_email.alleged_subject_chinese.split(',')[0].strip()
+                
+                # Add alleged nature if available
+                if first_email.alleged_nature:
+                    description += f" - {first_email.alleged_nature}"
+            
+            int_refs.append({
+                'int_reference': cp.int_reference,
+                'total_sources': total_sources,
+                'email_count': email_count,
+                'description': description,
+                'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
+            })
+        
+        return jsonify({
+            'success': True,
+            'int_references': int_refs
+        })
+        
+    except Exception as e:
+        print(f"[INT API] Error loading INT references: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route("/api/int_references/next_available")
+@login_required
+def get_next_available_int():
+    """Get the next available INT reference number"""
+    try:
+        import re
+        # Get the highest INT number currently in use
+        highest_case = CaseProfile.query.order_by(CaseProfile.int_reference.desc()).first()
+        
+        if not highest_case:
+            # No cases yet, start with INT-001
+            next_number = 1
+        else:
+            # Extract number from INT-XXX format
+            match = re.search(r'INT-(\d+)', highest_case.int_reference)
+            if match:
+                current_number = int(match.group(1))
+                next_number = current_number + 1
+            else:
+                next_number = 1
+        
+        next_int_ref = f"INT-{next_number:03d}"
+        
+        return jsonify({
+            'success': True,
+            'next_int_reference': next_int_ref,
+            'next_number': next_number
+        })
+        
+    except Exception as e:
+        print(f"[INT API] Error getting next INT: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route("/api/int_references/search")
+@login_required
+def search_int_references():
+    """Search INT references by keyword (person name, nature, etc.)"""
+    try:
+        query = request.args.get('q', '').strip()
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Search query required'}), 400
+        
+        # Search in CaseProfiles and their linked emails
+        results = []
+        
+        # Get all case profiles
+        case_profiles = CaseProfile.query.all()
+        
+        for cp in case_profiles:
+            # Get linked emails to search in their content
+            linked_emails = Email.query.filter_by(caseprofile_id=cp.id).all()
+            
+            match_found = False
+            match_reason = []
+            
+            for email in linked_emails:
+                # Search in alleged person names
+                if email.alleged_subject_english and query.lower() in email.alleged_subject_english.lower():
+                    match_found = True
+                    match_reason.append(f"Person: {email.alleged_subject_english.split(',')[0].strip()}")
+                    break
+                if email.alleged_subject_chinese and query.lower() in email.alleged_subject_chinese.lower():
+                    match_found = True
+                    match_reason.append(f"Person: {email.alleged_subject_chinese.split(',')[0].strip()}")
+                    break
+                
+                # Search in alleged nature
+                if email.alleged_nature and query.lower() in email.alleged_nature.lower():
+                    match_found = True
+                    match_reason.append(f"Nature: {email.alleged_nature}")
+                    break
+                
+                # Search in subject line
+                if email.subject and query.lower() in email.subject.lower():
+                    match_found = True
+                    match_reason.append(f"Subject: {email.subject[:50]}...")
+                    break
+            
+            if match_found:
+                results.append({
+                    'int_reference': cp.int_reference,
+                    'total_sources': len(linked_emails),
+                    'match_reason': ', '.join(match_reason),
+                    'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
+                })
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'query': query
+        })
+        
+    except Exception as e:
+        print(f"[INT API] Error searching INT references: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # --- INT Reference Number Management Functions ---
 def generate_int_reference_for_new_email(email):
