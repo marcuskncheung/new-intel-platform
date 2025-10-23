@@ -6864,11 +6864,11 @@ def add_surveillance():
             
             # 🤖 AUTO-CREATE POI PROFILES FOR SURVEILLANCE TARGETS
             if ALLEGED_PERSON_AUTOMATION and target_names:
-            try:
-                print(f"[SURVEILLANCE AUTOMATION] 🚀 Auto-creating POI profiles for Surveillance entry {entry.id}")
-                
-                # Process each target
-                processed_count = 0
+                try:
+                    print(f"[SURVEILLANCE AUTOMATION] 🚀 Auto-creating POI profiles for Surveillance entry {entry.id}")
+                    
+                    # Process each target
+                    processed_count = 0
                 for idx, name in enumerate(target_names):
                     name = name.strip()
                     if not name:
@@ -6928,11 +6928,11 @@ def add_surveillance():
                 
                 flash(f"Surveillance entry created and {processed_count} POI profile(s) processed.", "success")
                 
-            except Exception as automation_error:
-                print(f"[SURVEILLANCE AUTOMATION] ❌ Error in POI automation: {automation_error}")
-                flash("Surveillance entry created, but POI automation had an error.", "warning")
-        else:
-            flash("Surveillance entry created", "success")
+                except Exception as automation_error:
+                    print(f"[SURVEILLANCE AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                    flash("Surveillance entry created, but POI automation had an error.", "warning")
+            else:
+                flash("Surveillance entry created", "success")
         
         return redirect(url_for("int_source"))
     return render_template("int_source_surveillance_edit.html", entry=None)
