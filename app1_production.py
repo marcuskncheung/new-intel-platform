@@ -136,7 +136,159 @@ def get_case_int_reference(source_record):
             case = db.session.get(CaseProfile, source_record.caseprofile_id)
             return case.int_reference if case else None
         return None
-    except Exception as e:
+        except Exception as e:
+            print(f"[INT-REF API] Error getting emails: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route("/api/int_references/list")
+    @login_required
+    def list_int_references():
+        """Get list of all existing INT references with descriptions"""
+        try:
+            import traceback
+            # Get all CaseProfiles with their INT references
+            case_profiles = CaseProfile.query.order_by(CaseProfile.int_reference).all()
+            
+            int_refs = []
+            for cp in case_profiles:
+                # Count linked sources
+                email_count = Email.query.filter_by(caseprofile_id=cp.id).count()
+                
+                total_sources = email_count
+                
+                # Get first email for description
+                first_email = Email.query.filter_by(caseprofile_id=cp.id).order_by(Email.received).first()
+                description = ""
+                if first_email:
+                    # Extract alleged person names for description
+                    if first_email.alleged_subject_english:
+                        description = first_email.alleged_subject_english.split(',')[0].strip()
+                    elif first_email.alleged_subject_chinese:
+                        description = first_email.alleged_subject_chinese.split(',')[0].strip()
+                    
+                    # Add alleged nature if available
+                    if first_email.alleged_nature:
+                        description += f" - {first_email.alleged_nature}"
+                
+                int_refs.append({
+                    'int_reference': cp.int_reference,
+                    'total_sources': total_sources,
+                    'email_count': email_count,
+                    'description': description,
+                    'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
+                })
+            
+            return jsonify({
+                'success': True,
+                'int_references': int_refs
+            })
+            
+        except Exception as e:
+            print(f"[INT API] Error loading INT references: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route("/api/int_references/next_available")
+    @login_required
+    def get_next_available_int():
+        """Get the next available INT reference number"""
+        try:
+            import re
+            # Get the highest INT number currently in use
+            highest_case = CaseProfile.query.order_by(CaseProfile.int_reference.desc()).first()
+            
+            if not highest_case:
+                # No cases yet, start with INT-001
+                next_number = 1
+            else:
+                # Extract number from INT-XXX format
+                match = re.search(r'INT-(\d+)', highest_case.int_reference)
+                if match:
+                    current_number = int(match.group(1))
+                    next_number = current_number + 1
+                else:
+                    next_number = 1
+            
+            next_int_ref = f"INT-{next_number:03d}"
+            
+            return jsonify({
+                'success': True,
+                'next_int_reference': next_int_ref,
+                'next_number': next_number
+            })
+            
+        except Exception as e:
+            print(f"[INT API] Error getting next INT: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    @app.route("/api/int_references/search")
+    @login_required
+    def search_int_references():
+        """Search INT references by keyword (person name, nature, etc.)"""
+        try:
+            query = request.args.get('q', '').strip()
+            
+            if not query:
+                return jsonify({'success': False, 'error': 'Search query required'}), 400
+            
+            # Search in CaseProfiles and their linked emails
+            results = []
+            
+            # Get all case profiles
+            case_profiles = CaseProfile.query.all()
+            
+            for cp in case_profiles:
+                # Get linked emails to search in their content
+                linked_emails = Email.query.filter_by(caseprofile_id=cp.id).all()
+                
+                match_found = False
+                match_reason = []
+                
+                for email in linked_emails:
+                    # Search in alleged person names
+                    if email.alleged_subject_english and query.lower() in email.alleged_subject_english.lower():
+                        match_found = True
+                        match_reason.append(f"Person: {email.alleged_subject_english.split(',')[0].strip()}")
+                        break
+                    if email.alleged_subject_chinese and query.lower() in email.alleged_subject_chinese.lower():
+                        match_found = True
+                        match_reason.append(f"Person: {email.alleged_subject_chinese.split(',')[0].strip()}")
+                        break
+                    
+                    # Search in alleged nature
+                    if email.alleged_nature and query.lower() in email.alleged_nature.lower():
+                        match_found = True
+                        match_reason.append(f"Nature: {email.alleged_nature}")
+                        break
+                    
+                    # Search in subject line
+                    if email.subject and query.lower() in email.subject.lower():
+                        match_found = True
+                        match_reason.append(f"Subject: {email.subject[:50]}...")
+                        break
+                
+                if match_found:
+                    results.append({
+                        'int_reference': cp.int_reference,
+                        'total_sources': len(linked_emails),
+                        'match_reason': ', '.join(match_reason),
+                        'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
+                    })
+            
+            return jsonify({
+                'success': True,
+                'results': results,
+                'query': query
+            })
+            
+        except Exception as e:
+            print(f"[INT API] Error searching INT references: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
         print(f"[CASE INT] Error getting case reference: {e}")
         return None
 
@@ -2003,32 +2155,24 @@ def alleged_subject_list():
                     alleged_person_id=profile.id
                 ).count()
             
-            # Build subtitle with additional info (NO email count display)
+            # Build subtitle with additional info
             subtitle_parts = []
             if profile.agent_number:
                 subtitle_parts.append(f"Agent: {profile.agent_number}")
             if profile.company:
                 subtitle_parts.append(f"Company: {profile.company}")
-            # ❌ REMOVED: Don't show email count in dashboard list
-            # if actual_email_count > 0:
-            #     subtitle_parts.append(f"{actual_email_count} email(s)")
+            if actual_email_count > 0:
+                subtitle_parts.append(f"{actual_email_count} email(s)")
             
             subtitle = " | ".join(subtitle_parts) if subtitle_parts else ""
-            
-            # Use first_mentioned_date (source date) instead of created_at
-            display_time = ""
-            if profile.first_mentioned_date:
-                display_time = profile.first_mentioned_date.strftime("%Y-%m-%d %H:%M")
-            elif profile.created_at:
-                display_time = profile.created_at.strftime("%Y-%m-%d %H:%M")
             
             targets.append({
                 "idx": profile.id,
                 "poi_id": profile.poi_id,  # For direct POI navigation
                 "label": display_name,
                 "subtitle": subtitle,
-                "time": display_time,  # ✅ Use source date (first_mentioned_date) not creation date
-                "email_count": actual_email_count,  # Keep for internal use, just don't display
+                "time": profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "",
+                "email_count": actual_email_count,  # ✅ Use actual count from database
                 "created_by": profile.created_by,
                 "agent_number": profile.agent_number,
                 "company": profile.company,
@@ -2520,35 +2664,13 @@ def alleged_subject_profile_detail(poi_id):
                 'confidence': link.confidence_score,
                 'case_name': link.case_name,
                 'case_id': link.case_id,
-                'date': link.link_created_at,  # Will be overwritten with source date below
-                'date_str': link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A'  # Will be overwritten
+                'date': link.link_created_at,
+                'date_str': link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A'
             }
             
             if link.source_type == 'EMAIL':
                 email = db.session.get(Email, link.source_id)
                 if email:
-                    # Parse email received date to datetime
-                    email_date = None
-                    if email.received:
-                        try:
-                            from datetime import datetime
-                            if isinstance(email.received, str):
-                                # Try multiple date formats
-                                for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d %b %Y at %I:%M %p', '%d %b %Y']:
-                                    try:
-                                        email_date = datetime.strptime(email.received, fmt)
-                                        break
-                                    except:
-                                        continue
-                            else:
-                                email_date = email.received
-                        except:
-                            email_date = link.link_created_at
-                    
-                    # Use email received date, NOT link creation date
-                    intel_data['date'] = email_date or link.link_created_at
-                    intel_data['date_str'] = email_date.strftime('%Y-%m-%d %H:%M') if email_date else (link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A')
-                    
                     intel_data.update({
                         'id': email.id,
                         'reference': email.int_reference_number or f'EMAIL-{email.id}',
@@ -2594,17 +2716,14 @@ def alleged_subject_profile_detail(poi_id):
             if link.source_type == 'WHATSAPP':
                 wa = db.session.get(WhatsAppEntry, link.source_id)
                 if wa:
-                    # Use WhatsApp received_time as the date, NOT link creation date
-                    wa_date = wa.received_time or link.link_created_at
-                    
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'WHATSAPP',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': wa_date,  # Use WhatsApp source date
-                        'date_str': wa_date.strftime('%Y-%m-%d %H:%M') if wa_date else 'N/A',
+                        'date': link.link_created_at or wa.received_time,
+                        'date_str': (link.link_created_at or wa.received_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or wa.received_time) else 'N/A',
                         'id': wa.id,
                         'reference': wa.int_reference or f'WHATSAPP-{wa.id}',
                         'case_int': get_case_int_reference(wa),
@@ -2620,17 +2739,14 @@ def alleged_subject_profile_detail(poi_id):
             elif link.source_type == 'PATROL':
                 pt = db.session.get(OnlinePatrolEntry, link.source_id)
                 if pt:
-                    # Use Patrol complaint_time as the date, NOT link creation date
-                    pt_date = pt.complaint_time or link.link_created_at
-                    
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'PATROL',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': pt_date,  # Use Patrol source date
-                        'date_str': pt_date.strftime('%Y-%m-%d %H:%M') if pt_date else 'N/A',
+                        'date': link.link_created_at or pt.complaint_time,
+                        'date_str': (link.link_created_at or pt.complaint_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or pt.complaint_time) else 'N/A',
                         'id': pt.id,
                         'reference': pt.int_reference or f'PATROL-{pt.id}',
                         'case_int': get_case_int_reference(pt),
@@ -2645,17 +2761,16 @@ def alleged_subject_profile_detail(poi_id):
             elif link.source_type == 'SURVEILLANCE':
                 sv = db.session.get(SurveillanceEntry, link.source_id)
                 if sv:
-                    # Convert surveillance date to datetime for consistency, NOT link creation date
-                    sv_datetime = datetime.combine(sv.date, datetime.min.time()) if sv.date else link.link_created_at
-                    
+                    # Convert date to datetime for consistency
+                    sv_datetime = datetime.combine(sv.date, datetime.min.time()) if sv.date else None
                     intel_data = {
                         'link_id': link.link_id,
                         'source_type': 'SURVEILLANCE',
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': sv_datetime,  # Use Surveillance source date
-                        'date_str': sv_datetime.strftime('%Y-%m-%d %H:%M') if sv_datetime else 'N/A',
+                        'date': link.link_created_at or sv_datetime,
+                        'date_str': (link.link_created_at or sv_datetime).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv_datetime) else 'N/A',
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
                         'case_int': None,  # Surveillance entries don't have caseprofile_id yet
@@ -7328,125 +7443,6 @@ def get_case_statistics():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ========================================
-# INT Reference Auto-Suggestion API Routes
-# ========================================
-
-@app.route('/api/int_references/list')
-@login_required
-def get_int_references_list():
-    """Get all existing INT references for autocomplete"""
-    try:
-        # Query all CaseProfiles with INT references
-        case_profiles = CaseProfile.query.filter(
-            CaseProfile.int_reference != None,
-            CaseProfile.int_reference != ''
-        ).order_by(CaseProfile.int_reference.asc()).all()
-        
-        references = []
-        for profile in case_profiles:
-            # Get email count for this case
-            email_count = Email.query.filter_by(caseprofile_id=profile.id).count()
-            
-            references.append({
-                'int_reference': profile.int_reference,
-                'nature': profile.nature or 'Not specified',
-                'description': profile.description or 'No description',
-                'email_count': email_count
-            })
-        
-        return jsonify({
-            'success': True,
-            'references': references,
-            'total_count': len(references)
-        })
-    except Exception as e:
-        print(f"[INT API] Error loading INT references: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/int_references/next_available')
-@login_required
-def get_next_int_reference():
-    """Get the next available INT reference number"""
-    try:
-        # Find the highest INT reference number
-        highest_int = db.session.query(CaseProfile.int_reference).filter(
-            CaseProfile.int_reference.like('INT-%')
-        ).order_by(CaseProfile.int_reference.desc()).first()
-        
-        if highest_int and highest_int[0]:
-            # Extract number from INT-XXX format
-            try:
-                current_num = int(highest_int[0].split('-')[1])
-                next_num = current_num + 1
-                next_int = f"INT-{next_num:03d}"
-            except (IndexError, ValueError):
-                # Fallback if parsing fails
-                total_count = CaseProfile.query.filter(
-                    CaseProfile.int_reference.like('INT-%')
-                ).count()
-                next_int = f"INT-{(total_count + 1):03d}"
-        else:
-            # No INT references exist yet
-            next_int = "INT-001"
-        
-        return jsonify({
-            'success': True,
-            'next_int': next_int
-        })
-    except Exception as e:
-        print(f"[INT API] Error getting next INT: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/int_references/search')
-@login_required
-def search_int_references():
-    """Search INT references by keyword"""
-    try:
-        query = request.args.get('q', '').strip()
-        if not query:
-            return jsonify({'success': False, 'error': 'No search query provided'}), 400
-        
-        # Search in CaseProfile table
-        search_pattern = f"%{query}%"
-        case_profiles = CaseProfile.query.filter(
-            db.or_(
-                CaseProfile.int_reference.ilike(search_pattern),
-                CaseProfile.nature.ilike(search_pattern),
-                CaseProfile.description.ilike(search_pattern)
-            )
-        ).filter(
-            CaseProfile.int_reference != None,
-            CaseProfile.int_reference != ''
-        ).order_by(CaseProfile.int_reference.asc()).limit(20).all()
-        
-        results = []
-        for profile in case_profiles:
-            # Get email count
-            email_count = Email.query.filter_by(caseprofile_id=profile.id).count()
-            
-            # Get first email for preview
-            first_email = Email.query.filter_by(caseprofile_id=profile.id).first()
-            
-            results.append({
-                'int_reference': profile.int_reference,
-                'nature': profile.nature or 'Not specified',
-                'description': profile.description or 'No description',
-                'email_count': email_count,
-                'first_email_subject': first_email.subject if first_email else 'N/A',
-                'first_email_id': first_email.id if first_email else None
-            })
-        
-        return jsonify({
-            'success': True,
-            'results': results,
-            'count': len(results),
-            'query': query
-        })
-    except Exception as e:
-        print(f"[INT API] Error searching INT references: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @app.route("/whatsapp/<int:entry_id>", methods=["GET", "POST"])
 @login_required
 def whatsapp_detail(entry_id):
@@ -8296,7 +8292,7 @@ def int_source_update_assessment(email_id):
     elif processed_english:
         email.alleged_subject = ', '.join(processed_english)
     elif processed_chinese:
-        email.alleged_subject = ', '.join(processed_chinese)  # ✅ FIX: use processed_chinese, not undefined combined_subjects
+        email.alleged_subject = ', '.join(combined_subjects)
     else:
         email.alleged_subject = None
     
@@ -8321,27 +8317,6 @@ def int_source_update_assessment(email_id):
         email.intelligence_case_opened = True
     elif reviewer_decision == 'disagree':
         email.intelligence_case_opened = False
-
-    # ✅ AUTO-UPDATE EMAIL STATUS based on assessment completion
-    # Check if ANY assessment work has been done (more flexible criteria)
-    has_scores = email.source_reliability is not None or email.content_validity is not None
-    has_reviewer = (email.reviewer_name and email.reviewer_name.strip()) or (email.reviewer_comment and email.reviewer_comment.strip())
-    has_nature_or_summary = email.alleged_nature or email.allegation_summary
-    has_alleged_subjects = processed_english or processed_chinese
-    
-    # Consider assessment "inputted" if user has filled ANY assessment fields
-    has_any_assessment = has_scores or has_reviewer or has_nature_or_summary or has_alleged_subjects or email.preparer
-    
-    if has_any_assessment:
-        # If assessment work has started, update status based on completeness
-        if combined_score >= 8 and reviewer_decision == 'agree':
-            email.status = 'Case Opened'
-        else:
-            email.status = 'Assessment Inputted'  # Assessment in progress or completed
-    else:
-        # If no assessment details at all, keep as Pending
-        if not email.status or email.status == 'Pending':
-            email.status = 'Pending'
 
     try:
         # Update timestamp
@@ -8420,8 +8395,7 @@ def int_source_update_assessment(email_id):
                         alleged_subject_english=english_name,
                         alleged_subject_chinese=chinese_name,
                         additional_info=person_additional_info,
-                        update_mode="overwrite",  # Allow updating existing POI names
-                        source_date=email.received  # Use email received date for POI first_mentioned_date
+                        update_mode="overwrite"  # Allow updating existing POI names
                     )
                     
                     profile_results.extend(result)
