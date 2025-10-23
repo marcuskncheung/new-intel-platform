@@ -1174,26 +1174,42 @@ class OnlinePatrolEntry(db.Model):
         return None
 
 class SurveillanceEntry(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'surveillance_entry'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     operation_number = db.Column(db.String(64))
     operation_type = db.Column(db.String(64))  # Mystery Shopping or Surveillance
     date = db.Column(db.Date)
     venue = db.Column(db.String(255))
     details_of_finding = db.Column(db.Text)
     conducted_by = db.Column(db.String(32))  # 'Private investigator' or 'IA staff'
-    # target = db.Column(db.String(255))  # Removed: now using Target model
-    source_reliability = db.Column(db.Integer)
-    targets = db.relationship('Target', backref='surveillance_entry', cascade='all, delete-orphan')
     
-    # 🆕 STANDARDIZED ASSESSMENT FIELDS (aligned with Email)
-    alleged_nature = db.Column(db.Text)
-    allegation_summary = db.Column(db.Text)
+    # 🎯 SURVEILLANCE-SPECIFIC ASSESSMENT (no score system, focus on findings)
+    operation_finding = db.Column(db.Text)  # Detailed observation/finding
+    has_adverse_finding = db.Column(db.Boolean, default=False)  # Red flag indicator
+    adverse_finding_details = db.Column(db.Text)  # Details of adverse finding if any
+    observation_notes = db.Column(db.Text)  # General observations
+    
+    # Standard assessment fields (simplified for surveillance)
     preparer = db.Column(db.String(255))
     reviewer_name = db.Column(db.String(255))
     reviewer_comment = db.Column(db.Text)
-    reviewer_decision = db.Column(db.String(16))
-    intelligence_case_opened = db.Column(db.Boolean, default=False)
+    reviewer_decision = db.Column(db.String(16))  # agree/disagree with adverse finding
     assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
+    
+    # Relationships
+    targets = db.relationship('Target', backref='surveillance_entry', cascade='all, delete-orphan')
+    
+    # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
+    
+    @property
+    def int_reference(self):
+        """Get INT reference from linked CaseProfile"""
+        if self.caseprofile_id:
+            case = db.session.get(CaseProfile, self.caseprofile_id)
+            return case.int_reference if case else None
+        return None
 
 class Target(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -6766,49 +6782,88 @@ def surveillance_export(fmt):
 @login_required
 def add_surveillance():
     if request.method == "POST":
-        operation_number = request.form.get("operation_number")
-        operation_type = request.form.get("operation_type")
-        date = request.form.get("date")
-        venue = request.form.get("venue")
-        details_of_finding = request.form.get("details_of_finding")
-        source_reliability = request.form.get("source_reliability")
-        content_validity = request.form.get("content_validity")
-        conducted_by = request.form.get("conducted_by")
-        # Convert date to date object if present
-        dt = None
-        if date:
+        try:
+            # Basic operation details
+            operation_number = request.form.get("operation_number", "").strip()
+            operation_type = request.form.get("operation_type", "").strip()
+            date_str = request.form.get("date")
+            venue = request.form.get("venue", "").strip()
+            conducted_by = request.form.get("conducted_by", "").strip()
+            
+            # Surveillance-specific fields
+            details_of_finding = request.form.get("details_of_finding", "").strip()
+            operation_finding = request.form.get("operation_finding", "").strip()
+            has_adverse_finding = request.form.get("has_adverse_finding") == "true"
+            adverse_finding_details = request.form.get("adverse_finding_details", "").strip()
+            observation_notes = request.form.get("observation_notes", "").strip()
+            
+            # Assessment fields
+            preparer = request.form.get("preparer", "").strip()
+            
+            # Convert date to date object if present
+            dt = None
+            if date_str:
+                try:
+                    dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+                except Exception:
+                    dt = None
+            
+            # Collect multiple targets from the form (as a list)
+            target_names = request.form.getlist("target_name[]")
+            license_types = request.form.getlist("license_type[]")
+            license_numbers = request.form.getlist("license_number[]")
+            
+            # Create entry with surveillance-specific fields
+            entry = SurveillanceEntry(
+                operation_number=operation_number if operation_number else None,
+                operation_type=operation_type,
+                date=dt,
+                venue=venue,
+                details_of_finding=details_of_finding if details_of_finding else None,
+                operation_finding=operation_finding if operation_finding else None,
+                has_adverse_finding=has_adverse_finding,
+                adverse_finding_details=adverse_finding_details if adverse_finding_details else None,
+                observation_notes=observation_notes if observation_notes else None,
+                conducted_by=conducted_by,
+                preparer=preparer if preparer else None,
+                assessment_updated_at=get_hk_time()
+            )
+            
+            db.session.add(entry)
+            db.session.flush()  # Ensure entry.id is available
+            
+            # Add targets
+            for idx, name in enumerate(target_names):
+                name = name.strip()
+                if not name:
+                    continue
+                lt = license_types[idx] if idx < len(license_types) else ''
+                ln = license_numbers[idx] if idx < len(license_numbers) else ''
+                target = Target(
+                    name=name,
+                    surveillance_entry_id=entry.id,
+                    license_type=(lt.strip() if lt.strip() else None),
+                    license_number=(ln.strip() if ln.strip() else None)
+                )
+                db.session.add(target)
+            
+            # 🔗 STAGE 2: Auto-generate unified INT reference
             try:
-                dt = datetime.strptime(date, "%Y-%m-%d").date()
-            except Exception:
-                dt = None
-        # Collect multiple targets from the form (as a list)
-        target_names = request.form.getlist("target_name[]")
-        license_types = request.form.getlist("license_type[]")
-        license_numbers = request.form.getlist("license_number[]")
-        entry = SurveillanceEntry(
-            operation_number=operation_number,
-            operation_type=operation_type,
-            date=dt,
-            venue=venue,
-            details_of_finding=details_of_finding,
-            conducted_by=conducted_by,
-            source_reliability=int(source_reliability) if source_reliability else None
-        )
-        db.session.add(entry)
-        db.session.flush()  # Ensure entry.id is available
-        for idx, name in enumerate(target_names):
-            name = name.strip()
-            if not name:
-                continue
-            lt = license_types[idx] if idx < len(license_types) else ''
-            ln = license_numbers[idx] if idx < len(license_numbers) else ''
-            db.session.add(Target(name=name, surveillance_entry_id=entry.id,
-                                  license_type=(lt or None), license_number=(ln or None),
-                                  content_validity=int(content_validity) if content_validity else None))
-        db.session.commit()
-        
-        # 🤖 AUTO-CREATE POI PROFILES FOR SURVEILLANCE TARGETS
-        if ALLEGED_PERSON_AUTOMATION and target_names:
+                case_profile = create_unified_intelligence_entry(
+                    source_record=entry,
+                    source_type="SURVEILLANCE",
+                    created_by=current_user.username if hasattr(current_user, 'username') else 'SYSTEM'
+                )
+                if case_profile:
+                    entry.caseprofile_id = case_profile.id
+                    print(f"[SURVEILLANCE] ✅ Created CaseProfile {case_profile.int_reference} for surveillance {entry.id}")
+            except Exception as e:
+                print(f"[SURVEILLANCE] ⚠️ Could not create CaseProfile: {e}")
+            
+            db.session.commit()
+            
+            # 🤖 AUTO-CREATE POI PROFILES FOR SURVEILLANCE TARGETS
+            if ALLEGED_PERSON_AUTOMATION and target_names:
             try:
                 print(f"[SURVEILLANCE AUTOMATION] 🚀 Auto-creating POI profiles for Surveillance entry {entry.id}")
                 
@@ -7636,6 +7691,36 @@ def surveillance_detail(entry_id):
 
     # --- Handle form submission ---
     if request.method == 'POST':
+        # Check if this is an assessment update (not edit mode)
+        is_assessment_update = request.form.get('update_assessment') == '1'
+        
+        if is_assessment_update:
+            # Update surveillance-specific assessment fields
+            entry.operation_finding = request.form.get('operation_finding', '').strip() or None
+            entry.has_adverse_finding = request.form.get('has_adverse_finding') == 'true'
+            entry.adverse_finding_details = request.form.get('adverse_finding_details', '').strip() or None
+            entry.observation_notes = request.form.get('observation_notes', '').strip() or None
+            entry.preparer = request.form.get('preparer', '').strip() or None
+            entry.reviewer_name = request.form.get('reviewer_name', '').strip() or None
+            entry.reviewer_comment = request.form.get('reviewer_comment', '').strip() or None
+            entry.reviewer_decision = request.form.get('reviewer_decision', '').strip() or None
+            entry.assessment_updated_at = get_hk_time()
+            
+            try:
+                db.session.commit()
+                flash('Surveillance assessment updated successfully.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating assessment: {e}', 'danger')
+            
+            # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+            linked_poi = get_linked_poi_for_intelligence('SURVEILLANCE', entry_id)
+            if linked_poi:
+                flash(f'Assessment updated. Viewing POI profile: {linked_poi}', 'success')
+                return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+            else:
+                return redirect(url_for('alleged_subject_list'))
+        
         # Delete requested document
         del_doc_id = request.form.get('delete_doc_id')
         if del_doc_id:
@@ -7652,7 +7737,7 @@ def surveillance_detail(entry_id):
                 flash(f'Error deleting document: {e}', 'danger')
             return redirect(url_for('surveillance_detail', entry_id=entry_id, edit='1'))
 
-        # Update entry fields
+        # Update entry fields (edit mode)
         entry.operation_number = request.form.get('operation_number')
         entry.operation_type = request.form.get('operation_type')
         date_str = request.form.get('date')
@@ -7664,8 +7749,8 @@ def surveillance_detail(entry_id):
         entry.venue = request.form.get('venue')
         entry.conducted_by = request.form.get('conducted_by')
         entry.details_of_finding = request.form.get('details_of_finding')
-        entry.source_reliability = request.form.get('source_reliability', type=int)
-        entry.content_validity = request.form.get('content_validity', type=int)
+        entry.preparer = request.form.get('preparer', '').strip() or None
+        
         # --- Update targets ---
         target_names = request.form.getlist('target_name[]')
         license_types = request.form.getlist('license_type[]')

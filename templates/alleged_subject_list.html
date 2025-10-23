@@ -42,6 +42,9 @@
           <h5 class="card-title">{{ t.label }}</h5>
         {% endif %}
         {% if t.subtitle %}<p class="text-muted">{{ t.subtitle }}</p>{% endif %}
+        {% if t.time %}
+          <div class="mb-2"><span class="badge bg-light text-dark">Time: {{ t.time }}</span></div>
+        {% endif %}
         <div class="mt-auto d-flex justify-content-between align-items-center">
           {% if automation_enabled and t.poi_id %}
             {# New automated profile system #}

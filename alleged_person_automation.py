@@ -280,8 +280,7 @@ def create_or_update_alleged_person_profile(
     role: str = "",
     email_id: int = None,
     source: str = "AI_ANALYSIS",
-    update_mode: str = "merge",  # "merge", "overwrite", "skip_if_exists"
-    source_date: datetime = None  # Date from the intelligence source (email received date, etc.)
+    update_mode: str = "merge"  # "merge", "overwrite", "skip_if_exists"
 ) -> Dict:
     """
     Create new alleged person profile or update existing one
@@ -461,17 +460,6 @@ def create_or_update_alleged_person_profile(
             
             # Create new profile in database
             # Flask app context already active from route handler
-            # Use source date (email received date) if provided, otherwise use current date
-            if source_date:
-                first_mentioned = source_date
-                last_mentioned = source_date
-            elif email_id:
-                first_mentioned = datetime.now(timezone.utc)
-                last_mentioned = datetime.now(timezone.utc)
-            else:
-                first_mentioned = None
-                last_mentioned = None
-            
             new_profile = AllegedPersonProfile(
                 poi_id=new_poi_id,
                 name_english=name_english.strip() if name_english else None,
@@ -483,8 +471,8 @@ def create_or_update_alleged_person_profile(
                 role=role.strip() if role else None,
                 created_by=source,
                 email_count=0,
-                first_mentioned_date=first_mentioned,
-                last_mentioned_date=last_mentioned,
+                first_mentioned_date=datetime.now(timezone.utc) if email_id else None,
+                last_mentioned_date=datetime.now(timezone.utc) if email_id else None,
                 status='ACTIVE'
             )
             
@@ -589,8 +577,7 @@ def process_manual_input(db, AllegedPersonProfile, EmailAllegedPersonLink,
                         email_id: int, alleged_subject_english: str, 
                         alleged_subject_chinese: str = "", 
                         additional_info: Dict = None,
-                        update_mode: str = "overwrite",
-                        source_date: datetime = None) -> List[Dict]:
+                        update_mode: str = "overwrite") -> List[Dict]:
     """
     Process manual input of alleged person information
     
@@ -657,8 +644,7 @@ def process_manual_input(db, AllegedPersonProfile, EmailAllegedPersonLink,
                 role=additional_info.get('role', ''),
                 email_id=email_id,
                 source="MANUAL_INPUT",
-                update_mode=update_mode,  # Pass through update mode from parameter
-                source_date=source_date  # Pass through source date (email received date)
+                update_mode=update_mode  # Pass through update mode from parameter
             )
             
             results.append(result)
