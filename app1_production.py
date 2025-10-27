@@ -682,6 +682,24 @@ def from_json_filter(data):
     except:
         return []
 
+@app.template_filter('date_format')
+def date_format_filter(value, format='%Y-%m-%d %H:%M:%S'):
+    """Template filter to format datetime values"""
+    try:
+        from datetime import datetime
+        if value == 'now':
+            return datetime.now().strftime(format)
+        elif isinstance(value, datetime):
+            return value.strftime(format)
+        elif isinstance(value, str):
+            # Try to parse string as datetime
+            dt = datetime.fromisoformat(value)
+            return dt.strftime(format)
+        else:
+            return str(value)
+    except:
+        return str(value)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
