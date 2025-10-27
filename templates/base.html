@@ -56,6 +56,11 @@
             <i class="bi bi-bar-chart"></i> Analytics
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'int_analytics' %} active{% endif %}" href="{{ url_for('int_analytics') }}">
+            <i class="bi bi-folder2-open"></i> INT Analytics
+          </a>
+        </li>
         {% if current_user.is_admin() %}
         <li class="nav-item">
           <a class="nav-link{% if request.endpoint == 'admin_dashboard' %} active{% endif %}" href="{{ url_for('admin_dashboard') }}">

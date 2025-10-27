@@ -41,7 +41,41 @@
         {% else %}
           <h5 class="card-title">{{ t.label }}</h5>
         {% endif %}
-        {% if t.subtitle %}<p class="text-muted">{{ t.subtitle }}</p>{% endif %}
+        {% if t.subtitle %}<p class="text-muted small mb-2">{{ t.subtitle }}</p>{% endif %}
+        
+        {# ✅ Show intelligence breakdown by source type #}
+        {% if automation_enabled and (t.email_count or t.whatsapp_count or t.patrol_count or t.surveillance_count) %}
+        <div class="mb-2">
+          <div class="d-flex flex-wrap gap-1">
+            {% if t.email_count %}
+              <span class="badge bg-info" title="Emails">
+                <i class="bi bi-envelope"></i> {{ t.email_count }}
+              </span>
+            {% endif %}
+            {% if t.whatsapp_count %}
+              <span class="badge bg-success" title="WhatsApp">
+                <i class="bi bi-whatsapp"></i> {{ t.whatsapp_count }}
+              </span>
+            {% endif %}
+            {% if t.patrol_count %}
+              <span class="badge bg-warning text-dark" title="Online Patrol">
+                <i class="bi bi-binoculars"></i> {{ t.patrol_count }}
+              </span>
+            {% endif %}
+            {% if t.surveillance_count %}
+              <span class="badge bg-danger" title="Surveillance">
+                <i class="bi bi-camera-video"></i> {{ t.surveillance_count }}
+              </span>
+            {% endif %}
+            {% if t.total_intel %}
+              <span class="badge bg-secondary" title="Total Intelligence">
+                <i class="bi bi-bar-chart"></i> {{ t.total_intel }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        
         {% if t.time %}
           <div class="mb-2"><span class="badge bg-light text-dark">Time: {{ t.time }}</span></div>
         {% endif %}

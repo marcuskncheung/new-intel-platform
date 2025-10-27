@@ -2162,20 +2162,43 @@ def alleged_subject_list():
             
             display_name = " ".join(name_parts) if name_parts else profile.poi_id
             
-            # ✅ FIX: Calculate actual email count from database links
+            # ✅ FIX: Calculate actual counts from ALL sources (Email, WhatsApp, Online Patrol, Surveillance)
             # Count from POIIntelligenceLink table (cross-source links)
-            actual_email_count = 0
+            email_count = 0
+            whatsapp_count = 0
+            patrol_count = 0
+            surveillance_count = 0
+            
             if POIIntelligenceLink:
-                actual_email_count = POIIntelligenceLink.query.filter_by(
+                # Count by source type
+                email_count = POIIntelligenceLink.query.filter_by(
                     poi_id=profile.poi_id,
                     source_type='EMAIL'
                 ).count()
+                
+                whatsapp_count = POIIntelligenceLink.query.filter_by(
+                    poi_id=profile.poi_id,
+                    source_type='WHATSAPP'
+                ).count()
+                
+                patrol_count = POIIntelligenceLink.query.filter_by(
+                    poi_id=profile.poi_id,
+                    source_type='ONLINE_PATROL'
+                ).count()
+                
+                surveillance_count = POIIntelligenceLink.query.filter_by(
+                    poi_id=profile.poi_id,
+                    source_type='SURVEILLANCE'
+                ).count()
             
             # Fallback: Count from legacy EmailAllegedPersonLink table
-            if actual_email_count == 0 and EmailAllegedPersonLink:
-                actual_email_count = EmailAllegedPersonLink.query.filter_by(
+            if email_count == 0 and EmailAllegedPersonLink:
+                email_count = EmailAllegedPersonLink.query.filter_by(
                     alleged_person_id=profile.id
                 ).count()
+            
+            # Calculate total intelligence count
+            total_intel = email_count + whatsapp_count + patrol_count + surveillance_count
             
             # Build subtitle with additional info
             subtitle_parts = []
@@ -2183,8 +2206,20 @@ def alleged_subject_list():
                 subtitle_parts.append(f"Agent: {profile.agent_number}")
             if profile.company:
                 subtitle_parts.append(f"Company: {profile.company}")
-            if actual_email_count > 0:
-                subtitle_parts.append(f"{actual_email_count} email(s)")
+            
+            # Show breakdown of intelligence sources
+            intel_parts = []
+            if email_count > 0:
+                intel_parts.append(f"{email_count} email")
+            if whatsapp_count > 0:
+                intel_parts.append(f"{whatsapp_count} WhatsApp")
+            if patrol_count > 0:
+                intel_parts.append(f"{patrol_count} patrol")
+            if surveillance_count > 0:
+                intel_parts.append(f"{surveillance_count} surveillance")
+            
+            if intel_parts:
+                subtitle_parts.append(" + ".join(intel_parts))
             
             subtitle = " | ".join(subtitle_parts) if subtitle_parts else ""
             
@@ -2194,7 +2229,11 @@ def alleged_subject_list():
                 "label": display_name,
                 "subtitle": subtitle,
                 "time": profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "",
-                "email_count": actual_email_count,  # ✅ Use actual count from database
+                "email_count": email_count,  # ✅ Actual email count from database
+                "whatsapp_count": whatsapp_count,  # ✅ WhatsApp count
+                "patrol_count": patrol_count,  # ✅ Online Patrol count
+                "surveillance_count": surveillance_count,  # ✅ Surveillance count
+                "total_intel": total_intel,  # ✅ Total intelligence from all sources
                 "created_by": profile.created_by,
                 "agent_number": profile.agent_number,
                 "company": profile.company,
