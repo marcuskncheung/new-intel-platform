@@ -1468,11 +1468,9 @@
 </style>
 <div class="container mt-4">
   <ul class="nav nav-tabs" id="intSourceTabs" role="tablist">
-    <!-- HIDDEN: Dashboard Tab
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Dashboard</button>
+      <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Dashboard</button>
     </li>
-    -->
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="inbox-tab" data-bs-toggle="tab" data-bs-target="#inbox" type="button" role="tab">Inbox</button>
     </li>
@@ -1490,8 +1488,8 @@
     </li>
   </ul>
   <div class="tab-content mt-3">
-    <!-- ANALYTICS TAB - HIDDEN -->
-    <div class="tab-pane fade" id="analytics" role="tabpanel" style="display: none;">
+    <!-- ANALYTICS TAB -->
+    <div class="tab-pane fade" id="analytics" role="tabpanel">
       <div class="d-flex justify-content-end mb-3">
         <a href="{{ url_for('int_source_master_export') }}" class="btn btn-lg btn-outline-success" title="Download all data as Excel">
           <i class="bi bi-download"></i> Download All (Excel)
@@ -1687,8 +1685,22 @@
               </select>
             </div>
             
-            <!-- Score Range Filter -->
+            <!-- INT Reference Filter -->
             <div class="col-md-2">
+              <select class="form-select form-select-sm" id="int-filter">
+                <option value="">All INT</option>
+                <option value="with-int">Has INT</option>
+                <option value="without-int">No INT</option>
+                <optgroup label="Specific INT">
+                  {% for int_ref in unique_int_references %}
+                  <option value="{{ int_ref }}">{{ int_ref }}</option>
+                  {% endfor %}
+                </optgroup>
+              </select>
+            </div>
+            
+            <!-- Score Range Filter -->
+            <div class="col-md-1">
               <select class="form-select form-select-sm" id="score-filter">
                 <option value="">All Scores</option>
                 <option value="high">High (8-10)</option>
@@ -1699,7 +1711,7 @@
             </div>
             
             <!-- Date Range Filter -->
-            <div class="col-md-2">
+            <div class="col-md-1">
               <select class="form-select form-select-sm" id="date-filter">
                 <option value="">All Dates</option>
                 <option value="today">Today</option>
@@ -1777,21 +1789,24 @@
                 Source ID <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="1">
-                Sender <i class="fas fa-sort sort-icon"></i>
+                INT Reference <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="2">
-                Recipients <i class="fas fa-sort sort-icon"></i>
+                Sender <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="3">
-                Subject <i class="fas fa-sort sort-icon"></i>
+                Recipients <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="4">
-                Received <i class="fas fa-sort sort-icon"></i>
+                Subject <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="5">
-                Combined Score <i class="fas fa-sort sort-icon"></i>
+                Received <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="6">
+                Combined Score <i class="fas fa-sort sort-icon"></i>
+              </th>
+              <th class="sortable" data-column="7">
                 Status <i class="fas fa-sort sort-icon"></i>
               </th>
               <th>Action</th>
@@ -1809,6 +1824,17 @@
                 <span class="badge bg-info">EMAIL-{{ email.id }}</span>
                 {% if email.is_thread %}
                   <br><small class="text-muted">Thread: {{ email.thread_count }}</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if email.caseprofile and email.caseprofile.int_reference %}
+                  <a href="{{ url_for('int_reference_detail', int_reference=email.caseprofile.int_reference) }}" 
+                     class="badge bg-primary text-decoration-none" 
+                     title="View INT Reference Details">
+                    {{ email.caseprofile.int_reference }}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
@@ -2761,6 +2787,17 @@
         });
       }
       
+      // INT Reference filter
+      var intFilter = document.getElementById('int-filter');
+      if (intFilter) {
+        intFilter.addEventListener('change', function(e) {
+          activeFilters.intReference = e.target.value;
+          applyAllFilters();
+          updateResultsSummary();
+          updateActiveFilters();
+        });
+      }
+      
       // Score filter
       var scoreFilter = document.getElementById('score-filter');
       if (scoreFilter) {
@@ -2878,14 +2915,31 @@
         
         // Apply status filter
         if (activeFilters.status && isVisible) {
-          var statusCell = row.cells[6]; // Status column
+          var statusCell = row.cells[7]; // Status column
           var statusText = statusCell ? statusCell.textContent.trim() : '';
           isVisible = statusText === activeFilters.status;
         }
         
+        // Apply INT Reference filter
+        if (activeFilters.intReference && isVisible) {
+          var intCell = row.cells[1]; // INT Reference column (column 2)
+          var intText = intCell ? intCell.textContent.trim() : '';
+          
+          if (activeFilters.intReference === 'with-int') {
+            // Show only rows with INT reference
+            isVisible = intText !== '' && intText !== '-' && intText !== 'N/A';
+          } else if (activeFilters.intReference === 'without-int') {
+            // Show only rows without INT reference
+            isVisible = intText === '' || intText === '-' || intText === 'N/A';
+          } else {
+            // Show only rows with specific INT reference
+            isVisible = intText === activeFilters.intReference;
+          }
+        }
+        
         // Apply score filter
         if (activeFilters.score && isVisible) {
-          var scoreCell = row.cells[5]; // Score column
+          var scoreCell = row.cells[6]; // Score column
           var scoreText = scoreCell ? scoreCell.textContent.trim() : '';
           var scoreValue = scoreText === '-' ? 0 : parseInt(scoreText) || 0;
           
@@ -2907,7 +2961,7 @@
         
         // Apply date filter
         if (activeFilters.date && isVisible) {
-          var dateCell = row.cells[4]; // Received date column
+          var dateCell = row.cells[5]; // Received date column
           var dateText = dateCell ? dateCell.textContent.trim() : '';
           
           // Try to parse the date - handle different formats
@@ -2967,8 +3021,8 @@
         
         // Apply quick filters
         if (activeFilters.quickFilter && isVisible) {
-          var statusCell = row.cells[6]; // Status column
-          var scoreCell = row.cells[5]; // Score column
+          var statusCell = row.cells[7]; // Status column
+          var scoreCell = row.cells[6]; // Score column
           var dateCell = row.cells[4]; // Date column
           
           var statusText = statusCell ? statusCell.textContent.trim() : '';
@@ -3530,14 +3584,31 @@
         
         // Apply status filter
         if (activeFilters.status && isVisible) {
-          var statusCell = row.cells[6]; // Status column
+          var statusCell = row.cells[7]; // Status column
           var statusText = statusCell ? statusCell.textContent.trim() : '';
           isVisible = statusText === activeFilters.status;
         }
         
+        // Apply INT Reference filter
+        if (activeFilters.intReference && isVisible) {
+          var intCell = row.cells[1]; // INT Reference column (column 2)
+          var intText = intCell ? intCell.textContent.trim() : '';
+          
+          if (activeFilters.intReference === 'with-int') {
+            // Show only rows with INT reference
+            isVisible = intText !== '' && intText !== '-' && intText !== 'N/A';
+          } else if (activeFilters.intReference === 'without-int') {
+            // Show only rows without INT reference
+            isVisible = intText === '' || intText === '-' || intText === 'N/A';
+          } else {
+            // Show only rows with specific INT reference
+            isVisible = intText === activeFilters.intReference;
+          }
+        }
+        
         // Apply score filter
         if (activeFilters.score && isVisible) {
-          var scoreCell = row.cells[5]; // Score column
+          var scoreCell = row.cells[6]; // Score column
           var scoreText = scoreCell ? scoreCell.textContent.trim() : '';
           var scoreValue = scoreText === '-' ? 0 : parseInt(scoreText) || 0;
           
@@ -3559,7 +3630,7 @@
         
         // Apply date filter
         if (activeFilters.date && isVisible) {
-          var dateCell = row.cells[4]; // Received date column
+          var dateCell = row.cells[5]; // Received date column
           var dateText = dateCell ? dateCell.textContent.trim() : '';
           
           // Try to parse the date - handle different formats
@@ -3619,8 +3690,8 @@
         
         // Apply quick filters
         if (activeFilters.quickFilter && isVisible) {
-          var statusCell = row.cells[6]; // Status column
-          var scoreCell = row.cells[5]; // Score column
+          var statusCell = row.cells[7]; // Status column
+          var scoreCell = row.cells[6]; // Score column
           var dateCell = row.cells[4]; // Date column
           
           var statusText = statusCell ? statusCell.textContent.trim() : '';
