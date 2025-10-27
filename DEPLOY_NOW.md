@@ -9,9 +9,10 @@ Could not build url for endpoint 'int_analytics'. Did you mean 'analytics' inste
 ```
 
 **Root Cause:**
-- We added INT Analytics navigation link to `base.html`
-- Production server doesn't have the `/int_analytics` route yet
-- Need to deploy commits 0453b3e and 55b3d77
+- ❌ **CRITICAL:** The `/int_analytics` routes were NEVER added to `app1_production.py`!
+- Templates and documentation were created, but backend routes were missing
+- `base.html` navigation link calls `url_for('int_analytics')` which doesn't exist
+- Need to deploy commit **4ef2d2f** (just pushed) with the missing routes
 
 ---
 
@@ -35,15 +36,17 @@ git pull origin main
 ```
 From https://github.com/marcuskncheung/new-intel-platform
  * branch            main       -> FETCH_HEAD
-Updating 597290c..55b3d77
+Updating 597290c..4ef2d2f
 Fast-forward
+ app1_production.py | 212 +++++++++++++++++++++++++++++++++
  templates/int_analytics.html | 480 ++++++++++++++++++
  templates/int_reference_detail.html | 315 ++++++++++++
- app1_production.py | 220 +++++++++
  templates/base.html | 8 +-
  nginx/nginx.conf | 10 +-
  ... (and more files)
 ```
+
+✅ **Commit 4ef2d2f includes the missing `/int_analytics` routes!**
 
 ### **Step 3: Rebuild Docker Image with New Code**
 ```bash
@@ -89,9 +92,14 @@ Visit these URLs:
 
 ## 📊 **What Gets Deployed**
 
-### **Commit 0453b3e: INT Analytics Dashboard**
-- ✅ New route: `/int_analytics`
-- ✅ New route: `/int_reference/<int_reference>`
+### **Commit 4ef2d2f: 🚨 CRITICAL FIX - Missing INT Analytics Routes**
+- ✅ **NEW**: Route `/int_analytics` - Main analytics dashboard
+- ✅ **NEW**: Route `/int_reference/<int_reference>` - INT detail view
+- ✅ Real-time data queries with `db.session.expire_all()`
+- ✅ Cross-source counting (Email, WhatsApp, Online Patrol, Surveillance)
+- ✅ Distribution analysis and summary statistics
+
+### **Commit 0453b3e: INT Analytics Templates**
 - ✅ Template: `int_analytics.html` (480 lines)
 - ✅ Template: `int_reference_detail.html` (315 lines)
 - ✅ Updated: `base.html` (INT Analytics nav link)
