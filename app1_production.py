@@ -3324,24 +3324,28 @@ def int_analytics():
     # Sort by total count descending (most intelligence first)
     int_stats.sort(key=lambda x: x['total_count'], reverse=True)
     
-    # Calculate distribution buckets
-    distribution = {
-        '1-5': 0,
-        '6-10': 0,
-        '11-20': 0,
-        '21+': 0
-    }
+    # Calculate distribution buckets for chart
+    dist_1 = 0      # 1 item
+    dist_2_5 = 0    # 2-5 items
+    dist_6_10 = 0   # 6-10 items
+    dist_11_20 = 0  # 11-20 items
+    dist_20_plus = 0  # 20+ items
     
     for stat in int_stats:
         count = stat['total_count']
-        if count <= 5:
-            distribution['1-5'] += 1
+        if count == 1:
+            dist_1 += 1
+        elif count <= 5:
+            dist_2_5 += 1
         elif count <= 10:
-            distribution['6-10'] += 1
+            dist_6_10 += 1
         elif count <= 20:
-            distribution['11-20'] += 1
+            dist_11_20 += 1
         else:
-            distribution['21+'] += 1
+            dist_20_plus += 1
+    
+    # Distribution data as array for Chart.js (matches template labels)
+    distribution_data = [dist_1, dist_2_5, dist_6_10, dist_11_20, dist_20_plus]
     
     # Summary statistics (matching template variable names)
     stats = {
@@ -3357,7 +3361,7 @@ def int_analytics():
     return render_template('int_analytics.html',
                          int_stats=int_stats,
                          stats=stats,
-                         distribution=distribution)
+                         distribution_data=distribution_data)
 
 @app.route('/int_reference/<int_reference>')
 @login_required
