@@ -2268,7 +2268,7 @@
                 {% set reviewer_name = (o.reviewer_name or '').strip() %}
                 {% set reviewer_comment = (o.reviewer_comment or '').strip() %}
                 {% if o.source_reliability is none or o.content_validity is none or not reviewer_name or not reviewer_comment %}
-                  <span class="badge bg-light text-muted status-pending">Pending</span>
+                 
                 {% elif combined_score >= 8 %}
                   <span class="badge bg-success status-case-opened">Case Opened</span>
                 {% else %}
@@ -3152,6 +3152,9 @@
       var statusFilter = document.getElementById('status-filter');
       if (statusFilter) statusFilter.value = '';
       
+      var intFilter = document.getElementById('int-filter');
+      if (intFilter) intFilter.value = '';
+      
       var scoreFilter = document.getElementById('score-filter');
       if (scoreFilter) scoreFilter.value = '';
       
@@ -3800,6 +3803,9 @@
       
       var statusFilter = document.getElementById('status-filter');
       if (statusFilter) statusFilter.value = '';
+      
+      var intFilter = document.getElementById('int-filter');
+      if (intFilter) intFilter.value = '';
       
       var scoreFilter = document.getElementById('score-filter');
       if (scoreFilter) scoreFilter.value = '';
