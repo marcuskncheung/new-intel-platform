@@ -3343,20 +3343,20 @@ def int_analytics():
         else:
             distribution['21+'] += 1
     
-    # Summary statistics
-    summary = {
-        'total_ints': len(int_stats),
+    # Summary statistics (matching template variable names)
+    stats = {
+        'total_int_references': len(int_stats),
         'total_emails': total_emails,
         'total_whatsapp': total_whatsapp,
         'total_patrol': total_patrol,
         'total_surveillance': total_surveillance,
         'total_intelligence': total_emails + total_whatsapp + total_patrol + total_surveillance,
-        'avg_per_int': round((total_emails + total_whatsapp + total_patrol + total_surveillance) / len(int_stats), 1) if int_stats else 0
+        'avg_items_per_int': round((total_emails + total_whatsapp + total_patrol + total_surveillance) / len(int_stats), 1) if int_stats else 0
     }
     
     return render_template('int_analytics.html',
                          int_stats=int_stats,
-                         summary=summary,
+                         stats=stats,
                          distribution=distribution)
 
 @app.route('/int_reference/<int_reference>')
