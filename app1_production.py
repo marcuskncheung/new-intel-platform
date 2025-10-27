@@ -3370,7 +3370,8 @@ def int_analytics():
     }
     
     return render_template('int_analytics.html',
-                         int_stats=int_stats,
+                         int_details=int_stats,  # Template uses 'int_details'
+                         int_stats=int_stats,    # Keep for backward compatibility
                          stats=stats,
                          distribution_data=distribution_data,
                          top_int_data=top_int_data)
