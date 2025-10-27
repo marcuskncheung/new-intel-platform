@@ -3313,6 +3313,7 @@ def int_analytics():
                 'patrol_count': patrol_count,
                 'surveillance_count': surveillance_count,
                 'total_count': total_count,
+                'total_items': total_count,  # Template uses total_items
                 'date_created': cp.created_at
             })
             
@@ -3347,6 +3348,16 @@ def int_analytics():
     # Distribution data as array for Chart.js (matches template labels)
     distribution_data = [dist_1, dist_2_5, dist_6_10, dist_11_20, dist_20_plus]
     
+    # Top 10 INTs data for stacked bar chart
+    top_10_ints = int_stats[:10] if len(int_stats) > 10 else int_stats
+    top_int_data = {
+        'labels': [stat['int_reference'] for stat in top_10_ints],
+        'email': [stat['email_count'] for stat in top_10_ints],
+        'whatsapp': [stat['whatsapp_count'] for stat in top_10_ints],
+        'patrol': [stat['patrol_count'] for stat in top_10_ints],
+        'surveillance': [stat['surveillance_count'] for stat in top_10_ints]
+    }
+    
     # Summary statistics (matching template variable names)
     stats = {
         'total_int_references': len(int_stats),
@@ -3361,7 +3372,8 @@ def int_analytics():
     return render_template('int_analytics.html',
                          int_stats=int_stats,
                          stats=stats,
-                         distribution_data=distribution_data)
+                         distribution_data=distribution_data,
+                         top_int_data=top_int_data)
 
 @app.route('/int_reference/<int_reference>')
 @login_required
