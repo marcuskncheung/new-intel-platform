@@ -11032,6 +11032,140 @@ print("   • Memory management: Auto cleanup every 10 minutes")
 print("   • Background processing: 5 worker threads")
 print("   • Health monitoring: /health endpoint available")
 
+@app.route('/int_analytics')
+@login_required
+def int_analytics():
+    """
+    INT Analytics Dashboard - Management reporting page showing statistics 
+    and insights about intelligence cases across all sources
+    """
+    from sqlalchemy import func, distinct
+    from datetime import datetime, timedelta
+    
+    # Get all INT references (CaseProfiles)
+    all_cases = CaseProfile.query.all()
+    total_int_cases = len(all_cases)
+    
+    # Count by source type
+    int_by_source = {
+        'Email': 0,
+        'WhatsApp': 0,
+        'Online Patrol': 0,
+        'Surveillance': 0
+    }
+    
+    # Count reviews and case status
+    reviewed_cases = 0
+    case_opened = 0
+    unsubstantial = 0
+    pending = 0
+    
+    # Collect INT details for detailed view
+    int_details = []
+    
+    for case in all_cases:
+        # Determine source type
+        source_type = 'Unknown'
+        source_id = None
+        alleged_person = getattr(case, 'alleged_person', 'N/A')
+        alleged_subject = getattr(case, 'alleged_subject', 'N/A')
+        created_date = case.created_at
+        
+        # Check which source this INT belongs to
+        if hasattr(case, 'email') and case.email:
+            source_type = 'Email'
+            source_id = f'EMAIL-{case.email.id}'
+        elif hasattr(case, 'whatsapp') and case.whatsapp:
+            source_type = 'WhatsApp'
+            source_id = f'WHATSAPP-{case.whatsapp.id}'
+        elif hasattr(case, 'online_patrol') and case.online_patrol:
+            source_type = 'Online Patrol'
+            source_id = f'PATROL-{case.online_patrol.id}'
+        elif hasattr(case, 'surveillance') and case.surveillance:
+            source_type = 'Surveillance'
+            source_id = f'SURV-{case.surveillance.id}'
+        
+        # Count by source
+        if source_type in int_by_source:
+            int_by_source[source_type] += 1
+        
+        # Determine review status
+        reviewer_name = None
+        combined_score = 0
+        status = 'Pending'
+        
+        if hasattr(case, 'email') and case.email:
+            reviewer_name = case.email.reviewer_name
+            if case.email.source_reliability is not None and case.email.content_validity is not None:
+                combined_score = (case.email.source_reliability or 0) + (case.email.content_validity or 0)
+                if case.email.intelligence_case_opened:
+                    status = 'Case Opened'
+                    case_opened += 1
+                else:
+                    status = 'Unsubstantial'
+                    unsubstantial += 1
+                reviewed_cases += 1
+            else:
+                pending += 1
+        elif hasattr(case, 'whatsapp') and case.whatsapp:
+            reviewer_name = case.whatsapp.reviewer_name
+            if case.whatsapp.source_reliability is not None and case.whatsapp.content_validity is not None:
+                combined_score = (case.whatsapp.source_reliability or 0) + (case.whatsapp.content_validity or 0)
+                if combined_score >= 8:
+                    status = 'Case Opened'
+                    case_opened += 1
+                else:
+                    status = 'Unsubstantial'
+                    unsubstantial += 1
+                reviewed_cases += 1
+            else:
+                pending += 1
+        elif hasattr(case, 'online_patrol') and case.online_patrol:
+            reviewer_name = case.online_patrol.reviewer_name
+            if case.online_patrol.source_reliability is not None and case.online_patrol.content_validity is not None:
+                combined_score = (case.online_patrol.source_reliability or 0) + (case.online_patrol.content_validity or 0)
+                if combined_score >= 8:
+                    status = 'Case Opened'
+                    case_opened += 1
+                else:
+                    status = 'Unsubstantial'
+                    unsubstantial += 1
+                reviewed_cases += 1
+            else:
+                pending += 1
+        else:
+            pending += 1
+        
+        int_details.append({
+            'int_reference': case.int_reference,
+            'source_type': source_type,
+            'source_id': source_id,
+            'alleged_person': alleged_person,
+            'alleged_subject': alleged_subject,
+            'status': status,
+            'combined_score': combined_score,
+            'reviewer_name': reviewer_name,
+            'created_date': created_date
+        })
+    
+    # Sort INT details by INT reference number (newest first)
+    int_details.sort(key=lambda x: x['int_reference'], reverse=True)
+    
+    # Get top INT references (most active)
+    top_int_data = int_details[:10]  # Top 10 most recent
+    
+    return render_template(
+        'int_analytics.html',
+        total_int_cases=total_int_cases,
+        int_by_source=int_by_source,
+        reviewed_cases=reviewed_cases,
+        case_opened=case_opened,
+        unsubstantial=unsubstantial,
+        pending=pending,
+        int_details=int_details,
+        top_int_data=top_int_data
+    )
+
 # --- SECURITY ADMINISTRATION ROUTES ---
 
 def _safe_email_count():
