@@ -2933,7 +2933,7 @@
             isVisible = intText === '' || intText === '-' || intText === 'N/A';
           } else {
             // Show only rows with specific INT reference
-            isVisible = intText === activeFilters.intReference;
+            isVisible = intText.includes(activeFilters.intReference);
           }
         }
         
@@ -3602,7 +3602,7 @@
             isVisible = intText === '' || intText === '-' || intText === 'N/A';
           } else {
             // Show only rows with specific INT reference
-            isVisible = intText === activeFilters.intReference;
+            isVisible = intText.includes(activeFilters.intReference);
           }
         }
         
