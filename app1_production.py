@@ -3258,6 +3258,127 @@ def analytics():
         surveillance_count=surveillance_count
     )
 
+@app.route('/int_analytics')
+@login_required
+def int_analytics():
+    """INT Intelligence Analytics Dashboard - Shows statistics and breakdown of all INT references"""
+    # Force session refresh to get latest data
+    db.session.expire_all()
+    
+    # Get all INT references (CaseProfile entries)
+    case_profiles = CaseProfile.query.filter(
+        CaseProfile.int_reference.isnot(None)
+    ).order_by(CaseProfile.int_reference).all()
+    
+    # Build statistics for each INT
+    int_stats = []
+    total_emails = 0
+    total_whatsapp = 0
+    total_patrol = 0
+    total_surveillance = 0
+    
+    for cp in case_profiles:
+        # Count intelligence from each source
+        email_count = Email.query.filter_by(caseprofile_id=cp.id).count()
+        whatsapp_count = WhatsAppEntry.query.filter_by(caseprofile_id=cp.id).count()
+        patrol_count = OnlinePatrolEntry.query.filter_by(caseprofile_id=cp.id).count()
+        surveillance_count = SurveillanceEntry.query.filter_by(caseprofile_id=cp.id).count()
+        
+        total_count = email_count + whatsapp_count + patrol_count + surveillance_count
+        
+        if total_count > 0:  # Only include INTs with linked intelligence
+            int_stats.append({
+                'int_reference': cp.int_reference,
+                'case_id': cp.id,
+                'email_count': email_count,
+                'whatsapp_count': whatsapp_count,
+                'patrol_count': patrol_count,
+                'surveillance_count': surveillance_count,
+                'total_count': total_count,
+                'date_created': cp.created_at
+            })
+            
+            total_emails += email_count
+            total_whatsapp += whatsapp_count
+            total_patrol += patrol_count
+            total_surveillance += surveillance_count
+    
+    # Sort by total count descending (most intelligence first)
+    int_stats.sort(key=lambda x: x['total_count'], reverse=True)
+    
+    # Calculate distribution buckets
+    distribution = {
+        '1-5': 0,
+        '6-10': 0,
+        '11-20': 0,
+        '21+': 0
+    }
+    
+    for stat in int_stats:
+        count = stat['total_count']
+        if count <= 5:
+            distribution['1-5'] += 1
+        elif count <= 10:
+            distribution['6-10'] += 1
+        elif count <= 20:
+            distribution['11-20'] += 1
+        else:
+            distribution['21+'] += 1
+    
+    # Summary statistics
+    summary = {
+        'total_ints': len(int_stats),
+        'total_emails': total_emails,
+        'total_whatsapp': total_whatsapp,
+        'total_patrol': total_patrol,
+        'total_surveillance': total_surveillance,
+        'total_intelligence': total_emails + total_whatsapp + total_patrol + total_surveillance,
+        'avg_per_int': round((total_emails + total_whatsapp + total_patrol + total_surveillance) / len(int_stats), 1) if int_stats else 0
+    }
+    
+    return render_template('int_analytics.html',
+                         int_stats=int_stats,
+                         summary=summary,
+                         distribution=distribution)
+
+@app.route('/int_reference/<int_reference>')
+@login_required
+def int_reference_detail(int_reference):
+    """INT Reference Detail View - Shows all intelligence linked to a specific INT reference"""
+    # Force session refresh to get latest data
+    db.session.expire_all()
+    
+    # Get the case profile
+    case_profile = CaseProfile.query.filter_by(int_reference=int_reference).first()
+    
+    if not case_profile:
+        flash(f"INT reference {int_reference} not found", "error")
+        return redirect(url_for('int_analytics'))
+    
+    # Get all linked intelligence
+    emails = Email.query.filter_by(caseprofile_id=case_profile.id).order_by(Email.received.desc()).all()
+    whatsapp_entries = WhatsAppEntry.query.filter_by(caseprofile_id=case_profile.id).order_by(WhatsAppEntry.received_time.desc()).all()
+    patrol_entries = OnlinePatrolEntry.query.filter_by(caseprofile_id=case_profile.id).order_by(OnlinePatrolEntry.complaint_time.desc()).all()
+    surveillance_entries = SurveillanceEntry.query.filter_by(caseprofile_id=case_profile.id).order_by(SurveillanceEntry.date.desc()).all()
+    
+    # Calculate statistics
+    stats = {
+        'email_count': len(emails),
+        'whatsapp_count': len(whatsapp_entries),
+        'patrol_count': len(patrol_entries),
+        'surveillance_count': len(surveillance_entries),
+        'total_count': len(emails) + len(whatsapp_entries) + len(patrol_entries) + len(surveillance_entries)
+    }
+    
+    return render_template('int_reference_detail.html',
+                         case_profile=case_profile,
+                         int_reference=int_reference,
+                         emails=emails,
+                         whatsapp_entries=whatsapp_entries,
+                         patrol_entries=patrol_entries,
+                         surveillance_entries=surveillance_entries,
+                         stats=stats)
+
 @app.route('/api/analytics-data')
 @login_required
 def api_analytics_data():
