@@ -2283,13 +2283,12 @@
           <thead>
             <tr>
               <th>Source ID</th>
-              <th>Sender</th>
-              <th>Complaint Time</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th>Combined Score</th>
-              <th>Case Status</th>
-              <th>Action</th>
+              <th>INT Reference</th>
+              <th>Platform/Source</th>
+              <th>Post Time</th>
+              <th>Discovered By</th>
+              <th>Discovery Time</th>
+              <th>Score & Action</th>
             </tr>
           </thead>
           <tbody>
@@ -2299,34 +2298,82 @@
               <td>
                 <span class="badge bg-info">PATROL-{{ o.id }}</span>
               </td>
-              <td>{{ o.sender }}</td>
-              <td>{{ o.complaint_time }}</td>
-              <td>{{ o.source }}</td>
-              <td>{{ o.status }}</td>
               <td>
-                {% if o.source_reliability is not none and o.content_validity is not none %}
-                  <span class="badge-pro">{{ combined_score }}</span>
+                {% if o.caseprofile_id %}
+                  {% set case = o.case_profile if o.case_profile else None %}
+                  {% if case and case.int_reference %}
+                    <a href="{{ url_for('int_reference_detail', int_reference=case.int_reference) }}" 
+                       class="badge bg-primary text-decoration-none" 
+                       title="View INT Reference Details">
+                      {{ case.int_reference }}
+                    </a>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
-                {% set reviewer_name = (o.reviewer_name or '').strip() %}
-                {% set reviewer_comment = (o.reviewer_comment or '').strip() %}
-                {% if o.source_reliability is none or o.content_validity is none or not reviewer_name or not reviewer_comment %}
-                 
-                {% elif combined_score >= 8 %}
-                  <span class="badge bg-success status-case-opened">Case Opened</span>
+                <span class="badge bg-secondary">{{ o.source or 'N/A' }}</span>
+              </td>
+              <td>
+                {% if o.source_time %}
+                  {{ o.source_time.strftime('%Y-%m-%d %H:%M') if o.source_time else '-' }}
+                {% elif o.complaint_time %}
+                  <span class="text-muted" title="Legacy field">{{ o.complaint_time.strftime('%Y-%m-%d %H:%M') if o.complaint_time else '-' }}</span>
                 {% else %}
-                  <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
+                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
-                <div class="pro-action-btns">
-                  <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                  <form method="post" action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
-                    <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
-                  </form>
+                {{ o.discovered_by or o.sender or '-' }}
+              </td>
+              <td>
+                {% if o.discovery_time %}
+                  {{ o.discovery_time.strftime('%Y-%m-%d %H:%M') if o.discovery_time else '-' }}
+                {% elif o.complaint_time %}
+                  <span class="text-muted" title="Legacy field">{{ o.complaint_time.strftime('%Y-%m-%d %H:%M') if o.complaint_time else '-' }}</span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if o.photos and o.photos|length > 0 %}
+                  <span class="badge bg-success">
+                    <i class="bi bi-image"></i> {{ o.photos|length }}
+                  </span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <!-- Score Badge -->
+                  {% if o.source_reliability is not none and o.content_validity is not none %}
+                    <span class="badge {% if combined_score >= 8 %}bg-success{% elif combined_score >= 6 %}bg-warning{% else %}bg-secondary{% endif %}">
+                      {{ combined_score }}/10
+                    </span>
+                  {% else %}
+                    <span class="badge bg-light text-muted">Unscored</span>
+                  {% endif %}
+                  
+                  <!-- Action Buttons -->
+                  <div class="pro-action-btns">
+                    <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" 
+                       class="btn btn-sm btn-outline-primary" 
+                       title="View & Edit">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <form method="post" 
+                          action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" 
+                          style="display:inline;" 
+                          onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry, photos, and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
+                      <button class="btn btn-sm btn-outline-danger" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </td>
             </tr>

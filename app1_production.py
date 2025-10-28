@@ -1153,33 +1153,56 @@ class WhatsAppEntry(db.Model):
         return str(self.received_time) if self.received_time else ''
 
 class OnlinePatrolEntry(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(255))
-    complaint_time = db.Column(db.DateTime)  # <-- should be DateTime for datetime-local input
-    source = db.Column(db.String(255))
-    status = db.Column(db.String(64))
-    details = db.Column(db.Text)
-    alleged_person = db.Column(db.String(255))  # 🆕 Added for POI automation
-    source_reliability = db.Column(db.Integer)
-    content_validity = db.Column(db.Integer)
+    """
+    📱 ONLINE PATROL INTELLIGENCE ENTRY - REDESIGNED
+    For logging suspicious online posts from IG, WeChat, Facebook, forums, etc.
+    Used by Intelligence Team to record agent misconduct found online
+    """
+    __tablename__ = 'online_patrol_entry'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # 🆕 REDESIGNED CORE FIELDS (Professional Structure)
+    source = db.Column(db.String(255))  # Platform: IG, WeChat, Facebook, Forum, etc.
+    source_time = db.Column(db.DateTime)  # When the online post was originally created/published
+    discovered_by = db.Column(db.String(255))  # Intelligence team member who found it
+    discovery_time = db.Column(db.DateTime, default=get_hk_time)  # When we discovered/logged it
+    
+    # 🔗 LEGACY FIELDS (Kept for backward compatibility - can be removed after migration)
+    sender = db.Column(db.String(255))  # DEPRECATED: Use discovered_by instead
+    complaint_time = db.Column(db.DateTime)  # DEPRECATED: Use source_time or discovery_time instead
+    status = db.Column(db.String(64))  # DEPRECATED: Use assessment fields instead
+    
+    # 📋 CONTENT DETAILS
+    details = db.Column(db.Text)  # Description of the online post/content
+    alleged_person = db.Column(db.String(255))  # Legacy field for POI automation
+    
+    # 🎯 ASSESSMENT FIELDS (Aligned with Email & WhatsApp standards)
+    source_reliability = db.Column(db.Integer)  # 1-5 score
+    content_validity = db.Column(db.Integer)  # 1-5 score
     assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
     
     # 🆕 STANDARDIZED ASSESSMENT FIELDS (aligned with Email)
     alleged_subject_english = db.Column(db.Text)
     alleged_subject_chinese = db.Column(db.Text)
-    alleged_nature = db.Column(db.Text)
+    alleged_nature = db.Column(db.Text)  # JSON array of allegation types
     allegation_summary = db.Column(db.Text)
     license_numbers_json = db.Column(db.Text)
     intermediary_types_json = db.Column(db.Text)
     license_number = db.Column(db.String(64))
+    
+    # 👤 REVIEWER FIELDS
     preparer = db.Column(db.String(255))
     reviewer_name = db.Column(db.String(255))
     reviewer_comment = db.Column(db.Text)
-    reviewer_decision = db.Column(db.String(16))
+    reviewer_decision = db.Column(db.String(16))  # agree/disagree
     intelligence_case_opened = db.Column(db.Boolean, default=False)
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
+    
+    # 📸 PHOTO RELATIONSHIP
+    photos = db.relationship('OnlinePatrolPhoto', backref='patrol_entry', lazy=True, cascade="all, delete-orphan")
     
     @property
     def int_reference(self):
@@ -1188,6 +1211,11 @@ class OnlinePatrolEntry(db.Model):
             case = db.session.get(CaseProfile, self.caseprofile_id)
             return case.int_reference if case else None
         return None
+    
+    @property
+    def combined_score(self):
+        """Calculate combined assessment score"""
+        return (self.source_reliability or 0) + (self.content_validity or 0)
 
 class SurveillanceEntry(db.Model):
     __tablename__ = 'surveillance_entry'
@@ -1226,6 +1254,22 @@ class SurveillanceEntry(db.Model):
             case = db.session.get(CaseProfile, self.caseprofile_id)
             return case.int_reference if case else None
         return None
+
+class OnlinePatrolPhoto(db.Model):
+    """
+    📸 ONLINE PATROL PHOTO STORAGE
+    Store photos/screenshots of suspicious online posts
+    Similar to WhatsAppImage structure for consistency
+    """
+    __tablename__ = 'online_patrol_photo'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    online_patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    image_data = db.Column(db.LargeBinary, nullable=False)  # Store image as binary in database
+    uploaded_at = db.Column(db.DateTime, default=get_hk_time)
+    uploaded_by = db.Column(db.String(255))  # Who uploaded the photo
+    caption = db.Column(db.Text)  # Optional description of the photo
 
 class Target(db.Model):
     id = db.Column(db.Integer, primary_key=True)
