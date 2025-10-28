@@ -3614,6 +3614,99 @@ def int_source():
     )
 
 
+@app.route('/int_analytics')
+@login_required
+def int_analytics():
+    """
+    INT Analytics Dashboard - Comprehensive view of ALL intelligence sources grouped by INT reference
+    Shows detailed breakdown of Emails, WhatsApp, Online Patrol, and Surveillance entries
+    """
+    try:
+        # Get all CaseProfiles with INT references
+        all_cases = CaseProfile.query.filter(CaseProfile.int_reference.isnot(None)).order_by(CaseProfile.int_reference).all()
+        
+        # Build comprehensive INT reference data
+        int_reference_data = []
+        total_emails = 0
+        total_whatsapp = 0
+        total_patrol = 0
+        total_surveillance = 0
+        
+        for case in all_cases:
+            # Count items from each source linked to this INT
+            email_count = len(case.emails) if hasattr(case, 'emails') else 0
+            whatsapp_count = len(case.whatsapp_entries) if hasattr(case, 'whatsapp_entries') else 0
+            patrol_count = len(case.patrol_entries) if hasattr(case, 'patrol_entries') else 0
+            surveillance_count = len(case.surveillance_entries) if hasattr(case, 'surveillance_entries') else 0
+            
+            total_items = email_count + whatsapp_count + patrol_count + surveillance_count
+            
+            # Get alleged subjects from all sources
+            alleged_subjects = set()
+            if hasattr(case, 'emails'):
+                for email in case.emails:
+                    if email.alleged_subject_english:
+                        alleged_subjects.update([s.strip() for s in email.alleged_subject_english.split(',') if s.strip()])
+                    if email.alleged_subject_chinese:
+                        alleged_subjects.update([s.strip() for s in email.alleged_subject_chinese.split(',') if s.strip()])
+            
+            int_reference_data.append({
+                'int_reference': case.int_reference,
+                'status': case.status or 'Unknown',
+                'total_items': total_items,
+                'email_count': email_count,
+                'whatsapp_count': whatsapp_count,
+                'patrol_count': patrol_count,
+                'surveillance_count': surveillance_count,
+                'alleged_subjects': ', '.join(list(alleged_subjects)[:5]),  # First 5 subjects
+                'alleged_nature': case.alleged_nature or 'Not specified',
+                'created_date': case.created_at,
+                'date_of_receipt': case.date_of_receipt
+            })
+            
+            total_emails += email_count
+            total_whatsapp += whatsapp_count
+            total_patrol += patrol_count
+            total_surveillance += surveillance_count
+        
+        # Calculate statistics
+        stats = {
+            'total_int_references': len(all_cases),
+            'total_emails': total_emails,
+            'total_whatsapp': total_whatsapp,
+            'total_patrol': total_patrol,
+            'total_surveillance': total_surveillance,
+            'total_items': total_emails + total_whatsapp + total_patrol + total_surveillance
+        }
+        
+        # Status breakdown
+        status_breakdown = {}
+        for case in all_cases:
+            status = case.status or 'Unknown'
+            status_breakdown[status] = status_breakdown.get(status, 0) + 1
+        
+        # Sort INT references by total items (most active first)
+        int_reference_data.sort(key=lambda x: x['total_items'], reverse=True)
+        
+        # Calculate average items per INT
+        stats['avg_items_per_int'] = stats['total_items'] / len(all_cases) if len(all_cases) > 0 else 0
+        
+        return render_template(
+            'int_analytics.html',
+            stats=stats,
+            int_details=int_reference_data,  # Template expects 'int_details'
+            int_reference_data=int_reference_data,  # Also provide as int_reference_data for compatibility
+            status_breakdown=status_breakdown
+        )
+        
+    except Exception as e:
+        print(f"[ERROR] int_analytics failed: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Error loading INT Analytics. Please check logs.', 'danger')
+        return redirect(url_for('int_source'))
+
+
 # --- Add this route to fix url_for('index') errors in your templates
 #     if current_user.is_authenticated:
 #         return redirect(url_for("alleged_subject_list"))
