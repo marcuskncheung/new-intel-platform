@@ -1465,1355 +1465,1358 @@
   }
 }
 
-</style>
-<div class="container mt-4">
-  <ul class="nav nav-tabs" id="intSourceTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Dashboard</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="inbox-tab" data-bs-toggle="tab" data-bs-target="#inbox" type="button" role="tab">Inbox</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="whatsapp-tab" data-bs-toggle="tab" data-bs-target="#whatsapp" type="button" role="tab">WhatsApp</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="online-tab" data-bs-toggle="tab" data-bs-target="#online" type="button" role="tab">Online Patrol</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="surveillance-tab" data-bs-toggle="tab" data-bs-target="#surveillance" type="button" role="tab">Surveillance Operation</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <a class="nav-link" id="evaluation-cases-tab" href="{{ url_for('evaluation_cases') }}">Evaluation Cases</a>
-    </li>
-  </ul>
-  <div class="tab-content mt-3">
-    <!-- ANALYTICS TAB -->
-    <div class="tab-pane fade" id="analytics" role="tabpanel">
-      <div class="d-flex justify-content-end mb-3">
-        <a href="{{ url_for('int_source_master_export') }}" class="btn btn-lg btn-outline-success" title="Download all data as Excel">
-          <i class="bi bi-download"></i> Download All (Excel)
-        </a>
-      </div>
-      <div class="row mb-4 g-4">
-        <div class="col-md-4">
-          <div class="card analytics-card border-primary mb-3" id="card-surv">
-            <div class="card-header bg-primary text-white">
-              <i class="bi bi-pie-chart"></i> Surveillance Operation Types
-            </div>
-            <div class="card-body">
-              <canvas id="survOpTypeChart" width="260" height="180" tabindex="0"></canvas>
-              <div class="analytics-legend" id="legend-surv"></div>
-              <div class="mt-3 small text-muted text-center">
-                <b>Source:</b> <span class="badge bg-primary">Surveillance Operation</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card analytics-card border-info mb-3" id="card-wa">
-            <div class="card-header bg-info text-white">
-              <i class="bi bi-pie-chart-fill"></i> WhatsApp by Alleged Type
-            </div>
-            <div class="card-body">
-              <canvas id="waTypeChart" width="260" height="180" tabindex="0"></canvas>
-              <div class="analytics-legend" id="legend-wa"></div>
-              <div class="mt-3 small text-muted text-center">
-                <b>Source:</b> <span class="badge bg-info">WhatsApp</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card analytics-card border-secondary mb-3" id="card-inbox">
-            <div class="card-header bg-secondary text-white">
-              <i class="bi bi-pie-chart"></i> Inbox Emails by Status
-            </div>
-            <div class="card-body">
-              <canvas id="inboxStatusChart" width="260" height="180" tabindex="0"></canvas>
-              <div class="analytics-legend" id="legend-inbox"></div>
-              <div class="mt-3 small text-muted text-center">
-                <b>Source:</b> <span class="badge bg-secondary">Inbox Email</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Case Management Statistics -->
-      <div class="row mb-3" id="case-stats-section">
-        <div class="col-md-12">
-          <div class="card border-primary">
-            <div class="card-header bg-primary text-white">
-              <h6 class="mb-0">
-                <i class="fas fa-folder-open"></i> Case Management Statistics
-                <button class="btn btn-outline-light btn-sm float-end" onclick="loadCaseStatistics()">
-                  <i class="fas fa-sync"></i> Refresh
-                </button>
-              </h6>
-            </div>
-            <div class="card-body">
-              <div class="row" id="case-statistics">
-                <div class="col-md-3">
-                  <div class="text-center">
-                    <h3 class="text-primary mb-0" id="stat-total-emails">-</h3>
-                    <small class="text-muted">Total Emails</small>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="text-center">
-                    <h3 class="text-success mb-0" id="stat-assigned-emails">-</h3>
-                    <small class="text-muted">Assigned to Cases</small>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="text-center">
-                    <h3 class="text-info mb-0" id="stat-unique-cases">-</h3>
-                    <small class="text-muted">Unique Cases</small>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="text-center">
-                    <h3 class="text-warning mb-0" id="stat-assignment-rate">-</h3>
-                    <small class="text-muted">Assignment Rate</small>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- INBOX TAB -->
-    <div class="tab-pane fade show active" id="inbox" role="tabpanel">
-      <div class="pro-section-header">
-        <span><i class="bi bi-envelope"></i> Email Inbox</span>
-        <div class="btn-group">
-          <button id="refresh-emails-btn" class="btn btn-outline-info btn-sm" title="Refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-          
-          <!-- NEW: Exchange Web Services (EWS) Import Button -->
-          <a href="{{ url_for('process_exchange_inbox') }}" class="btn btn-primary btn-sm" title="Import Intelligence emails using Exchange Web Services (New Method)">
-            <i class="bi bi-cloud-download"></i> Import Intelligence via EWS
-          </a>
-          
-          <!-- AI STATUS BUTTON (Basic AI Analysis removed - only comprehensive available) -->
-          <button id="ai-status-btn" class="btn btn-outline-secondary btn-sm" title="Check AI analysis status">
-            <i class="bi bi-info-circle"></i> AI Status
-          </button>
-          
-          <!-- EXPORT OPTIONS -->
-          <div class="btn-group" role="group">
-            <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export Options">
-              <i class="bi bi-file-earmark-excel"></i> Export
-            </button>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#" onclick="showExportModal('excel')">
-                <i class="bi bi-file-earmark-excel"></i> 📋 Individual Emails (Classic)
-              </a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('int_source_ai_grouped_excel_export') }}" title="AI groups related emails together for better organization">
-                <i class="bi bi-robot"></i> 🧵 AI Grouped Threads (Smart)
-              </a></li>
-              <li><a class="dropdown-item" href="{{ url_for('int_source_ai_thread_summary_export') }}" title="One row per conversation thread - perfect for statistics">
-                <i class="bi bi-graph-up"></i> 📊 Thread Summary (Statistics)
-              </a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" onclick="showExportModal('csv')">
-                <i class="bi bi-filetype-csv"></i> 📄 CSV Format
-              </a></li>
-            </ul>
-          </div>
-          
-        </div>
-      </div>
-      
-      <!-- Bulk Actions Toolbar - HIDDEN (checkboxes removed) -->
-      <div id="bulk-actions-toolbar" class="bulk-actions-toolbar d-none" style="display: none !important;">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="bulk-selection-info">
-            <span id="selected-count">0</span> emails selected
-            <button type="button" class="btn btn-link btn-sm p-0 ms-2" id="select-all-visible">Select all visible</button>
-            <button type="button" class="btn btn-link btn-sm p-0 ms-2" id="clear-selection">Clear selection</button>
-          </div>
-          <div class="bulk-actions">
-            <div class="btn-group" role="group">
-              <button type="button" class="btn btn-outline-primary btn-sm" id="bulk-mark-reviewed">
-                <i class="fas fa-check"></i> Mark as Reviewed
-              </button>
-              <button type="button" class="btn btn-outline-warning btn-sm" id="bulk-mark-pending">
-                <i class="fas fa-clock"></i> Mark as Pending
-              </button>
-              <button type="button" class="btn btn-outline-success btn-sm" id="bulk-open-case">
-                <i class="fas fa-folder-open"></i> Open Case
-              </button>
-              <button type="button" class="btn btn-outline-primary btn-sm" id="bulk-assign-case">
-                <i class="fas fa-tags"></i> Assign Case #
-              </button>
-              <button type="button" class="btn btn-outline-info btn-sm" id="bulk-export">
-                <i class="fas fa-download"></i> Export Selected
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+/* --- RECEIVED BY HAND TAB --- */
+#rbh-entries-table {
+  border-radius: 0.7rem;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+}
 
-      <!-- Advanced Search & Filter Section -->
-      <div class="card mb-3 border-0 bg-light">
-        <div class="card-body py-3">
-          <div class="row g-3">
-            <!-- Global Search -->
-            <div class="col-md-4">
-              <div class="input-group">
-                <span class="input-group-text bg-white border-end-0">
-                  <i class="bi bi-search text-muted"></i>
-                </span>
-                <input type="text" class="form-control border-start-0" id="global-search" 
-                       placeholder="Search emails..." autocomplete="off">
-                <button class="btn btn-outline-secondary" type="button" id="clear-search" title="Clear search">
-                  <i class="bi bi-x"></i>
-                </button>
-              </div>
-            </div>
-            
-            <!-- Status Filter -->
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" id="status-filter">
-                <option value="">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Case Opened">Case Opened</option>
-                <option value="Unsubstantial">Unsubstantial</option>
-              </select>
-            </div>
-            
-            <!-- Sender Filter -->
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" id="sender-filter">
-                <option value="">All Senders</option>
-                {% if emails %}
-                  {% set unique_senders = emails|map(attribute='sender')|unique|list %}
-                  {% for sender in unique_senders|sort %}
-                    {% if sender %}
-                    <option value="{{ sender }}">{{ sender }}</option>
-                    {% endif %}
-                  {% endfor %}
-                {% endif %}
-              </select>
-            </div>
-            
-            <!-- INT Reference Filter -->
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" id="int-filter">
-                <option value="">All INT</option>
-                <option value="with-int">Has INT</option>
-                <option value="without-int">No INT</option>
-                <optgroup label="Specific INT">
-                  {% for int_ref in unique_int_references %}
-                  <option value="{{ int_ref }}">{{ int_ref }}</option>
-                  {% endfor %}
-                </optgroup>
-              </select>
-            </div>
-            
-            <!-- Score Range Filter -->
-            <div class="col-md-1">
-              <select class="form-select form-select-sm" id="score-filter">
-                <option value="">All Scores</option>
-                <option value="high">High (8-10)</option>
-                <option value="medium">Medium (5-7)</option>
-                <option value="low">Low (1-4)</option>
-                <option value="none">No Score</option>
-              </select>
-            </div>
-            
-            <!-- Date Range Filter -->
-            <div class="col-md-1">
-              <select class="form-select form-select-sm" id="date-filter">
-                <option value="">All Dates</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
-            </div>
-            
-            <!-- Filter Actions -->
-            <div class="col-md-2">
-              <div class="d-flex gap-1">
-                <button class="btn btn-outline-primary btn-sm" id="apply-filters" title="Apply Filters">
-                  <i class="bi bi-funnel"></i> Filter
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" id="clear-filters" title="Clear All Filters">
-                  <i class="bi bi-arrow-clockwise"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Custom Date Range (Hidden by default) -->
-          <div class="row g-2 mt-2 d-none" id="custom-date-range">
-            <div class="col-md-3">
-              <label class="form-label small">From Date:</label>
-              <input type="date" class="form-control form-control-sm" id="date-from">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label small">To Date:</label>
-              <input type="date" class="form-control form-control-sm" id="date-to">
-            </div>
-          </div>
-          
-          <!-- Quick Filter Chips -->
-          <div class="mt-3" id="quick-filters">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-              <small class="text-muted me-2">Quick Filters:</small>
-              <button class="btn btn-outline-info btn-sm quick-filter-chip" data-filter="unreviewed">
-                <i class="bi bi-clock"></i> Unreviewed
-              </button>
-              <button class="btn btn-outline-warning btn-sm quick-filter-chip" data-filter="high-priority">
-                <i class="bi bi-exclamation-triangle"></i> High Priority
-              </button>
-              <button class="btn btn-outline-success btn-sm quick-filter-chip" data-filter="case-opened">
-                <i class="bi bi-folder-check"></i> Case Opened
-              </button>
-              <button class="btn btn-outline-secondary btn-sm quick-filter-chip" data-filter="recent">
-                <i class="bi bi-calendar-week"></i> Recent
-              </button>
-            </div>
-          </div>
-          
-          <!-- Active Filters Display -->
-          <div class="mt-2 d-none" id="active-filters">
-            <small class="text-muted">Active filters:</small>
-            <div class="d-inline-flex flex-wrap gap-1 ms-2" id="active-filter-chips"></div>
-          </div>
-          
-          <!-- Results Summary -->
-          <div class="mt-2">
-            <small class="text-muted" id="results-summary">
-              Showing <span id="visible-count">{{ emails|length }}</span> of <span id="total-count">{{ emails|length }}</span> emails
-            </small>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Email Table -->
-      <div class="table-responsive">
-        <table class="table table-hover" id="inbox-table">
-          <thead class="table-light">
-            <tr>
-              <th class="sortable" data-column="0">
-                Source ID <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="1">
-                INT Reference <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="2">
-                Sender <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="3">
-                Recipients <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="4">
-                Subject <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="5">
-                Received <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="6">
-                Combined Score <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="7">
-                Status <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for email in emails %}
-            {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
-            <tr class="email-row" 
-                style="background-color: {{ email.thread_color if email.is_thread else 'transparent' }}; border-left: {{ '4px solid ' + email.thread_color if email.is_thread else 'none' }};"
-                data-thread-id="{{ email.thread_id }}" 
-                data-thread-key="{{ email.thread_key }}"
-                title="{{ 'Thread: ' + email.thread_count|string + ' emails in conversation' if email.is_thread else 'Single email' }}">
-              <td>
-                <span class="badge bg-info">EMAIL-{{ email.id }}</span>
-                {% if email.is_thread %}
-                  <br><small class="text-muted">Thread: {{ email.thread_count }}</small>
-                {% endif %}
-              </td>
-              <td>
-                {% if email.caseprofile and email.caseprofile.int_reference %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=email.caseprofile.int_reference) }}" 
-                     class="badge bg-primary text-decoration-none" 
-                     title="View INT Reference Details">
-                    {{ email.caseprofile.int_reference }}
-                  </a>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if email.is_thread %}
-                  <div class="thread-indicator">
-                    <i class="fas fa-comments" style="color: #666; margin-right: 4px;" title="Email thread ({{ email.thread_count }} emails)"></i>
-                  </div>
-                {% endif %}
-                {{ email.sender }}
-              </td>
-              <td>{{ email.recipients }}</td>
-              <td style="text-align:left;">
-                {% if email.is_thread %}
-                  <div class="subject-with-thread">
-                    <span class="thread-badge" style="background-color: {{ email.thread_color }}; border: 1px solid #ddd; border-radius: 10px; padding: 2px 6px; font-size: 0.8em; margin-right: 6px;">
-                      {{ email.thread_count }}
-                    </span>
-                    {% if email.subject.lower().startswith(('re:', 'fwd:', 'fw:')) %}
-                      <i class="fas fa-reply" style="color: #888; margin-right: 4px;" title="Reply/Forward"></i>
-                    {% endif %}
-                    {{ email.subject }}
-                  </div>
-                {% else %}
-                  {{ email.subject }}
-                {% endif %}
-              </td>
-              <td>{{ email.received }}</td>
-              <td>
-                {% if email.source_reliability is not none and email.content_validity is not none %}
-                  <span class="badge-pro">{{ combined_score }}</span>
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <td>
-                {% set reviewer_name = (email.reviewer_name or '').strip() %}
-                {% set reviewer_decision = (email.reviewer_decision or '').strip() %}
-                {% if (email.source_reliability is none or email.content_validity is none or not reviewer_name or not reviewer_decision) %}
-                  <span class="badge bg-light text-muted status-pending">Pending</span>
-                {% elif email.intelligence_case_opened %}
-                  <span class="badge bg-success status-case-opened">Case Opened</span>
-                {% else %}
-                  <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
-                {% endif %}
-              </td>
-              <td>
-                <div class="pro-action-btns">
-                  <a href="{{ url_for('int_source_email_detail', email_id=email.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                  
-                  <!-- AI Analysis Button -->
-                  {% if not email.alleged_subject or email.alleged_subject == '' %}
-                  <!-- Comprehensive AI Analysis Button (only AI option available) -->
-                  <button class="btn btn-sm btn-outline-warning ai-comprehensive-analyze-btn" 
-                          data-email-id="{{ email.id }}" 
-                          title="Comprehensive AI analysis including attachments and detailed reasoning">
-                    <i class="bi bi-gear"></i> AI Analysis
-                  </button>
-                  {% else %}
-                  <!-- Comprehensive AI Analysis Button (always available for re-analysis) -->
-                  <button class="btn btn-sm btn-outline-warning ai-comprehensive-analyze-btn" 
-                          data-email-id="{{ email.id }}" 
-                          title="Comprehensive AI analysis including attachments and detailed reasoning">
-                    <i class="bi bi-gear"></i> AI Analysis
-                  </button>
-                  {% endif %}
-                  
-                  {% if email.is_thread %}
-                    <button class="btn btn-sm btn-outline-info thread-toggle-btn" 
-                            onclick="toggleThreadGroup('{{ email.thread_id }}')" 
-                            title="Toggle thread visibility">
-                      <i class="fas fa-layer-group"></i>
-                    </button>
-                  {% endif %}
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- WHATSAPP TAB -->
-    <div class="tab-pane fade" id="whatsapp" role="tabpanel">
-      <div class="pro-section-header">
-        <span><i class="bi bi-chat-dots"></i> WhatsApp </span>
-        <div class="btn-group">
-          <button id="whatsapp-refresh-btn" class="btn btn-outline-light btn-sm" title="Refresh Data">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
-          </button>
-          <a href="{{ url_for('whatsapp_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_whatsapp') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
-        </div>
-      </div>
+#rbh-entries-table thead th {
+  background: linear-gradient(90deg, #e3eefd 0%, #f7fafd 100%);
+  color: #0a2540;
+  font-weight: 700;
+  border-bottom: 2px solid #e3eefd;
+  font-size: 1.05em;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+#rbh-entries-table td, #rbh-entries-table th {
+  vertical-align: middle;
+  border-top: none;
+  text-align: center;
+}
+#rbh-entries-table tr {
+  border-bottom: 1px solid #f0f4fa;
+}
+#rbh-entries-table tbody tr:hover {
+  background: #eaf4ff !important;
+  transition: background 0.2s;
+}
+@media (max-width: 900px) {
+  .pro-section-header { font-size: 1rem; flex-direction: column; align-items: flex-start; }
+  .pro-section-header .btn-group { margin-top: 0.5rem; }
+  .analytics-card .card-body { min-height: 180px; }
+  .pro-table th, .pro-table td { font-size: 0.95em; }
+  #rbh-entries-table thead th, #rbh-entries-table tbody td { font-size: 0.8rem; }
+}
 
-      <!-- Advanced Search and Filtering Section for WhatsApp -->
-      <div class="search-filter-section mb-4">
-        <div class="row g-3">
-          <!-- Global Search -->
-          <div class="col-md-4">
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" id="whatsapp-global-search" class="form-control" placeholder="Search WhatsApp entries...">
-            </div>
-          </div>
-          
-          <!-- Status Filter -->
-          <div class="col-md-2">
-            <select id="whatsapp-status-filter" class="form-select">
-              <option value="">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Case Opened">Case Opened</option>
-              <option value="Unsubstantial">Unsubstantial</option>
-            </select>
-          </div>
-          
-          <!-- Score Filter -->
-          <div class="col-md-2">
-            <select id="whatsapp-score-filter" class="form-select">
-              <option value="">All Scores</option>
-              <option value="high">High (8+)</option>
-              <option value="medium">Medium (5-7)</option>
-              <option value="low">Low (1-4)</option>
-              <option value="unscored">Unscored</option>
-            </select>
-          </div>
-          
-          <!-- Alleged Type Filter -->
-          <div class="col-md-2">
-            <select id="whatsapp-type-filter" class="form-select">
-              <option value="">All Alleged Types</option>
-              <option value="NA">NA</option>
-              <option value="Renewal of Policy">Renewal of Policy</option>
-              <option value="Premium">Premium</option>
-              <option value="Return of Premium Payment">Return of Premium Payment</option>
-            </select>
-          </div>
-          
-          <!-- Date Filter -->
-          <div class="col-md-2">
-            <select id="whatsapp-date-filter" class="form-select">
-              <option value="">All Dates</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="custom">Custom Range</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- Custom Date Range (Hidden by default) -->
-        <div id="whatsapp-custom-date-range" class="row g-2 mt-2 d-none">
-          <div class="col-md-3">
-            <label class="form-label">From Date:</label>
-            <input type="date" id="whatsapp-date-from" class="form-control">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">To Date:</label>
-            <input type="date" id="whatsapp-date-to" class="form-control">
-          </div>
-        </div>
-        
-        <!-- Quick Filter Chips -->
-        <div class="quick-filters mt-3">
-          <span class="me-2 fw-bold">Quick Filters:</span>
-          <button class="btn btn-outline-info btn-sm quick-filter-chip" data-filter="unreviewed">
-            <i class="bi bi-clock"></i> Unreviewed
-          </button>
-          <button class="btn btn-outline-warning btn-sm quick-filter-chip" data-filter="high-priority">
-            <i class="bi bi-exclamation-triangle"></i> High Priority
-          </button>
-          <button class="btn btn-outline-success btn-sm quick-filter-chip" data-filter="case-opened">
-            <i class="bi bi-folder-check"></i> Case Opened
-          </button>
-          <button class="btn btn-outline-secondary btn-sm quick-filter-chip" data-filter="recent">
-            <i class="bi bi-calendar-week"></i> Recent (7 days)
-          </button>
-          <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearAllWhatsAppFilters()">Clear All</button>
-        </div>
-        
-        <!-- Active Filters Display -->
-        <div id="whatsapp-active-filters" class="active-filters mt-2 d-none">
-          <span class="me-2 fw-bold">Active Filters:</span>
-          <div id="whatsapp-active-filters-container" class="d-inline"></div>
-        </div>
-        
-        <!-- Results Summary -->
-        <div id="whatsapp-results-summary" class="results-summary mt-2">
-          <small class="text-muted">Showing <span class="highlight" id="whatsapp-visible-count">{{ whatsapp_data|length }}</span> of <span id="whatsapp-total-count">{{ whatsapp_data|length }}</span> WhatsApp entries</small>
-        </div>
-      </div>
+/* --- 10000x Pro UI for Analytics Tab --- */
+.analytics-card {
+  border-radius: 1.2rem;
+  box-shadow: 0 8px 40px rgba(46,139,250,0.16);
+  background: #fff;
+  transition: box-shadow 0.2s, transform 0.2s;
+  min-height: 370px;
+  position: relative;
+  overflow: visible;
+}
+.analytics-card:hover {
+  box-shadow: 0 16px 64px rgba(46,139,250,0.22);
+  transform: translateY(-4px) scale(1.02);
+  z-index: 2;
+}
+.analytics-card .card-header {
+  border-radius: 1.2rem 1.2rem 0 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  color: #fff !important;
+  font-weight: 700;
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+  box-shadow: 0 2px 8px rgba(46,139,250,0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.analytics-card .card-header.bg-info {
+  background: linear-gradient(90deg, #2563eb 0%, #4bc0c0 100%) !important;
+}
+.analytics-card .card-header.bg-secondary {
+  background: linear-gradient(90deg, #4bc0c0 0%, #ff6384 100%) !important;
+}
+.analytics-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding-bottom: 1.5rem;
+  position: relative;
+}
+.analytics-legend {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.2rem;
+  justify-content: center;
+}
+.analytics-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.98em;
+  font-weight: 500;
+  color: #0a2540;
+}
+.analytics-legend-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.3em;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(46,139,250,0.10);
+}
+.analytics-focus {
+  outline: 3px solid #2e8bfa !important;
+  box-shadow: 0 0 0 6px rgba(46,139,250,0.10) !important;
+  z-index: 10;
+}
+@media (max-width: 900px) {
+  .analytics-card .card-body { min-height: 180px; }
+}
 
-      <!-- Bulk Actions Toolbar for WhatsApp -->
-      <div id="whatsapp-bulk-actions-toolbar" class="bulk-actions-toolbar d-none mb-3">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="bulk-actions-info">
-            <i class="bi bi-check-square me-2"></i>
-            <span id="whatsapp-selected-count">0</span> entries selected
-          </div>
-          <div class="bulk-actions">
-            <button id="whatsapp-select-all-visible" class="btn btn-sm btn-outline-primary">Select All Visible</button>
-            <button id="whatsapp-clear-selection" class="btn btn-sm btn-outline-secondary">Clear Selection</button>
-            <button id="whatsapp-bulk-mark-reviewed" class="btn btn-sm btn-success">
-              <i class="bi bi-check-circle"></i> Mark Reviewed
-            </button>
-            <button id="whatsapp-bulk-mark-pending" class="btn btn-sm btn-warning">
-              <i class="bi bi-clock"></i> Mark Pending
-            </button>
-            <button id="whatsapp-bulk-open-case" class="btn btn-sm btn-danger">
-              <i class="bi bi-folder-plus"></i> Open Case
-            </button>
-            <button id="whatsapp-bulk-export" class="btn btn-sm btn-info">
-              <i class="bi bi-download"></i> Export Selected
-            </button>
-          </div>
-        </div>
-      </div>
+/* --- 10000x Pro UI for Data Tabs --- */
+.pro-section-header {
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+  color: #fff;
+  border-radius: 0.8rem 0.8rem 0 0;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pro-section-header .btn-group {
+  gap: 0.4rem;
+}
+.pro-section-header .btn {
+  font-weight: 600;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 4px rgba(22,105,210,0.07);
+  transition: background 0.15s, color 0.15s;
+}
+.pro-section-header .btn-outline-info,
+.pro-section-header .btn-outline-primary,
+.pro-section-header .btn-outline-success {
+  background: #fff;
+  color: #1669d2 !important;
+  border-color: #1669d2 !important;
+}
+.pro-section-header .btn-outline-info:hover,
+.pro-section-header .btn-outline-primary:hover,
+.pro-section-header .btn-outline-success:hover {
+  background: #1669d2 !important;
+  color: #fff !important;
+  border-color: #1669d2 !important;
+}
+.pro-table {
+  background: #fff;
+  border-radius: 0.7rem;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+.pro-table th {
+  background: linear-gradient(90deg, #e3eefd 0%, #f7fafd 100%);
+  color: #0a2540;
+  font-weight: 700;
+  border-bottom: 2px solid #e3eefd;
+  font-size: 1.05em;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+.pro-table td, .pro-table th {
+  vertical-align: middle;
+  border-top: none;
+  text-align: center;
+}
+.pro-table tr {
+  border-bottom: 1px solid #f0f4fa;
+}
+.pro-table tbody tr:hover {
+  background: #eaf4ff !important;
+  transition: background 0.2s;
+}
+.badge-pro {
+  background: linear-gradient(90deg, #2e8bfa 0%, #0a2540 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  font-size: 0.98em;
+  padding: 0.4em 0.8em;
+  box-shadow: none;
+  min-width: unset;
+}
+.pro-action-btns {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: center;
+}
+.pro-table .badge {
+  font-size: 0.95em;
+  padding: 0.35em 0.7em;
+}
+@media (max-width: 900px) {
+  .pro-section-header { font-size: 1rem; flex-direction: column; align-items: flex-start; }
+  .pro-section-header .btn-group { margin-top: 0.5rem; }
+  .analytics-card .card-body { min-height: 180px; }
+  .pro-table th, .pro-table td { font-size: 0.95em; }
+  #rbh-entries-table thead th, #rbh-entries-table tbody td { font-size: 0.8rem; }
+}
 
-      <div class="table-responsive">
-        <table id="whatsapp-table" class="table table-sm pro-table">
-          <thead>
-            <tr>
-              <th>Source ID</th>
-              <th>Received Time</th>
-              <th>Complaint Name</th>
-              <th>Phone Number</th>
-              <th>Alleged Person</th>
-              <th>Alleged Type</th>
-              <th>Combined Score</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for w in whatsapp_data %}
-            {% set combined_score = (w.source_reliability or 0) + (w.content_validity or 0) %}
-            <tr>
-              <td>
-                <span class="badge bg-info">WHATSAPP-{{ w.id }}</span>
-              </td>
-              <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
-              <td>{{ w.complaint_name }}</td>
-              <td>{{ w.phone_number }}</td>
-              <td>
-                {% if w.alleged_person %}
-                  {% set alleged_persons = w.alleged_person.split(',') %}
-                  {% for person in alleged_persons %}
-                    {% if person.strip() %}
-                      <span class="badge bg-light text-dark me-1 mb-1">{{ person.strip() }}</span>
-                    {% endif %}
-                  {% endfor %}
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
-              </td>
-              <td>{{ w.alleged_type }}</td>
-              <td>
-                {% if w.source_reliability is not none and w.content_validity is not none %}
-                  <span class="badge-pro">{{ combined_score }}</span>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
-              </td>
-              <td>
-                {% set reviewer_name = (w.reviewer_name or '').strip() %}
-                {% set reviewer_comment = (w.reviewer_comment or '').strip() %}
-                {% if w.source_reliability is none or w.content_validity is none or not reviewer_name or not reviewer_comment %}
-                  <span class="badge bg-light text-muted status-pending">Pending</span>
-                {% elif combined_score >= 8 %}
-                  <span class="badge bg-success status-case-opened">Case Opened</span>
-                {% else %}
-                  <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
-                {% endif %}
-              </td>
-              <td>
-                <div class="pro-action-btns">
-                  <a href="{{ url_for('whatsapp_detail', entry_id=w.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                  <form method="post" action="{{ url_for('delete_whatsapp', entry_id=w.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this WhatsApp entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
-                    <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- ONLINE PATROL TAB -->
-    <div class="tab-pane fade" id="online" role="tabpanel">
-      <div class="pro-section-header">
-        <span><i class="bi bi-globe"></i> Online Patrol </span>
-        <div class="btn-group">
-          <button id="online-refresh-btn" class="btn btn-outline-light btn-sm" title="Refresh Data">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
-          </button>
-          <a href="{{ url_for('online_patrol_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_online_patrol') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
-        </div>
-      </div>
+/* Sorting CSS */
+.sort-icon {
+  font-size: 0.8em;
+  margin-left: 0.2em;
+  opacity: 0.5;
+}
+.sort-icon.asc {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+.sort-icon.desc {
+  opacity: 1;
+}
+.sortable {
+  cursor: pointer;
+}
 
-      <!-- Advanced Search and Filtering Section for Online Patrol -->
-      <div class="search-filter-section mb-4">
-        <div class="row g-3">
-          <!-- Global Search -->
-          <div class="col-md-4">
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" id="online-global-search" class="form-control" placeholder="Search Online Patrol entries...">
-            </div>
-          </div>
-          
-          <!-- Status Filter -->
-          <div class="col-md-2">
-            <select id="online-status-filter" class="form-select">
-              <option value="">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Case Opened">Case Opened</option>
-              <option value="Unsubstantial">Unsubstantial</option>
-            </select>
-          </div>
-          
-          <!-- Score Filter -->
-          <div class="col-md-2">
-            <select id="online-score-filter" class="form-select">
-              <option value="">All Scores</option>
-              <option value="high">High (8+)</option>
-              <option value="medium">Medium (5-7)</option>
-              <option value="low">Low (1-4)</option>
-              <option value="unscored">Unscored</option>
-            </select>
-          </div>
-          
-          <!-- Source Filter -->
-          <div class="col-md-2">
-            <select id="online-source-filter" class="form-select">
-              <option value="">All Sources</option>
-              <option value="Website">Website</option>
-              <option value="Social Media">Social Media</option>
-              <option value="Forum">Forum</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          
-          <!-- Date Filter -->
-          <div class="col-md-2">
-            <select id="online-date-filter" class="form-select">
-              <option value="">All Dates</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="custom">Custom Range</option>
-            </select>
-          </div>
-        </div>
-        
-        <!-- Custom Date Range (Hidden by default) -->
-        <div id="online-custom-date-range" class="row g-2 mt-2 d-none">
-          <div class="col-md-3">
-            <label class="form-label">From Date:</label>
-            <input type="date" id="online-date-from" class="form-control">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">To Date:</label>
-            <input type="date" id="online-date-to" class="form-control">
-          </div>
-        </div>
-        
-        <!-- Quick Filter Chips -->
-        <div class="quick-filters mt-3">
-          <span class="me-2 fw-bold">Quick Filters:</span>
-          <button class="btn btn-outline-info btn-sm quick-filter-chip" data-filter="unreviewed">
-            <i class="bi bi-clock"></i> Unreviewed
-          </button>
-          <button class="btn btn-outline-warning btn-sm quick-filter-chip" data-filter="high-priority">
-            <i class="bi bi-exclamation-triangle"></i> High Priority
-          </button>
-          <button class="btn btn-outline-success btn-sm quick-filter-chip" data-filter="case-opened">
-            <i class="bi bi-folder-check"></i> Case Opened
-          </button>
-          <button class="btn btn-outline-secondary btn-sm quick-filter-chip" data-filter="recent">
-            <i class="bi bi-calendar-week"></i> Recent (7 days)
-          </button>
-          <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearAllOnlineFilters()">Clear All</button>
-        </div>
-        
-        <!-- Active Filters Display -->
-        <div id="online-active-filters" class="active-filters mt-2 d-none">
-          <span class="me-2 fw-bold">Active Filters:</span>
-          <div id="online-active-filters-container" class="d-inline"></div>
-        </div>
-        
-        <!-- Results Summary -->
-        <div id="online-results-summary" class="results-summary mt-2">
-          <small class="text-muted">Showing <span class="highlight" id="online-visible-count">{{ online_patrol_data|length }}</span> of <span id="online-total-count">{{ online_patrol_data|length }}</span> Online Patrol entries</small>
-        </div>
-      </div>
+/* Advanced Search & Filter CSS */
+.search-filter-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
 
-      <!-- Bulk Actions Toolbar for Online Patrol -->
-      <div id="online-bulk-actions-toolbar" class="bulk-actions-toolbar d-none mb-3">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="bulk-actions-info">
-            <i class="bi bi-check-square me-2"></i>
-            <span id="online-selected-count">0</span> entries selected
-          </div>
-          <div class="bulk-actions">
-            <button id="online-select-all-visible" class="btn btn-sm btn-outline-primary">Select All Visible</button>
-            <button id="online-clear-selection" class="btn btn-sm btn-outline-secondary">Clear Selection</button>
-            <button id="online-bulk-mark-reviewed" class="btn btn-sm btn-success">
-              <i class="bi bi-check-circle"></i> Mark Reviewed
-            </button>
-            <button id="online-bulk-mark-pending" class="btn btn-sm btn-warning">
-              <i class="bi bi-clock"></i> Mark Pending
-            </button>
-            <button id="online-bulk-open-case" class="btn btn-sm btn-danger">
-              <i class="bi bi-folder-plus"></i> Open Case
-            </button>
-            <button id="online-bulk-export" class="btn btn-sm btn-info">
-              <i class="bi bi-download"></i> Export Selected
-            </button>
-          </div>
-        </div>
-      </div>
+.quick-filter-chip {
+  border-radius: 1.5rem;
+  font-size: 0.85em;
+  padding: 0.4rem 0.8rem;
+  transition: all 0.2s ease;
+  border-width: 1px;
+}
 
-      <div class="table-responsive">
-        <table id="online-table" class="table table-sm pro-table">
-          <thead>
-            <tr>
-              <th>Source ID</th>
-              <th>Sender</th>
-              <th>Complaint Time</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th>Combined Score</th>
-              <th>Case Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for o in online_patrol_data %}
-            {% set combined_score = (o.source_reliability or 0) + (o.content_validity or 0) %}
-            <tr>
-              <td>
-                <span class="badge bg-info">PATROL-{{ o.id }}</span>
-              </td>
-              <td>{{ o.sender }}</td>
-              <td>{{ o.complaint_time }}</td>
-              <td>{{ o.source }}</td>
-              <td>{{ o.status }}</td>
-              <td>
-                {% if o.source_reliability is not none and o.content_validity is not none %}
-                  <span class="badge-pro">{{ combined_score }}</span>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
-              </td>
-              <td>
-                {% set reviewer_name = (o.reviewer_name or '').strip() %}
-                {% set reviewer_comment = (o.reviewer_comment or '').strip() %}
-                {% if o.source_reliability is none or o.content_validity is none or not reviewer_name or not reviewer_comment %}
-                 
-                {% elif combined_score >= 8 %}
-                  <span class="badge bg-success status-case-opened">Case Opened</span>
-                {% else %}
-                  <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
-                {% endif %}
-              </td>
-              <td>
-                <div class="pro-action-btns">
-                  <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                  <form method="post" action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
-                    <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- SURVEILLANCE TAB -->
-    <div class="tab-pane fade" id="surveillance" role="tabpanel">
-      <div class="pro-section-header">
-        <span><i class="bi bi-eye"></i> Surveillance Operation </span>
-        <div class="btn-group">
-          
-          <a href="{{ url_for('surveillance_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_surveillance') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
-        </div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm pro-table">
-          <thead>
-            <tr>
-              <th>Operation Number</th>
-              <th>Operation Type</th>
-              <th>Date</th>
-              <th>Venue</th>
-              <th>Target</th>
-              <th>Conducted by</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for s in surveillance_data %}
-            {% set combined_score = (s.source_reliability or 0) + (s.content_validity or 0) %}
-            <tr>
-              <td>{{ s.operation_number }}</td>
-              <td>{{ s.operation_type }}</td>
-              <td>{{ s.date|safe_datetime('%Y-%m-%d') if s.date else '-' }}</td>
-              <td>{{ s.venue }}</td>
-              <td>{% if s.targets %}{{ s.targets|map(attribute='name')|join(', ') }}{% else %}—{% endif %}</td>
-              <td>{{ s.conducted_by or '—' }}</td>
+.quick-filter-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
 
-              <td>
-                <div class="pro-action-btns">
-                  <a href="{{ url_for('surveillance_detail', entry_id=s.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
-<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chartjs-plugin-datalabels.min.js') }}"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('Starting chart initialization...');
-    console.log('Chart.js available:', typeof Chart !== 'undefined');
-    console.log('ChartDataLabels available:', typeof ChartDataLabels !== 'undefined');
-    
-    // Register DataLabels plugin if available
-    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
-      try {
-        Chart.register(ChartDataLabels);
-        console.log('✅ DataLabels plugin registered successfully');
-      } catch (e) {
-        console.warn('⚠️ DataLabels plugin registration failed:', e);
-      }
-    }
-    // Pro color palettes
-    var proColors1 = ['#2e8bfa', '#0a2540', '#4bc0c0', '#ffcd56', '#ff6384', '#36a2eb', '#2563eb', '#b2b2b2'];
-    var proColors2 = ['#4bc0c0', '#2e8bfa', '#ffcd56', '#ff6384', '#36a2eb', '#2563eb', '#b2b2b2'];
-    var proColors3 = ['#36a2eb', '#ffcd56', '#b2b2b2', '#ff6384'];
+.quick-filter-chip.active {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: white;
+}
 
-    // Defensive: fallback to empty array/object if undefined (prevents JS errors if backend fails)
-    // Convert objects to arrays if necessary (backend may send objects)
-    function labelsFromObj(obj) {
-      if (Array.isArray(obj)) return obj;
-      if (typeof obj === 'object' && obj !== null) return Object.values(obj);
-      return [];
-    }
-    function valuesFromArr(arr) {
-      if (!Array.isArray(arr)) return [];
-      // Accept both [{value:..., label:...}] and [number]
-      if (arr.length && typeof arr[0] === 'object' && arr[0] !== null && 'label' in arr[0]) {
-        return arr.map(x => x.label);
-      }
-      return arr;
-    }
-    var opTypeLabels = [];
-    var opTypeValues = [];
-    var waTypeLabels = [];
-    var waTypeValues = [];
-    var inboxStatusLabels = [];
-    var inboxStatusValues = [];
-    
-    try {
-      opTypeLabels = labelsFromObj({{ op_type_labels|tojson|safe }});
-      opTypeValues = valuesFromArr({{ op_type_values|tojson|safe }});
-      waTypeLabels = labelsFromObj({{ wa_type_labels|tojson|safe }});
-      waTypeValues = valuesFromArr({{ wa_type_values|tojson|safe }});
-      inboxStatusLabels = labelsFromObj({{ inbox_status_labels|tojson|safe }});
-      inboxStatusValues = valuesFromArr({{ inbox_status_values|tojson|safe }});
-    } catch (e) {
-      console.error('Error initializing template variables:', e);
-    }
-    
-    // --- Interactive Chart.js Pie/Doughnut Charts ---
-    function makeLegend(containerId, chart, colors, labels, values) {
-      var legend = document.getElementById(containerId);
-      legend.innerHTML = '';
-      labels.forEach(function(label, i) {
-        var el = document.createElement('span');
-        el.className = 'analytics-legend-item';
-        el.innerHTML = '<span class="analytics-legend-color" style="background:' + colors[i % colors.length] + '"></span>' +
-          label + ' <b>' + values[i] + '</b>';
-        el.setAttribute('data-index', i);
-        el.style.cursor = 'pointer';
-        el.onclick = function() {
-          chart.toggleDataVisibility(i);
-          chart.update();
-        };
-        legend.appendChild(el);
-      });
-    }
+.active-filter-chip {
+  background-color: var(--bs-info);
+  color: white;
+  border: none;
+  border-radius: 1rem;
+  font-size: 0.8em;
+  padding: 0.3rem 0.6rem;
+  margin: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
 
-    // Focus effect for cards
-    function focusCard(cardId) {
-      document.querySelectorAll('.analytics-card').forEach(function(card) {
-        card.classList.remove('analytics-focus');
-      });
-      var card = document.getElementById(cardId);
-      if (card) card.classList.add('analytics-focus');
-    }
+.active-filter-chip .remove-filter {
+  background: rgba(255,255,255,0.3);
+  border: none;
+  border-radius: 50%;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
 
-    // Surveillance Operation Types
-    var ctxSurv = document.getElementById('survOpTypeChart');
-    var chartSurv = null;
-    function drawSurvChart() {
-      if (!ctxSurv) return;
-      if (chartSurv) { chartSurv.destroy(); }
-      chartSurv = new Chart(ctxSurv, {
-        // No plugins: [] here, only global registration
-        type: 'doughnut',
-        data: {
-          labels: opTypeLabels,
-          datasets: [{
-            data: opTypeValues,
-            backgroundColor: proColors1,
-            borderWidth: 2,
-            borderColor: "#fff"
-          }]
-        },
-        options: {
-          cutout: '65%',
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': ' + ctx.parsed; } } }
-            // No datalabels for now
-          },
-          onClick: function(evt, elements) {
-            if (elements.length > 0) focusCard('card-surv');
-          }
-        }
-      });
-      makeLegend('legend-surv', chartSurv, proColors1, opTypeLabels, opTypeValues);
-      ctxSurv.addEventListener('focus', function() { focusCard('card-surv'); });
-    }
-    drawSurvChart();
+.active-filter-chip .remove-filter:hover {
+  background: rgba(255,255,255,0.5);
+}
 
-    // WhatsApp by Alleged Type
-    var ctxWa = document.getElementById('waTypeChart');
-    var chartWa = null;
-    function drawWaChart() {
-      if (!ctxWa) return;
-      if (chartWa) { chartWa.destroy(); }
-      chartWa = new Chart(ctxWa, {
-        // Only WhatsApp chart gets datalabels config for now
-        type: 'doughnut',
-        data: {
-          labels: waTypeLabels,
-          datasets: [{
-            data: waTypeValues,
-            backgroundColor: proColors2,
-            borderWidth: 2,
-            borderColor: "#fff"
-          }]
-        },
-        options: {
-          cutout: '65%',
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) {
-                  var total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                  var pct = total ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
-                  return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
-                }
-              }
-            },
-            datalabels: {
-              color: '#222',
-              font: { weight: 'bold', size: 16 },
-              formatter: function(value, ctx) {
-                return value > 0 ? value : '';
-              }
-            }
-          },
-          onClick: function(evt, elements) {
-            if (elements.length > 0) focusCard('card-wa');
-          }
-        }
-      });
-      makeLegend('legend-wa', chartWa, proColors2, waTypeLabels, waTypeValues);
-      ctxWa.addEventListener('focus', function() { focusCard('card-wa'); });
-    }
-    drawWaChart();
+.search-highlight {
+  background-color: #fff3cd;
+  padding: 0.1rem 0.2rem;
+  border-radius: 0.2rem;
+  font-weight: 500;
+}
 
-    // Inbox Emails by Status
-    var ctxInbox = document.getElementById('inboxStatusChart');
-    var chartInbox = null;
-    function drawInboxChart() {
-      if (!ctxInbox) return;
-      if (chartInbox) { chartInbox.destroy(); }
-      chartInbox = new Chart(ctxInbox, {
-        // No plugins: [] here, only global registration
-        type: 'doughnut',
-        data: {
-          labels: inboxStatusLabels,
-          datasets: [{
-            data: inboxStatusValues,
-            backgroundColor: proColors3,
-            borderWidth: 2,
-            borderColor: "#fff"
-          }]
-        },
-        options: {
-          cutout: '65%',
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': ' + ctx.parsed; } } }
-            // No datalabels for now
-          },
-          onClick: function(evt, elements) {
-            if (elements.length > 0) focusCard('card-inbox');
-          }
-        }
-      });
-      makeLegend('legend-inbox', chartInbox, proColors3, inboxStatusLabels, inboxStatusValues);
-      ctxInbox.addEventListener('focus', function() { focusCard('card-inbox'); });
-    }
-    drawInboxChart();
+.table-row-hidden {
+  display: none !important;
+}
 
-    // Keyboard navigation for accessibility
-    ['survOpTypeChart', 'waTypeChart', 'inboxStatusChart'].forEach(function(id, idx) {
-      var el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('keydown', function(e) {
-          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-            var next = (idx + 1) % 3;
-            document.getElementById(['survOpTypeChart', 'waTypeChart', 'inboxStatusChart'][next]).focus();
-          }
-          if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-            var prev = (idx + 2) % 3;
-            document.getElementById(['survOpTypeChart', 'waTypeChart', 'inboxStatusChart'][prev]).focus();
-          }
-        });
-      }
-    });
+.filter-animation {
+  transition: all 0.3s ease;
+}
 
-    // Activate correct tab on click and on reload (Bootstrap 5)
-    var hash = window.location.hash;
-    if (hash) {
-      var tabTrigger = document.querySelector('button[data-bs-target="' + hash + '"]');
-      if (tabTrigger) {
-        var tab = new bootstrap.Tab(tabTrigger);
-        tab.show();
-      }
-    }
-    var tabLinks = document.querySelectorAll('#intSourceTabs button[data-bs-toggle="tab"]');
-    tabLinks.forEach(function(btn) {
-      btn.addEventListener('shown.bs.tab', function(e) {
-        history.replaceState(null, null, e.target.dataset.bsTarget);
-        // If analytics tab is activated, redraw all charts
-        if (e.target.dataset.bsTarget === '#analytics') {
-          drawSurvChart();
-          drawWaChart();
-          drawInboxChart();
-        }
-      });
-    });
-  });
-</script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var table = document.getElementById('inbox-table');
-    if (table) {
-      var sortColumn = null;
-      var sortAscending = true;
-      var currentSortIcon = null;
-      
-      // Column mapping
-      var columnMap = {
-        'sender': 0,
-        'recipients': 1,
-        'subject': 2,
-        'received': 3,
-        'score': 4,
-        'status': 5
-      };
-      
-      table.addEventListener('click', function(e) {
-        var target = e.target;
-        // Check if clicked element or its parent is sortable
-        if (target.classList.contains('sortable') || target.closest('.sortable')) {
-          var header = target.classList.contains('sortable') ? target : target.closest('.sortable');
-          var column = header.getAttribute('data-column');
-          var columnIndex = columnMap[column];
-          
-          if (columnIndex === undefined) return;
-          
-          // Toggle sort direction if same column, otherwise default to ascending
-          if (sortColumn === column) {
-            sortAscending = !sortAscending;
-          } else {
-            sortColumn = column;
-            sortAscending = true;
-          }
-          
-          // Update sort icons
-          if (currentSortIcon) {
-            currentSortIcon.classList.remove('asc', 'desc');
-          }
-          currentSortIcon = header.querySelector('.sort-icon');
-          if (currentSortIcon) {
-            if (sortAscending) {
-              currentSortIcon.classList.add('asc');
-              currentSortIcon.classList.remove('desc');
-            } else {
-              currentSortIcon.classList.add('desc');
-              currentSortIcon.classList.remove('asc');
-            }
-          }
-          
-          // Sort the table rows
-          var tbody = table.querySelector('tbody');
-          var rows = Array.from(tbody.querySelectorAll('tr'));
-          
-          rows.sort(function(a, b) {
-            var aCell = a.cells[columnIndex];
-            var bCell = b.cells[columnIndex];
-            var aValue = aCell ? aCell.textContent.trim() : '';
-            var bValue = bCell ? bCell.textContent.trim() : '';
-            
-            // Special handling for different column types
-            if (column === 'received') {
-              // Parse dates for proper sorting
-              var aDate = new Date(aValue);
-              var bDate = new Date(bValue);
-              if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
-                return sortAscending ? aDate - bDate : bDate - aDate;
-              }
-            } else if (column === 'score') {
-              // Parse numeric scores, treat '-' as 0
-              var aNum = aValue === '-' ? 0 : parseInt(aValue) || 0;
-              var bNum = bValue === '-' ? 0 : parseInt(bValue) || 0;
-              return sortAscending ? aNum - bNum : bNum - aNum;
-            }
-            
-            // Default string comparison
-            if (aValue < bValue) {
-              return sortAscending ? -1 : 1;
-            }
-            if (aValue > bValue) {
-              return sortAscending ? 1 : -1;
-            }
-            return 0;
-          });
-          
-          // Clear tbody and append sorted rows
-          tbody.innerHTML = '';
-          rows.forEach(function(row) {
-            tbody.appendChild(row);
-          });
-        }
-      });
-    }
-  });
-</script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var btn = document.getElementById('refresh-emails-btn');
-    if (btn) {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Refreshing...';
-        fetch('/api/refresh-emails', {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-          .then(resp => resp.json())
-          .then(data => {
-            if (data.success) {
-              window.location.reload();
-            } else {
-              alert('Error: ' + (data.error || 'Unknown error'));
-              btn.disabled = false;
-              btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
-            }
-          })
-          .catch(() => {
-            alert('Failed to refresh emails.');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
-          });
-      });
-    }
-  });
-</script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Advanced Search & Filter System
-    var table = document.getElementById('inbox-table');
-    var tbody = table ? table.querySelector('tbody') : null;
-    var allRows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
-    var originalRowsOrder = [...allRows];
-    
-    // Filter state
-    var activeFilters = {
-      search: '',
-      status: '',
-      score: '',
-      date: '',
-      dateFrom: '',
-      dateTo: '',
-      quickFilter: ''
-    };
-    
-    // Initialize search and filter functionality
-    if (table && tbody) {
-      initializeSearchAndFilters();
-    }
-    
-    function initializeSearchAndFilters() {
-      // Global search with real-time filtering
-      var searchInput = document.getElementById('global-search');
-      var clearSearchBtn = document.getElementById('clear-search');
-      
-      if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-          activeFilters.search = e.target.value.toLowerCase();
-          applyAllFilters();
-          updateResultsSummary();
-        });
-        
-        // Clear search
-        if (clearSearchBtn) {
-          clearSearchBtn.addEventListener('click', function() {
-            searchInput.value = '';
-            activeFilters.search = '';
-            applyAllFilters();
-            updateResultsSummary();
-          });
-        }
-      }
-      
-      // Status filter
-      var statusFilter = document.getElementById('status-filter');
-      if (statusFilter) {
-        statusFilter.addEventListener('change', function(e) {
-          activeFilters.status = e.target.value;
-          applyAllFilters();
-          updateResultsSummary();
-          updateActiveFilters();
-        });
-      }
-      
-      // Sender filter
-      var senderFilter = document.getElementById('sender-filter');
-      if (senderFilter) {
-        senderFilter.addEventListener('change', function(e) {
-          activeFilters.sender = e.target.value;
-          applyAllFilters();
-          updateResultsSummary();
-          updateActiveFilters();
-        });
-      }
-      
-      // INT Reference filter
+.results-summary {
+  font-weight: 500;
+}
+
+.results-summary .highlight {
+  color: var(--bs-primary);
+  font-weight: 600;
+}
+
+/* Search input styling */
+#global-search {
+  border-radius: 0.375rem;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+#global-search:focus {
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Custom date range styling */
+#custom-date-range {
+  background: rgba(255,255,255,0.7);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .quick-filter-chip {
+    font-size: 0.8em;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .search-filter-section .row > div {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Bulk Actions Toolbar */
+.bulk-actions-toolbar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+  animation: slideDown 0.3s ease-out;
+}
+
+.bulk-actions-toolbar .bulk-selection-info {
+  font-weight: 500;
+}
+
+.bulk-actions-toolbar .btn-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.bulk-actions-toolbar .btn-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+.bulk-actions-toolbar .btn-group .btn {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.bulk-actions-toolbar .btn-group .btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced Table Styling */
+#inbox-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#inbox-table thead th {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  padding: 15px 12px;
+  position: relative;
+}
+
+#inbox-table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+#inbox-table tbody tr:hover {
+  background-color: #f8f9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#inbox-table tbody td {
+  padding: 12px;
+  vertical-align: middle;
+  border: none;
+}
+
+/* Checkbox Styling */
+.form-check-input {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.form-check-input:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.form-check-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+/* Row Selection Highlight */
+#inbox-table tbody tr.selected {
+  background-color: rgba(102, 126, 234, 0.1);
+  border-left: 4px solid #667eea;
+}
+
+/* Enhanced Action Buttons */
+.btn-sm {
+  font-size: 0.875rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+  .bulk-actions-toolbar {
+    padding: 10px 15px;
+  }
+  
+  .bulk-actions-toolbar .d-flex {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .bulk-actions-toolbar .btn-group {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  
+  .bulk-actions-toolbar .btn-group .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+/* Status color coding */
+.quick-filter-chip.active {
+  background-color: #007bff;
+  color: white;
+}
+
+/* Status color coding */
+.status-pending {
+  background-color: #fff3cd !important;
+  color: #856404 !important;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 8px;
+  display: inline-block;
+  min-width: 70px;
+  text-align: center;
+}
+
+.status-reviewed {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 8px;
+  display: inline-block;
+  min-width: 70px;
+  text-align: center;
+}
+
+.status-unsubstantial {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 8px;
+  display: inline-block;
+  min-width: 70px;
+  text-align: center;
+}
+
+.status-case-opened {
+  background-color: #d1ecf1 !important;
+  color: #0c5460 !important;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 8px;
+  display: inline-block;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* --- ULTRA-PROFESSIONAL INBOX PAGINATION & UI --- */
+.inbox-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.inbox-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+}
+
+.inbox-hero-header {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+  color: white;
+  border-radius: 1.2rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+}
+
+.inbox-hero-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+  opacity: 0.3;
+}
+
+.inbox-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.inbox-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.inbox-hero-icon {
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+.inbox-hero-stats {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inbox-stat-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  min-width: 120px;
+}
+
+.inbox-stat-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.inbox-stat-label {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.inbox-actions-bar {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.inbox-search-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.inbox-search-input {
+  flex: 1;
+  min-width: 300px;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #f8fafc;
+}
+
+.inbox-search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.inbox-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 300px;
+}
+
+.inbox-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 1.1rem;
+  z-index: 2;
+}
+
+.inbox-filter-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.inbox-filter-chip {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border: 1px solid #cbd5e1;
+  border-radius: 2rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inbox-filter-chip:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+.inbox-filter-chip.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-color: #2563eb;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.inbox-pro-table-container {
+  background: white;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.inbox-pro-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.inbox-pro-table thead {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.inbox-pro-table thead th {
+  padding: 1.25rem 1rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  text-align: left;
+  position: relative;
+}
+
+.inbox-pro-table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.inbox-pro-table thead th.sortable:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #1f2937;
+}
+
+.inbox-pro-table tbody tr {
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.inbox-pro-table tbody tr:hover {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+}
+
+.inbox-pro-table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.inbox-pro-table tbody tr.selected {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #3b82f6;
+}
+
+/* --- EMAIL THREAD STYLING --- */
+.email-row.thread-row {
+  position: relative;
+}
+
+.email-row.thread-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(135deg, var(--thread-color, #e5e7eb) 0%, var(--thread-color, #d1d5db) 100%);
+  border-radius: 0 2px 2px 0;
+}
+
+.thread-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.thread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(248,250,252,0.9) 100%);
+  border: 1px solid rgba(209,213,219,0.6);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-right: 6px;
+}
+
+.subject-with-thread {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thread-toggle-btn {
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.thread-toggle-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Thread grouping states */
+.email-row.thread-hidden {
+  display: none;
+}
+
+.email-row.thread-collapsed {
+  opacity: 0.6;
+  height: 2.5rem;
+  overflow: hidden;
+}
+
+.email-row.thread-collapsed td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Thread hover effects */
+.email-row[data-thread-id]:hover {
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
+  z-index: 2;
+}
+
+/* Color-coded thread borders */
+.email-row[data-thread-id] {
+  border-left: 4px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.email-row[data-thread-id]:hover {
+  border-left-color: #3b82f6;
+}
+
+/* Thread grouping legend */
+.thread-legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.thread-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.thread-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+}
+
+.sender-filter-controls {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.sender-filter-controls .form-label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.sender-filter-controls .form-select {
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.sender-filter-controls .form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sender-filter-controls .btn {
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.inbox-pagination-container {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.inbox-pagination-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.inbox-pagination-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.inbox-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inbox-page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.inbox-page-size-select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+}
+
+.inbox-pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.inbox-page-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  text-align: center;
+}
+
+.inbox-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+.inbox-page-btn.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.inbox-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inbox-page-ellipsis {
+  padding: 0.5rem 0.25rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.inbox-status-badge {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.inbox-status-pending {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.inbox-status-unsubstantial {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #374151;
+  border: 1px solid #6b7280;
+}
+
+.inbox-status-case-opened {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}
+
+.inbox-score-badge {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  min-width: 50px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+}
+
+.inbox-action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.inbox-action-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.inbox-action-btn.view {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.inbox-action-btn.edit {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.inbox-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.inbox-bulk-toolbar {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.15);
+  animation: slideDown 0.3s ease-out;
+}
+
+.inbox-bulk-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.inbox-bulk-selection {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.inbox-bulk-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.inbox-bulk-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.inbox-bulk-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .inbox-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .inbox-hero-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .inbox-search-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .inbox-search-wrapper {
+    min-width: unset;
+  }
+}
+
+@media (max-width: 768px) {
+  .inbox-container {
+    padding: 1rem;
+  }
+  
+  .inbox-hero-header {
+    padding: 1.5rem;
+  }
+  
+  .inbox-hero-title {
+    font-size: 1.5rem;
+  }
+  
+  .inbox-hero-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .inbox-stat-card {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .inbox-pagination-info {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .inbox-pagination-nav {
+    justify-content: center;
+  }
+  
+  .inbox-pro-table thead th,
+  .inbox-pro-table tbody td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* --- RECEIVED BY HAND TAB --- */
+#rbh-entries-table {
+  border-radius: 0.7rem;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+}
+
+#rbh-entries-table thead th {
+  background: linear-gradient(90deg, #e3eefd 0%, #f7fafd 100%);
+  color: #0a2540;
+  font-weight: 700;
+  border-bottom: 2px solid #e3eefd;
+  font-size: 1.05em;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+#rbh-entries-table td, #rbh-entries-table th {
+  vertical-align: middle;
+  border-top: none;
+  text-align: center;
+}
+#rbh-entries-table tr {
+  border-bottom: 1px solid #f0f4fa;
+}
+#rbh-entries-table tbody tr:hover {
+  background: #eaf4ff !important;
+  transition: background 0.2s;
+}
+@media (max-width: 900px) {
+  .pro-section-header { font-size: 1rem; flex-direction: column; align-items: flex-start; }
+  .pro-section-header .btn-group { margin-top: 0.5rem; }
+  .analytics-card .card-body { min-height: 180px; }
+  .pro-table th, .pro-table td { font-size: 0.95em; }
+  #rbh-entries-table thead th, #rbh-entries-table tbody td { font-size: 0.8rem; }
+}
+
+/* --- 10000x Pro UI for Analytics Tab --- */
+.analytics-card {
+  border-radius: 1.2rem;
+  box-shadow: 0 8px 40px rgba(46,139,250,0.16);
+  background: #fff;
+  transition: box-shadow 0.2s, transform 0.2s;
+  min-height: 370px;
+  position: relative;
+  overflow: visible;
+}
+.analytics-card:hover {
+  box-shadow: 0 16px 64px rgba(46,139,250,0.22);
+  transform: translateY(-4px) scale(1.02);
+  z-index: 2;
+}
+.analytics-card .card-header {
+  border-radius: 1.2rem 1.2rem 0 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  color: #fff !important;
+  font-weight: 700;
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+  box-shadow: 0 2px 8px rgba(46,139,250,0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.analytics-card .card-header.bg-info {
+  background: linear-gradient(90deg, #2563eb 0%, #4bc0c0 100%) !important;
+}
+.analytics-card .card-header.bg-secondary {
+  background: linear-gradient(90deg, #4bc0c0 0%, #ff6384 100%) !important;
+}
+.analytics-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding-bottom: 1.5rem;
+  position: relative;
+}
+.analytics-legend {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.2rem;
+  justify-content: center;
+}
+.analytics-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.98em;
+  font-weight: 500;
+  color: #0a2540;
+}
+.analytics-legend-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.3em;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(46,139,250,0.10);
+}
+.analytics-focus {
+  outline: 3px solid #2e8bfa !important;
+  box-shadow: 0 0 0 6px rgba(46,139,250,0.10) !important;
+  z-index: 10;
+}
+@media (max-width: 900px) {
+  .analytics-card .card-body { min-height: 180px; }
+}
+
+/* --- 10000x Pro UI for Data Tabs --- */
+.pro-section-header {
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+  color: #fff;
+  border-radius: 0.8rem 0.8rem 0 0;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 24px rgba(10,37,64,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pro-section-header .btn-group {
+  gap: 0.4rem;
+}
+.pro-section-header .btn {
+  font-weight: 600;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 4px rgba(22,105,210,0.07);
+  transition: background 0.15s, color 0.15s;
+}
+.pro-section-header .btn-outline-info,
+.pro-section-header .btn-outline-primary,
+.pro-section-header .btn-outline-success {
+  background: #fff;
+  color: #1669d2 !important;
+  border-color: #1669d2 !important;
+}
       var intFilter = document.getElementById('int-filter');
       if (intFilter) {
         intFilter.addEventListener('change', function(e) {

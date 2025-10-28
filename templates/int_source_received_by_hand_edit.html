@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+/* Received by Hand Add/Edit Pro Styling */
+.received-by-hand-form-pro {
+  background: #fafcff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(46,139,250,0.08);
+  padding: 2.2rem 2.5rem 1.5rem 2.5rem;
+  max-width: 700px;
+  margin: 2rem auto 0 auto;
+}
+.received-by-hand-form-pro h3 {
+  font-weight: 700;
+  color: #1669d2;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.received-by-hand-form-pro .form-label {
+  font-weight: 600;
+  color: #0a2540;
+}
+.received-by-hand-form-pro .form-control,
+.received-by-hand-form-pro .form-select {
+  border-radius: 0.5rem;
+  border: 1.5px solid #e3eefd;
+  font-size: 1.05em;
+}
+.received-by-hand-form-pro .form-control:focus,
+.received-by-hand-form-pro .form-select:focus {
+  border-color: #2e8bfa;
+  box-shadow: 0 0 0 0.1rem #2e8bfa33;
+}
+.received-by-hand-form-pro .btn-primary {
+  background: linear-gradient(90deg, #2e8bfa 0%, #0a2540 100%);
+  border: none;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  font-size: 1.1em;
+  letter-spacing: 0.01em;
+}
+.received-by-hand-form-pro .btn-primary:hover {
+  background: linear-gradient(90deg, #0a2540 0%, #2e8bfa 100%);
+}
+.received-by-hand-form-pro .input-group input[type="file"] {
+  background: #f7fafd;
+}
+.received-by-hand-form-pro .section-title {
+  font-size: 1.1em;
+  color: #2e8bfa;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.7rem;
+  letter-spacing: 0.01em;
+  border-bottom: 2px solid #e3eefd;
+  padding-bottom: 0.5rem;
+}
+.document-preview {
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+}
+@media (max-width: 700px) {
+  .received-by-hand-form-pro { padding: 1.2rem 0.7rem; }
+}
+</style>
+<div class="received-by-hand-form-pro">
+  <h3>
+    <i class="bi bi-hand-thumbs-up-fill"></i>
+    {{ entry and "Edit" or "Add" }} Received by Hand Entry
+  </h3>
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    
+    <!-- Basic Information Section -->
+    <div class="section-title">📋 Basic Information</div>
+    
+    <div class="mb-3">
+      <label class="form-label">Received Time <span class="text-danger">*</span></label>
+      <input name="received_time" type="datetime-local" class="form-control"
+             value="{% if entry and entry.received_time %}{{ entry.received_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label">Complaint Name / Submitter</label>
+      <input name="complaint_name" class="form-control" 
+             placeholder="Name of person submitting the complaint"
+             value="{{ entry.complaint_name if entry else '' }}">
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label">Contact Number / Email</label>
+      <input name="contact_number" class="form-control" 
+             placeholder="Phone number or email address"
+             value="{{ entry.contact_number if entry else '' }}">
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label">Source / How Received</label>
+      <select name="source" class="form-select">
+        <option value="">Select...</option>
+        <option value="Walk-in" {% if entry and entry.source == 'Walk-in' %}selected{% endif %}>Walk-in</option>
+        <option value="Mail" {% if entry and entry.source == 'Mail' %}selected{% endif %}>Mail</option>
+        <option value="Courier" {% if entry and entry.source == 'Courier' %}selected{% endif %}>Courier</option>
+        <option value="Hand-delivered" {% if entry and entry.source == 'Hand-delivered' %}selected{% endif %}>Hand-delivered</option>
+        <option value="Post Box" {% if entry and entry.source == 'Post Box' %}selected{% endif %}>Post Box</option>
+        <option value="Other" {% if entry and entry.source == 'Other' %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+    
+    <!-- Alleged Information Section -->
+    <div class="section-title">👤 Alleged Information</div>
+    
+    <div class="mb-3">
+      <label class="form-label">Alleged Person(s)</label>
+      <div id="alleged-persons">
+        {% if entry and entry.alleged_person %}
+          {% for alleged_person in entry.alleged_person.split(',') %}
+            <div class="input-group mb-2">
+              <input type="text" name="alleged_person[]" class="form-control" value="{{ alleged_person.strip() }}">
+              <button class="btn btn-sm btn-danger" type="button" onclick="removeAllegedPerson(this)">
+                <i class="bi bi-dash-circle"></i>
+              </button>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="input-group mb-2">
+            <input type="text" name="alleged_person[]" class="form-control" placeholder="Enter name">
+            <button class="btn btn-sm btn-danger d-none" type="button" onclick="removeAllegedPerson(this)">
+              <i class="bi bi-dash-circle"></i>
+            </button>
+          </div>
+        {% endif %}
+      </div>
+      <button class="btn btn-sm btn-success" type="button" onclick="addAllegedPerson()">
+        <i class="bi bi-plus-circle"></i> Add Person
+      </button>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label">Alleged Type / Nature</label>
+      <input name="alleged_type" class="form-control" 
+             placeholder="e.g., Fraud, Misconduct, Complaint"
+             value="{{ entry.alleged_type if entry and entry.alleged_type else '' }}">
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label">Details / Description</label>
+      <textarea name="details" class="form-control" rows="5" 
+                placeholder="Detailed description of the complaint or allegation">{{ entry.details if entry and entry.details else '' }}</textarea>
+    </div>
+    
+    <!-- Assessment Section -->
+    <div class="section-title">📊 Assessment</div>
+    
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Source Reliability (1-6)</label>
+        <input name="source_reliability" type="number" class="form-control" 
+               min="1" max="6" 
+               placeholder="1-6"
+               value="{{ entry.source_reliability if entry and entry.source_reliability else '' }}">
+        <small class="text-muted">6 = Most Reliable</small>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Content Validity (1-6)</label>
+        <input name="content_validity" type="number" class="form-control" 
+               min="1" max="6" 
+               placeholder="1-6"
+               value="{{ entry.content_validity if entry and entry.content_validity else '' }}">
+        <small class="text-muted">6 = Most Valid</small>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label">Preparer</label>
+      <input name="preparer" class="form-control" 
+             placeholder="Your name or ID"
+             value="{{ entry.preparer if entry and entry.preparer else current_user.username if current_user else '' }}">
+    </div>
+    
+    <!-- Document Upload Section -->
+    <div class="section-title">📎 Document Upload</div>
+    
+    <div class="mb-3">
+      <label class="form-label">Upload Documents (PDF, Images, Scans)</label>
+      <input name="upload_document" type="file" class="form-control" multiple 
+             accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx">
+      <small class="text-muted">
+        <i class="bi bi-info-circle"></i> 
+        Supported: PDF, Images (JPG, PNG, GIF), Word, Excel
+      </small>
+      {% if documents %}
+      <div class="document-preview mt-2">
+        <strong>Existing Documents:</strong>
+        <ul class="mb-0">
+          {% for doc in documents %}
+          <li>
+            <i class="bi bi-file-earmark-{{ doc.file_type }}"></i>
+            {{ doc.filename }}
+            <small class="text-muted">({{ doc.uploaded_at.strftime('%Y-%m-%d %H:%M') }})</small>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    
+    <!-- Submit Button -->
+    <div class="d-grid gap-2">
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="bi bi-check-circle"></i>
+        {{ entry and "Update Entry" or "Create Entry" }}
+      </button>
+      <a href="{{ url_for('int_source') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Cancel
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+function addAllegedPerson() {
+  const container = document.getElementById('alleged-persons');
+  const newField = document.createElement('div');
+  newField.className = 'input-group mb-2';
+  newField.innerHTML = `
+    <input type="text" name="alleged_person[]" class="form-control" placeholder="Enter name">
+    <button class="btn btn-sm btn-danger" type="button" onclick="removeAllegedPerson(this)">
+      <i class="bi bi-dash-circle"></i>
+    </button>
+  `;
+  container.appendChild(newField);
+}
+
+function removeAllegedPerson(btn) {
+  btn.closest('.input-group').remove();
+}
+</script>
+{% endblock %}
