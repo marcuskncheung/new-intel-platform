@@ -3652,14 +3652,14 @@ def int_analytics():
             
             int_reference_data.append({
                 'int_reference': case.int_reference,
-                'status': case.status or 'Unknown',
+                'status': case.case_status or 'Unknown',
                 'total_items': total_items,
                 'email_count': email_count,
                 'whatsapp_count': whatsapp_count,
                 'patrol_count': patrol_count,
                 'surveillance_count': surveillance_count,
                 'alleged_subjects': ', '.join(list(alleged_subjects)[:5]),  # First 5 subjects
-                'alleged_nature': case.alleged_nature or 'Not specified',
+                'alleged_nature': case.alleged_misconduct_type or 'Not specified',
                 'created_date': case.created_at,
                 'date_of_receipt': case.date_of_receipt
             })
@@ -3682,7 +3682,7 @@ def int_analytics():
         # Status breakdown
         status_breakdown = {}
         for case in all_cases:
-            status = case.status or 'Unknown'
+            status = case.case_status or 'Unknown'
             status_breakdown[status] = status_breakdown.get(status, 0) + 1
         
         # Sort INT references by total items (most active first)
@@ -3705,6 +3705,99 @@ def int_analytics():
         traceback.print_exc()
         flash('Error loading INT Analytics. Please check logs.', 'danger')
         return redirect(url_for('int_source'))
+
+
+@app.route('/int_reference_detail/<int_reference>')
+@login_required
+def int_reference_detail(int_reference):
+    """
+    INT Reference Detail View - Shows all intelligence entries linked to a specific INT reference
+    Displays Emails, WhatsApp, Online Patrol, and Surveillance entries for one INT
+    """
+    try:
+        # Get the CaseProfile for this INT reference
+        case = CaseProfile.query.filter_by(int_reference=int_reference).first()
+        
+        if not case:
+            flash(f'INT reference {int_reference} not found', 'danger')
+            return redirect(url_for('int_analytics'))
+        
+        # Collect all intelligence entries linked to this INT
+        intelligence_items = []
+        
+        # Get emails linked to this INT reference
+        if hasattr(case, 'emails'):
+            for email in case.emails:
+                intelligence_items.append({
+                    'type': 'email',
+                    'id': email.id,
+                    'date': email.received,
+                    'subject': email.subject,
+                    'sender': email.sender,
+                    'status': email.status or 'Pending',
+                    'score': (email.source_reliability or 0) + (email.content_validity or 0),
+                    'entry': email
+                })
+        
+        # Get WhatsApp entries linked to this INT reference
+        if hasattr(case, 'whatsapp_entries'):
+            for wa in case.whatsapp_entries:
+                intelligence_items.append({
+                    'type': 'whatsapp',
+                    'id': wa.id,
+                    'date': wa.received_time,
+                    'subject': wa.complaint_name,
+                    'sender': wa.phone_number,
+                    'status': 'Case Opened' if wa.intelligence_case_opened else 'Pending',
+                    'score': (wa.source_reliability or 0) + (wa.content_validity or 0),
+                    'entry': wa
+                })
+        
+        # Get Online Patrol entries linked to this INT reference
+        if hasattr(case, 'patrol_entries'):
+            for patrol in case.patrol_entries:
+                intelligence_items.append({
+                    'type': 'patrol',
+                    'id': patrol.id,
+                    'date': patrol.complaint_time,
+                    'subject': patrol.sender,
+                    'sender': patrol.source,
+                    'status': patrol.status or 'Pending',
+                    'score': (patrol.source_reliability or 0) + (patrol.content_validity or 0),
+                    'entry': patrol
+                })
+        
+        # Get Surveillance entries linked to this INT reference
+        if hasattr(case, 'surveillance_entries'):
+            for surv in case.surveillance_entries:
+                intelligence_items.append({
+                    'type': 'surveillance',
+                    'id': surv.id,
+                    'date': surv.date,
+                    'subject': surv.operation_number,
+                    'sender': surv.venue,
+                    'status': 'Adverse Finding' if surv.has_adverse_finding else 'Normal',
+                    'score': 0,  # Surveillance doesn't use scoring
+                    'entry': surv
+                })
+        
+        # Sort by date (newest first)
+        intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
+        
+        return render_template(
+            'int_reference_detail.html',
+            int_reference=int_reference,
+            case=case,
+            intelligence_items=intelligence_items,
+            total_items=len(intelligence_items)
+        )
+        
+    except Exception as e:
+        print(f"[ERROR] int_reference_detail failed: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error loading INT reference {int_reference}. Please check logs.', 'danger')
+        return redirect(url_for('int_analytics'))
 
 
 # --- Add this route to fix url_for('index') errors in your templates
