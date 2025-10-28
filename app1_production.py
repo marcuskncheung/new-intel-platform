@@ -883,6 +883,7 @@ class Email(db.Model):
     
     # Relationships
     attachments = db.relationship('Attachment', backref='email', lazy=True, cascade='all, delete-orphan')
+    caseprofile = db.relationship('CaseProfile', foreign_keys=[caseprofile_id], backref='emails', lazy=True)
     
     # Case Management Properties
     @property

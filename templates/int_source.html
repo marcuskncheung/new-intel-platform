@@ -1685,6 +1685,21 @@
               </select>
             </div>
             
+            <!-- Sender Filter -->
+            <div class="col-md-2">
+              <select class="form-select form-select-sm" id="sender-filter">
+                <option value="">All Senders</option>
+                {% if emails %}
+                  {% set unique_senders = emails|map(attribute='sender')|unique|list %}
+                  {% for sender in unique_senders|sort %}
+                    {% if sender %}
+                    <option value="{{ sender }}">{{ sender }}</option>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+            
             <!-- INT Reference Filter -->
             <div class="col-md-2">
               <select class="form-select form-select-sm" id="int-filter">
@@ -2787,6 +2802,17 @@
         });
       }
       
+      // Sender filter
+      var senderFilter = document.getElementById('sender-filter');
+      if (senderFilter) {
+        senderFilter.addEventListener('change', function(e) {
+          activeFilters.sender = e.target.value;
+          applyAllFilters();
+          updateResultsSummary();
+          updateActiveFilters();
+        });
+      }
+      
       // INT Reference filter
       var intFilter = document.getElementById('int-filter');
       if (intFilter) {
@@ -2918,6 +2944,13 @@
           var statusCell = row.cells[7]; // Status column
           var statusText = statusCell ? statusCell.textContent.trim() : '';
           isVisible = statusText === activeFilters.status;
+        }
+        
+        // Apply sender filter
+        if (activeFilters.sender && isVisible) {
+          var senderCell = row.cells[2]; // Sender column
+          var senderText = senderCell ? senderCell.textContent.trim() : '';
+          isVisible = senderText === activeFilters.sender;
         }
         
         // Apply INT Reference filter
@@ -3205,6 +3238,9 @@
       
       var statusFilter = document.getElementById('status-filter');
       if (statusFilter) statusFilter.value = '';
+      
+      var senderFilter = document.getElementById('sender-filter');
+      if (senderFilter) senderFilter.value = '';
       
       var intFilter = document.getElementById('int-filter');
       if (intFilter) intFilter.value = '';
@@ -3589,6 +3625,13 @@
           isVisible = statusText === activeFilters.status;
         }
         
+        // Apply sender filter
+        if (activeFilters.sender && isVisible) {
+          var senderCell = row.cells[2]; // Sender column
+          var senderText = senderCell ? senderCell.textContent.trim() : '';
+          isVisible = senderText === activeFilters.sender;
+        }
+        
         // Apply INT Reference filter
         if (activeFilters.intReference && isVisible) {
           var intCell = row.cells[1]; // INT Reference column (column 2)
@@ -3874,6 +3917,9 @@
       
       var statusFilter = document.getElementById('status-filter');
       if (statusFilter) statusFilter.value = '';
+      
+      var senderFilter = document.getElementById('sender-filter');
+      if (senderFilter) senderFilter.value = '';
       
       var intFilter = document.getElementById('int-filter');
       if (intFilter) intFilter.value = '';
