@@ -6719,33 +6719,51 @@ def online_patrol_export(fmt):
 @login_required
 def add_online_patrol():
     if request.method == "POST":
-        sender = request.form.get("sender")
-        complaint_time = request.form.get("complaint_time")
+        # NEW PROFESSIONAL FIELDS
+        discovered_by = request.form.get("discovered_by")
+        discovery_time = request.form.get("discovery_time")
+        source_time = request.form.get("source_time")
         source = request.form.get("source")
-        status = request.form.get("status")
         details = request.form.get("details")
-        alleged_person = request.form.getlist("alleged_person[]")  # Support multiple persons
-        # Filter out empty persons and join with commas
+        
+        # ALLEGED PERSON (multiple)
+        alleged_person = request.form.getlist("alleged_person[]")
         filtered_persons = [person.strip() for person in alleged_person if person.strip()]
         alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
+        
+        # ALLEGED NATURE (JSON array)
+        alleged_nature = request.form.get("alleged_nature", "[]")
+        
+        # ASSESSMENT FIELDS
         source_reliability = request.form.get("source_reliability")
         content_validity = request.form.get("content_validity")
-        # Convert complaint_time to datetime if present
-        dt = None
-        if complaint_time:
-            try:
-                dt = datetime.strptime(complaint_time, "%Y-%m-%dT%H:%M")
-            except Exception:
-                dt = None
+        reviewer_name = request.form.get("reviewer_name")
+        reviewer_comment = request.form.get("reviewer_comment")
+        
+        # Convert datetime strings
+        discovery_dt = None
+        source_dt = None
+        try:
+            if discovery_time:
+                discovery_dt = datetime.strptime(discovery_time, "%Y-%m-%dT%H:%M")
+            if source_time:
+                source_dt = datetime.strptime(source_time, "%Y-%m-%dT%H:%M")
+        except Exception as e:
+            print(f"[PATROL] Datetime parse error: {e}")
+        
+        # Create entry with NEW fields
         entry = OnlinePatrolEntry(
-            sender=sender,
-            complaint_time=dt,
+            discovered_by=discovered_by,
+            discovery_time=discovery_dt,
+            source_time=source_dt,
             source=source,
-            status=status,
             details=details,
-            alleged_person=alleged_person_str,  # 🆕 Added
+            alleged_person=alleged_person_str,
+            alleged_nature=alleged_nature,
             source_reliability=int(source_reliability) if source_reliability else None,
-            content_validity=int(content_validity) if content_validity else None
+            content_validity=int(content_validity) if content_validity else None,
+            reviewer_name=reviewer_name,
+            reviewer_comment=reviewer_comment
         )
         db.session.add(entry)
         db.session.flush()  # Get entry.id before creating CaseProfile
@@ -6761,7 +6779,26 @@ def add_online_patrol():
                 print(f"[UNIFIED INT] Online Patrol entry {entry.id} linked to {case_profile.index}")
         except Exception as e:
             print(f"[UNIFIED INT] Error linking Online Patrol entry: {e}")
-            # Continue anyway - entry will use fallback INT reference
+        
+        # 📸 HANDLE PHOTO UPLOADS
+        photos = request.files.getlist('photos[]')
+        uploaded_count = 0
+        for photo_file in photos:
+            if photo_file and photo_file.filename:
+                try:
+                    photo_data = photo_file.read()
+                    photo_entry = OnlinePatrolPhoto(
+                        online_patrol_id=entry.id,
+                        filename=photo_file.filename,
+                        image_data=photo_data,
+                        uploaded_by=f"USER-{current_user.username if current_user else 'SYSTEM'}",
+                        caption=None
+                    )
+                    db.session.add(photo_entry)
+                    uploaded_count += 1
+                    print(f"[PATROL PHOTOS] Uploaded: {photo_file.filename} ({len(photo_data)} bytes)")
+                except Exception as photo_error:
+                    print(f"[PATROL PHOTOS] Error uploading {photo_file.filename}: {photo_error}")
         
         db.session.commit()
         
@@ -6813,13 +6850,13 @@ def add_online_patrol():
                         except Exception as link_error:
                             print(f"[PATROL AUTOMATION] ⚠️ Could not create universal link: {link_error}")
                 
-                flash(f"Online Patrol entry created and {len(alleged_persons)} POI profile(s) processed.", "success")
+                flash(f"✅ Online Patrol entry created with {uploaded_count} photo(s) and {len(alleged_persons)} POI profile(s) processed.", "success")
                 
             except Exception as automation_error:
                 print(f"[PATROL AUTOMATION] ❌ Error in POI automation: {automation_error}")
-                flash("Online Patrol entry created, but POI automation had an error.", "warning")
+                flash(f"✅ Online Patrol entry created with {uploaded_count} photo(s), but POI automation had an error.", "warning")
         else:
-            flash("Online Patrol entry created", "success")
+            flash(f"✅ Online Patrol entry created with {uploaded_count} photo(s).", "success")
         
         return redirect(url_for("int_source"))
     return render_template("int_source_online_patrol_edit.html", entry=None)

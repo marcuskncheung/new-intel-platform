@@ -6,7 +6,7 @@
   border-radius: 1rem;
   box-shadow: 0 4px 24px rgba(46,139,250,0.08);
   padding: 2.2rem 2.5rem 1.5rem 2.5rem;
-  max-width: 600px;
+  max-width: 800px;
   margin: 2rem auto 0 auto;
 }
 .patrol-form-pro h3 {
@@ -49,37 +49,141 @@
   margin-bottom: 0.7rem;
   letter-spacing: 0.01em;
 }
+.photo-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.photo-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border: 2px solid #e3eefd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-preview .remove-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 @media (max-width: 700px) {
   .patrol-form-pro { padding: 1.2rem 0.7rem; }
 }
 </style>
 <div class="patrol-form-pro">
   <h3>{{ entry and "Edit" or "Add" }} Online Patrol Entry</h3>
-  <form method="post" class="mb-4">
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    
+    <!-- Professional Fields Section -->
+    <div class="section-title">📍 Discovery Information</div>
+    
     <div class="mb-3">
-      <label class="form-label">Sender</label>
-      <input name="sender" class="form-control" value="{{ entry.sender if entry else '' }}">
+      <label class="form-label">Platform/Source <span class="text-danger">*</span></label>
+      <select name="source" class="form-select" required>
+        <option value="">Select Platform...</option>
+        <option value="Instagram" {% if entry and entry.source == 'Instagram' %}selected{% endif %}>Instagram</option>
+        <option value="WeChat" {% if entry and entry.source == 'WeChat' %}selected{% endif %}>WeChat</option>
+        <option value="Facebook" {% if entry and entry.source == 'Facebook' %}selected{% endif %}>Facebook</option>
+        <option value="Twitter/X" {% if entry and entry.source == 'Twitter/X' %}selected{% endif %}>Twitter/X</option>
+        <option value="Forum" {% if entry and entry.source == 'Forum' %}selected{% endif %}>Forum</option>
+        <option value="Website" {% if entry and entry.source == 'Website' %}selected{% endif %}>Website</option>
+        <option value="Other" {% if entry and entry.source == 'Other' %}selected{% endif %}>Other</option>
+      </select>
     </div>
+    
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Post Time <span class="text-danger">*</span></label>
+        <small class="text-muted d-block">When was the post originally created/published?</small>
+        <input name="source_time" type="datetime-local" class="form-control"
+               value="{% if entry and entry.source_time %}{{ entry.source_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+      </div>
+      
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Discovery Time <span class="text-danger">*</span></label>
+        <small class="text-muted d-block">When did we log/discover it?</small>
+        <input name="discovery_time" type="datetime-local" class="form-control"
+               value="{% if entry and entry.discovery_time %}{{ entry.discovery_time.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ now().strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+      </div>
+    </div>
+    
     <div class="mb-3">
-      <label class="form-label">Complaint Time</label>
-      <input name="complaint_time" type="datetime-local" class="form-control"
-             value="{% if entry and entry.complaint_time %}{{ entry.complaint_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+      <label class="form-label">Discovered By <span class="text-danger">*</span></label>
+      <small class="text-muted d-block">Intelligence team member who found this</small>
+      <input name="discovered_by" class="form-control" value="{{ entry.discovered_by if entry else '' }}" required placeholder="Enter your name">
     </div>
+    
     <div class="mb-3">
-      <label class="form-label">Source</label>
-      <input name="source" class="form-control" value="{{ entry.source if entry else '' }}">
+      <label class="form-label">Post Details/Description</label>
+      <textarea name="details" class="form-control" rows="4" placeholder="Describe the suspicious post content...">{{ entry.details if entry else '' }}</textarea>
     </div>
+    
+    <!-- Photo Upload Section -->
+    <div class="section-title">📸 Photo Evidence</div>
     <div class="mb-3">
-      <label class="form-label">Status</label>
-      <input name="status" class="form-control" value="{{ entry.status if entry else '' }}">
+      <label class="form-label">Upload Photos/Screenshots</label>
+      <small class="text-muted d-block">Upload screenshots or photos of suspicious posts (JPEG, PNG, PDF)</small>
+      <input type="file" name="photos[]" class="form-control" multiple accept="image/*,application/pdf" id="photoInput" onchange="previewPhotos(event)">
+      <div id="photoPreviewContainer" class="photo-preview-container"></div>
     </div>
+    
+    <!-- Alleged Person Section -->
+    <div class="section-title">👤 Alleged Person(s)</div>
     <div class="mb-3">
-      <label class="form-label">Details</label>
-      <textarea name="details" class="form-control" rows="3">{{ entry.details if entry else '' }}</textarea>
+      <label class="form-label">Alleged Person(s)</label>
+      <small class="text-muted d-block">Add suspected individuals (click "Add Person" for multiple)</small>
+      <div id="alleged-persons-container">
+        {% if entry and entry.alleged_person %}
+          {% set persons = entry.alleged_person.split(',') %}
+          {% for person in persons %}
+            <div class="input-group mb-2 alleged-person-row">
+              <input type="text" name="alleged_person[]" class="form-control" value="{{ person.strip() }}" placeholder="Enter person name">
+              <button type="button" class="btn btn-outline-danger" onclick="removeAllegedPerson(this)"><i class="bi bi-trash"></i></button>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="input-group mb-2 alleged-person-row">
+            <input type="text" name="alleged_person[]" class="form-control" placeholder="Enter person name">
+            <button type="button" class="btn btn-outline-danger" onclick="removeAllegedPerson(this)"><i class="bi bi-trash"></i></button>
+          </div>
+        {% endif %}
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addAllegedPerson()">
+        <i class="bi bi-plus-circle"></i> Add Person
+      </button>
     </div>
+    
+    <!-- Alleged Nature Section -->
+    <div class="section-title">⚖️ Alleged Nature</div>
+    <div class="mb-3">
+      <label class="form-label">Alleged Type / Nature</label>
+      <small class="text-muted d-block">Select one or more allegation categories (searchable)</small>
+      {% set field_name = 'alleged_nature' %}
+      {% set current_value = entry.alleged_nature if entry and entry.alleged_nature else '[]' %}
+      {% include 'alleged_nature_multi_select.html' %}
+    </div>
+    
     <div class="section-title">Assessment</div>
     <div class="mb-3">
-      <label class="form-label">Source Reliability</label>
+      <label class="form-label">Source Reliability <span class="text-danger">*</span></label>
       <select name="source_reliability" class="form-select" required>
         <option value="">Select...</option>
         <option value="5" {% if entry and entry.source_reliability == 5 %}selected{% endif %}>5 - Completely Reliable</option>
@@ -90,7 +194,7 @@
       </select>
     </div>
     <div class="mb-3">
-      <label class="form-label">Content Validity</label>
+      <label class="form-label">Content Validity <span class="text-danger">*</span></label>
       <select name="content_validity" class="form-select" required>
         <option value="">Select...</option>
         <option value="5" {% if entry and entry.content_validity == 5 %}selected{% endif %}>5 - Confirmed True</option>
@@ -101,12 +205,12 @@
       </select>
     </div>
     <div class="mb-3">
-      <label class="form-label">Reviewer Name</label>
-      <input type="text" name="reviewer_name" value="{{ entry.reviewer_name or '' }}" class="form-control" placeholder="Enter reviewer name">
+      <label class="form-label">Reviewer Name <span class="text-danger">*</span></label>
+      <input type="text" name="reviewer_name" value="{{ entry.reviewer_name or '' }}" class="form-control" placeholder="Enter reviewer name" required>
     </div>
     <div class="mb-3">
-      <label class="form-label">Reviewer Comment</label>
-      <textarea name="reviewer_comment" class="form-control" rows="2" placeholder="Enter reviewer comment">{{ entry.reviewer_comment or '' }}</textarea>
+      <label class="form-label">Reviewer Comment <span class="text-danger">*</span></label>
+      <textarea name="reviewer_comment" class="form-control" rows="2" placeholder="Enter reviewer comment" required>{{ entry.reviewer_comment or '' }}</textarea>
     </div>
     <button class="btn btn-success w-100" type="submit">{{ entry and "Update" or "Save" }}</button>
     {% if entry %}
@@ -126,4 +230,84 @@
     {% endif %}
   </form>
 </div>
+
+<!-- Include Alleged Nature Multi-Select JavaScript -->
+{% include 'alleged_nature_multi_select_js.html' %}
+
+<script>
+// Photo Preview Function
+function previewPhotos(event) {
+  const container = document.getElementById('photoPreviewContainer');
+  container.innerHTML = '';
+  
+  const files = event.target.files;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const div = document.createElement('div');
+        div.className = 'photo-preview';
+        div.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <button type="button" class="remove-btn" onclick="removePhoto(${i})">×</button>
+        `;
+        container.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+      const div = document.createElement('div');
+      div.className = 'photo-preview';
+      div.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa;">
+          <i class="bi bi-file-pdf" style="font-size: 48px; color: #dc3545;"></i>
+        </div>
+        <button type="button" class="remove-btn" onclick="removePhoto(${i})">×</button>
+      `;
+      container.appendChild(div);
+    }
+  }
+}
+
+function removePhoto(index) {
+  const input = document.getElementById('photoInput');
+  const dt = new DataTransfer();
+  const files = input.files;
+  
+  for (let i = 0; i < files.length; i++) {
+    if (i !== index) {
+      dt.items.add(files[i]);
+    }
+  }
+  
+  input.files = dt.files;
+  previewPhotos({ target: input });
+}
+
+// Alleged Person Functions
+function addAllegedPerson() {
+  const container = document.getElementById('alleged-persons-container');
+  const newRow = document.createElement('div');
+  newRow.className = 'input-group mb-2 alleged-person-row';
+  newRow.innerHTML = `
+    <input type="text" name="alleged_person[]" class="form-control" placeholder="Enter person name">
+    <button type="button" class="btn btn-outline-danger" onclick="removeAllegedPerson(this)"><i class="bi bi-trash"></i></button>
+  `;
+  container.appendChild(newRow);
+}
+
+function removeAllegedPerson(button) {
+  const container = document.getElementById('alleged-persons-container');
+  const rows = container.querySelectorAll('.alleged-person-row');
+  
+  // Keep at least one row
+  if (rows.length > 1) {
+    button.closest('.alleged-person-row').remove();
+  } else {
+    // Clear the input instead of removing
+    button.closest('.alleged-person-row').querySelector('input').value = '';
+  }
+}
+</script>
 {% endblock %}

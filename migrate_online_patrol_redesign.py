@@ -65,7 +65,13 @@ def migrate_online_patrol_redesign():
             new_columns = {
                 'discovered_by': "ALTER TABLE online_patrol_entry ADD COLUMN discovered_by VARCHAR(255)",
                 'discovery_time': "ALTER TABLE online_patrol_entry ADD COLUMN discovery_time TIMESTAMP",
-                'source_time': "ALTER TABLE online_patrol_entry ADD COLUMN source_time TIMESTAMP"
+                'source_time': "ALTER TABLE online_patrol_entry ADD COLUMN source_time TIMESTAMP",
+                'alleged_nature': "ALTER TABLE online_patrol_entry ADD COLUMN alleged_nature TEXT",
+                'alleged_subject_english': "ALTER TABLE online_patrol_entry ADD COLUMN alleged_subject_english TEXT",
+                'alleged_subject_chinese': "ALTER TABLE online_patrol_entry ADD COLUMN alleged_subject_chinese TEXT",
+                'allegation_summary': "ALTER TABLE online_patrol_entry ADD COLUMN allegation_summary TEXT",
+                'license_numbers_json': "ALTER TABLE online_patrol_entry ADD COLUMN license_numbers_json TEXT",
+                'intermediary_types_json': "ALTER TABLE online_patrol_entry ADD COLUMN intermediary_types_json TEXT"
             }
             
             for col_name, sql in new_columns.items():
