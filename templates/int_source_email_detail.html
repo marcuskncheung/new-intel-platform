@@ -201,19 +201,15 @@
                     <label class="form-label text-primary"><strong>⚖️ Allegation Type(s)</strong></label>
                     <div class="form-control-plaintext bg-light p-2 rounded">
                       {% if email.alleged_nature %}
-                        {% try %}
-                          {% set nature_list = email.alleged_nature | from_json %}
-                          {% if nature_list is iterable and nature_list is not string %}
-                            {% for nature in nature_list %}
-                              <span class="badge bg-secondary me-1 mb-1">{{ nature }}</span>
-                            {% endfor %}
-                            <small class="text-muted d-block mt-1">({{ nature_list | length }} categories selected)</small>
-                          {% else %}
-                            {{ email.alleged_nature }}
-                          {% endif %}
-                        {% except %}
+                        {% set nature_list = email.alleged_nature | from_json %}
+                        {% if nature_list and nature_list is iterable and nature_list is not string %}
+                          {% for nature in nature_list %}
+                            <span class="badge bg-secondary me-1 mb-1">{{ nature }}</span>
+                          {% endfor %}
+                          <small class="text-muted d-block mt-1">({{ nature_list | length }} categories selected)</small>
+                        {% else %}
                           {{ email.alleged_nature }}
-                        {% endtry %}
+                        {% endif %}
                       {% else %}
                         Not classified
                       {% endif %}

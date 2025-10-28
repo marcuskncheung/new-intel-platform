@@ -3636,47 +3636,60 @@ def int_source():
     received_by_hand_data = ReceivedByHandEntry.query.order_by(ReceivedByHandEntry.id.desc()).all()
 
     # ------------------------------
-    # Build data for Analytics charts
+    # Build data for Analytics charts - FIXED VERSION
     # ------------------------------
     from collections import Counter
+    
+    try:
+        # 1. Surveillance vs Mystery Shopping operations
+        surv_counter = Counter((s.operation_type or "Unknown") for s in surveillance_data if s is not None)
+        op_type_labels = ["Surveillance", "Mystery Shopping"]
+        op_type_values = [
+            surv_counter.get("Surveillance", 0),
+            surv_counter.get("Mystery Shopping", 0)
+        ]
 
-    # 1. Surveillance vs Mystery Shopping operations
-    surv_counter = Counter((s.operation_type or "Unknown") for s in surveillance_data)
-    op_type_labels = ["Surveillance", "Mystery Shopping"]
-    op_type_values = [
-        surv_counter.get("Surveillance", 0),
-        surv_counter.get("Mystery Shopping", 0)
-    ]
+        # 2. WhatsApp entries by alleged type (label shows new/total)
+        wa_total_counter = Counter((w.alleged_type or "Unknown") for w in whatsapp_data if w is not None)
+        new_wa_entries = [
+            w for w in whatsapp_data
+            if w is not None and (w.source_reliability is None or w.content_validity is None)
+        ]
+        wa_new_counter = Counter((w.alleged_type or "Unknown") for w in new_wa_entries if w is not None)
 
-    # 2. WhatsApp entries by alleged type (label shows new/total)
-    wa_total_counter = Counter((w.alleged_type or "Unknown") for w in whatsapp_data)
-    new_wa_entries = [
-        w for w in whatsapp_data
-        if (w.source_reliability is None or w.content_validity is None)
-    ]
-    wa_new_counter = Counter((w.alleged_type or "Unknown") for w in new_wa_entries)
+        wa_type_labels = [
+            f"{label} ({wa_new_counter.get(label, 0)}/{wa_total_counter[label]})"
+            for label in wa_total_counter.keys()
+        ]
+        wa_type_values = [wa_total_counter[label] for label in wa_total_counter.keys()]
 
-    wa_type_labels = [
-        f"{label} ({wa_new_counter.get(label, 0)}/{wa_total_counter[label]})"
-        for label in wa_total_counter.keys()
-    ]
-    wa_type_values = [wa_total_counter[label] for label in wa_total_counter.keys()]
+        # 3. Inbox emails - new vs reviewed
+        total_emails = len(emails)
+        new_email_count = sum(
+            1
+            for e in emails
+            if e is not None and (e.source_reliability is None or e.content_validity is None)
+        )
+        inbox_status_labels = ["New", "Reviewed"]
+        inbox_status_values = [new_email_count, total_emails - new_email_count]
 
-    # 3. Inbox emails - new vs reviewed
-    total_emails = len(emails)
-    new_email_count = sum(
-        1
-        for e in emails
-        if e.source_reliability is None or e.content_validity is None
-    )
-    inbox_status_labels = ["New", "Reviewed"]
-    inbox_status_values = [new_email_count, total_emails - new_email_count]
+        print(f"[DEBUG] Analytics data - Total: {total_emails}, New: {new_email_count}, Reviewed: {total_emails - new_email_count}")
 
-    print(f"[DEBUG] Analytics data - Total: {total_emails}, New: {new_email_count}, Reviewed: {total_emails - new_email_count}")
-
-    # Placeholder arrays (template currently ignores these)
-    status_labels = []
-    status_values = []
+        # Placeholder arrays for additional charts
+        status_labels = []
+        status_values = []
+        
+    except Exception as e:
+        print(f"[DEBUG] Error building analytics data: {e}")
+        # Fallback to empty arrays if analytics calculation fails
+        op_type_labels = []
+        op_type_values = []
+        wa_type_labels = []
+        wa_type_values = []
+        inbox_status_labels = []
+        inbox_status_values = []
+        status_labels = []
+        status_values = []
     
     # Get unique INT references for the filter dropdown
     unique_int_references = []
@@ -3713,94 +3726,11 @@ def int_source():
 @login_required
 def int_analytics():
     """
-    INT Analytics Dashboard - Comprehensive view of ALL intelligence sources grouped by INT reference
-    Shows detailed breakdown of Emails, WhatsApp, Online Patrol, and Surveillance entries
+    🚫 INT Analytics Dashboard - DISABLED
+    This dashboard has been disabled and will redirect to the main intelligence source page.
     """
-    try:
-        # Get all CaseProfiles with INT references
-        all_cases = CaseProfile.query.filter(CaseProfile.int_reference.isnot(None)).order_by(CaseProfile.int_reference).all()
-        
-        # Build comprehensive INT reference data
-        int_reference_data = []
-        total_emails = 0
-        total_whatsapp = 0
-        total_patrol = 0
-        total_surveillance = 0
-        
-        for case in all_cases:
-            # Count items from each source linked to this INT
-            # Note: CaseProfile has one-to-one relationships, so each INT has ONE source item
-            email_count = 1 if case.email and case.source_type == 'EMAIL' else 0
-            whatsapp_count = 1 if case.whatsapp and case.source_type == 'WHATSAPP' else 0
-            patrol_count = 1 if case.patrol and case.source_type == 'PATROL' else 0
-            surveillance_count = 0  # No surveillance relationship in CaseProfile yet
-            
-            total_items = email_count + whatsapp_count + patrol_count + surveillance_count
-            
-            # Get alleged subjects from the linked source
-            alleged_subjects = set()
-            if case.email and case.source_type == 'EMAIL':
-                email = case.email
-                if email.alleged_subject_english:
-                    alleged_subjects.update([s.strip() for s in email.alleged_subject_english.split(',') if s.strip()])
-                if email.alleged_subject_chinese:
-                    alleged_subjects.update([s.strip() for s in email.alleged_subject_chinese.split(',') if s.strip()])
-            
-            int_reference_data.append({
-                'int_reference': case.int_reference,
-                'status': case.case_status or 'Unknown',
-                'total_items': total_items,
-                'email_count': email_count,
-                'whatsapp_count': whatsapp_count,
-                'patrol_count': patrol_count,
-                'surveillance_count': surveillance_count,
-                'alleged_subjects': ', '.join(list(alleged_subjects)[:5]),  # First 5 subjects
-                'alleged_nature': case.alleged_misconduct_type or 'Not specified',
-                'created_date': case.created_at,
-                'date_of_receipt': case.date_of_receipt
-            })
-            
-            total_emails += email_count
-            total_whatsapp += whatsapp_count
-            total_patrol += patrol_count
-            total_surveillance += surveillance_count
-        
-        # Calculate statistics
-        stats = {
-            'total_int_references': len(all_cases),
-            'total_emails': total_emails,
-            'total_whatsapp': total_whatsapp,
-            'total_patrol': total_patrol,
-            'total_surveillance': total_surveillance,
-            'total_items': total_emails + total_whatsapp + total_patrol + total_surveillance
-        }
-        
-        # Status breakdown
-        status_breakdown = {}
-        for case in all_cases:
-            status = case.case_status or 'Unknown'
-            status_breakdown[status] = status_breakdown.get(status, 0) + 1
-        
-        # Sort INT references by total items (most active first)
-        int_reference_data.sort(key=lambda x: x['total_items'], reverse=True)
-        
-        # Calculate average items per INT
-        stats['avg_items_per_int'] = stats['total_items'] / len(all_cases) if len(all_cases) > 0 else 0
-        
-        return render_template(
-            'int_analytics.html',
-            stats=stats,
-            int_details=int_reference_data,  # Template expects 'int_details'
-            int_reference_data=int_reference_data,  # Also provide as int_reference_data for compatibility
-            status_breakdown=status_breakdown
-        )
-        
-    except Exception as e:
-        print(f"[ERROR] int_analytics failed: {e}")
-        import traceback
-        traceback.print_exc()
-        flash('Error loading INT Analytics. Please check logs.', 'danger')
-        return redirect(url_for('int_source'))
+    flash('INT Analytics dashboard is currently disabled.', 'warning')
+    return redirect(url_for('int_source'))
 
 
 @app.route('/int_reference_detail/<int_reference>')
