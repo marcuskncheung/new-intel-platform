@@ -682,6 +682,21 @@ def from_json_filter(data):
     except:
         return []
 
+@app.template_filter('date_format')
+def date_format_filter(value, format='%Y-%m-%d %H:%M:%S'):
+    """Template filter to format datetime values"""
+    from datetime import datetime
+    if value == 'now' or value is None:
+        return get_hk_time().strftime(format)
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except:
+            return value
+    if isinstance(value, datetime):
+        return value.strftime(format)
+    return value
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -3634,21 +3649,22 @@ def int_analytics():
         
         for case in all_cases:
             # Count items from each source linked to this INT
-            email_count = len(case.emails) if hasattr(case, 'emails') else 0
-            whatsapp_count = len(case.whatsapp_entries) if hasattr(case, 'whatsapp_entries') else 0
-            patrol_count = len(case.patrol_entries) if hasattr(case, 'patrol_entries') else 0
-            surveillance_count = len(case.surveillance_entries) if hasattr(case, 'surveillance_entries') else 0
+            # Note: CaseProfile has one-to-one relationships, so each INT has ONE source item
+            email_count = 1 if case.email and case.source_type == 'EMAIL' else 0
+            whatsapp_count = 1 if case.whatsapp and case.source_type == 'WHATSAPP' else 0
+            patrol_count = 1 if case.patrol and case.source_type == 'PATROL' else 0
+            surveillance_count = 0  # No surveillance relationship in CaseProfile yet
             
             total_items = email_count + whatsapp_count + patrol_count + surveillance_count
             
-            # Get alleged subjects from all sources
+            # Get alleged subjects from the linked source
             alleged_subjects = set()
-            if hasattr(case, 'emails'):
-                for email in case.emails:
-                    if email.alleged_subject_english:
-                        alleged_subjects.update([s.strip() for s in email.alleged_subject_english.split(',') if s.strip()])
-                    if email.alleged_subject_chinese:
-                        alleged_subjects.update([s.strip() for s in email.alleged_subject_chinese.split(',') if s.strip()])
+            if case.email and case.source_type == 'EMAIL':
+                email = case.email
+                if email.alleged_subject_english:
+                    alleged_subjects.update([s.strip() for s in email.alleged_subject_english.split(',') if s.strip()])
+                if email.alleged_subject_chinese:
+                    alleged_subjects.update([s.strip() for s in email.alleged_subject_chinese.split(',') if s.strip()])
             
             int_reference_data.append({
                 'int_reference': case.int_reference,
@@ -3725,61 +3741,49 @@ def int_reference_detail(int_reference):
         # Collect all intelligence entries linked to this INT
         intelligence_items = []
         
-        # Get emails linked to this INT reference
-        if hasattr(case, 'emails'):
-            for email in case.emails:
-                intelligence_items.append({
-                    'type': 'email',
-                    'id': email.id,
-                    'date': email.received,
-                    'subject': email.subject,
-                    'sender': email.sender,
-                    'status': email.status or 'Pending',
-                    'score': (email.source_reliability or 0) + (email.content_validity or 0),
-                    'entry': email
-                })
+        # CaseProfile has one-to-one relationships, so check which source this INT is linked to
+        if case.email and case.source_type == 'EMAIL':
+            email = case.email
+            intelligence_items.append({
+                'type': 'email',
+                'id': email.id,
+                'date': email.received,
+                'subject': email.subject,
+                'sender': email.sender,
+                'status': email.status or 'Pending',
+                'score': (email.source_reliability or 0) + (email.content_validity or 0),
+                'entry': email
+            })
         
-        # Get WhatsApp entries linked to this INT reference
-        if hasattr(case, 'whatsapp_entries'):
-            for wa in case.whatsapp_entries:
-                intelligence_items.append({
-                    'type': 'whatsapp',
-                    'id': wa.id,
-                    'date': wa.received_time,
-                    'subject': wa.complaint_name,
-                    'sender': wa.phone_number,
-                    'status': 'Case Opened' if wa.intelligence_case_opened else 'Pending',
-                    'score': (wa.source_reliability or 0) + (wa.content_validity or 0),
-                    'entry': wa
-                })
+        # Get WhatsApp entry if this INT is linked to WhatsApp
+        if case.whatsapp and case.source_type == 'WHATSAPP':
+            wa = case.whatsapp
+            intelligence_items.append({
+                'type': 'whatsapp',
+                'id': wa.id,
+                'date': wa.received_time,
+                'subject': wa.complaint_name,
+                'sender': wa.phone_number,
+                'status': 'Case Opened' if wa.intelligence_case_opened else 'Pending',
+                'score': (wa.source_reliability or 0) + (wa.content_validity or 0),
+                'entry': wa
+            })
         
-        # Get Online Patrol entries linked to this INT reference
-        if hasattr(case, 'patrol_entries'):
-            for patrol in case.patrol_entries:
-                intelligence_items.append({
-                    'type': 'patrol',
-                    'id': patrol.id,
-                    'date': patrol.complaint_time,
-                    'subject': patrol.sender,
-                    'sender': patrol.source,
-                    'status': patrol.status or 'Pending',
-                    'score': (patrol.source_reliability or 0) + (patrol.content_validity or 0),
-                    'entry': patrol
-                })
+        # Get Online Patrol entry if this INT is linked to Patrol
+        if case.patrol and case.source_type == 'PATROL':
+            patrol = case.patrol
+            intelligence_items.append({
+                'type': 'patrol',
+                'id': patrol.id,
+                'date': patrol.complaint_time,
+                'subject': patrol.sender,
+                'sender': patrol.source,
+                'status': patrol.status or 'Pending',
+                'score': (patrol.source_reliability or 0) + (patrol.content_validity or 0),
+                'entry': patrol
+            })
         
-        # Get Surveillance entries linked to this INT reference
-        if hasattr(case, 'surveillance_entries'):
-            for surv in case.surveillance_entries:
-                intelligence_items.append({
-                    'type': 'surveillance',
-                    'id': surv.id,
-                    'date': surv.date,
-                    'subject': surv.operation_number,
-                    'sender': surv.venue,
-                    'status': 'Adverse Finding' if surv.has_adverse_finding else 'Normal',
-                    'score': 0,  # Surveillance doesn't use scoring
-                    'entry': surv
-                })
+        # Note: Surveillance not yet linked to CaseProfile
         
         # Sort by date (newest first)
         intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
