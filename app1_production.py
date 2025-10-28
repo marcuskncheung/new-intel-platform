@@ -7935,6 +7935,7 @@ def whatsapp_detail(entry_id):
             alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
             entry.alleged_person = alleged_person_str
             entry.alleged_type = request.form.get("alleged_type")
+            entry.alleged_nature = request.form.get("alleged_nature")  # Save alleged nature multi-select (JSON array)
             entry.details = request.form.get("details")
             
             # SECURITY FIX for CodeQL Alert #23: Clear-text logging of sensitive information

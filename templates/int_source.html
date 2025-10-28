@@ -2081,7 +2081,7 @@
               <th>Complaint Name</th>
               <th>Phone Number</th>
               <th>Alleged Person</th>
-              <th>Alleged Type</th>
+              <th>Alleged Nature</th>
               <th>Combined Score</th>
               <th>Status</th>
               <th>Action</th>
@@ -2109,7 +2109,30 @@
                   <span class="text-muted">-</span>
                 {% endif %}
               </td>
-              <td>{{ w.alleged_type }}</td>
+              <td>
+                {% if w.alleged_nature %}
+                  {% set nature_list = [] %}
+                  {% if w.alleged_nature.startswith('[') %}
+                    {# JSON array format #}
+                    {% set nature_list = w.alleged_nature|fromjson %}
+                  {% else %}
+                    {# Old format - single string #}
+                    {% set nature_list = [w.alleged_nature] %}
+                  {% endif %}
+                  {% if nature_list and nature_list|length > 0 %}
+                    {% for nature in nature_list[:3] %}{# Show max 3 badges #}
+                      <span class="badge bg-warning text-dark me-1 mb-1" style="font-size: 0.7em;">{{ nature[:40] }}</span>
+                    {% endfor %}
+                    {% if nature_list|length > 3 %}
+                      <span class="badge bg-secondary me-1 mb-1" style="font-size: 0.7em;">+{{ nature_list|length - 3 }} more</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">{{ w.alleged_type or '-' }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">{{ w.alleged_type or '-' }}</span>
+                {% endif %}
+              </td>
               <td>
                 {% if w.source_reliability is not none and w.content_validity is not none %}
                   <span class="badge-pro">{{ combined_score }}</span>
