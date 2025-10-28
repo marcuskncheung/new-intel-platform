@@ -8249,7 +8249,23 @@ def int_source_whatsapp_update_assessment(entry_id):
     entry.source_reliability = request.form.get("source_reliability", type=int)
     entry.content_validity = request.form.get("content_validity", type=int)
     entry.preparer = request.form.get("preparer")
-    entry.alleged_nature = request.form.get("alleged_nature")
+    
+    # Handle alleged nature as JSON array (multi-select) with backward compatibility
+    alleged_nature_input = request.form.get("alleged_nature")
+    if alleged_nature_input:
+        try:
+            import json
+            alleged_nature_list = json.loads(alleged_nature_input)
+            if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
+                entry.alleged_nature = json.dumps(alleged_nature_list)
+            else:
+                entry.alleged_nature = None
+        except (json.JSONDecodeError, ValueError):
+            # Fallback: treat as single string (old format)
+            entry.alleged_nature = alleged_nature_input if alleged_nature_input.strip() else None
+    else:
+        entry.alleged_nature = None
+    
     entry.allegation_summary = request.form.get("allegation_summary")
     entry.reviewer_name = request.form.get("reviewer_name")
     entry.reviewer_comment = request.form.get("reviewer_comment")
@@ -8436,7 +8452,23 @@ def int_source_patrol_update_assessment(entry_id):
     entry.source_reliability = request.form.get("source_reliability", type=int)
     entry.content_validity = request.form.get("content_validity", type=int)
     entry.preparer = request.form.get("preparer")
-    entry.alleged_nature = request.form.get("alleged_nature")
+    
+    # Handle alleged nature as JSON array (multi-select) with backward compatibility
+    alleged_nature_input = request.form.get("alleged_nature")
+    if alleged_nature_input:
+        try:
+            import json
+            alleged_nature_list = json.loads(alleged_nature_input)
+            if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
+                entry.alleged_nature = json.dumps(alleged_nature_list)
+            else:
+                entry.alleged_nature = None
+        except (json.JSONDecodeError, ValueError):
+            # Fallback: treat as single string (old format)
+            entry.alleged_nature = alleged_nature_input if alleged_nature_input.strip() else None
+    else:
+        entry.alleged_nature = None
+    
     entry.allegation_summary = request.form.get("allegation_summary")
     entry.reviewer_name = request.form.get("reviewer_name")
     entry.reviewer_comment = request.form.get("reviewer_comment")

@@ -394,25 +394,9 @@
               <tr>
                 <td><b>Allegation Type:</b></td>
                 <td>
-                                    <select name="alleged_nature" class="form-select">
-                    <option value="">Select standardized category...</option>
-                    <option value="Cross-border selling" {% if entry.alleged_nature == 'Cross-border selling' %}selected{% endif %}>Cross-border selling</option>
-                    <option value="Unlicensed practice" {% if entry.alleged_nature == 'Unlicensed practice' %}selected{% endif %}>Unlicensed practice</option>
-                    <option value="Misleading promotion" {% if entry.alleged_nature == 'Misleading promotion' %}selected{% endif %}>Misleading promotion</option>
-                    <option value="Unauthorized advice" {% if entry.alleged_nature == 'Unauthorized advice' %}selected{% endif %}>Unauthorized advice</option>
-                    <option value="Illegal commission" {% if entry.alleged_nature == 'Illegal commission' %}selected{% endif %}>Illegal commission</option>
-                    <option value="Policy churning" {% if entry.alleged_nature == 'Policy churning' %}selected{% endif %}>Policy churning</option>
-                    <option value="Cold calling" {% if entry.alleged_nature == 'Cold calling' %}selected{% endif %}>Cold calling</option>
-                    <option value="Pyramid scheme" {% if entry.alleged_nature == 'Pyramid scheme' %}selected{% endif %}>Pyramid scheme</option>
-                    <option value="Fraudulent claims" {% if entry.alleged_nature == 'Fraudulent claims' %}selected{% endif %}>Fraudulent claims</option>
-                    <option value="Breach of duty" {% if entry.alleged_nature == 'Breach of duty' %}selected{% endif %}>Breach of duty</option>
-                    <option value="Money laundering" {% if entry.alleged_nature == 'Money laundering' %}selected{% endif %}>Money laundering</option>
-                    <option value="Identity theft" {% if entry.alleged_nature == 'Identity theft' %}selected{% endif %}>Identity theft</option>
-                    <option value="Regulatory violation" {% if entry.alleged_nature == 'Regulatory violation' %}selected{% endif %}>Regulatory violation</option>
-                    <option value="Consumer complaint" {% if entry.alleged_nature == 'Consumer complaint' %}selected{% endif %}>Consumer complaint</option>
-                    <option value="Professional misconduct" {% if entry.alleged_nature == 'Professional misconduct' %}selected{% endif %}>Professional misconduct</option>
-                    <option value="Other" {% if entry.alleged_nature == 'Other' %}selected{% endif %}>Other</option>
-                  </select>
+                    {% set field_name = 'alleged_nature' %}
+                    {% set current_value = entry.alleged_nature %}
+                    {% include 'alleged_nature_multi_select.html' %}
                 </td>
               </tr>
               <tr>
@@ -613,5 +597,8 @@ function removeAllegedSubject(button) {
     });
 }
 </script>
+
+<!-- Include Alleged Nature Multi-Select JavaScript -->
+{% include 'alleged_nature_multi_select_js.html' %}
 
 {% endblock %}

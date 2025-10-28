@@ -142,9 +142,9 @@
     
     <div class="mb-3">
       <label class="form-label">Alleged Type / Nature</label>
-      <input name="alleged_type" class="form-control" 
-             placeholder="e.g., Fraud, Misconduct, Complaint"
-             value="{{ entry.alleged_type if entry and entry.alleged_type else '' }}">
+      {% set field_name = 'alleged_nature' %}
+      {% set current_value = entry.alleged_nature if entry and entry.alleged_nature else '[]' %}
+      {% include 'alleged_nature_multi_select.html' %}
     </div>
     
     <div class="mb-3">
@@ -240,4 +240,8 @@ function removeAllegedPerson(btn) {
   btn.closest('.input-group').remove();
 }
 </script>
+
+<!-- Include Alleged Nature Multi-Select JavaScript -->
+{% include 'alleged_nature_multi_select_js.html' %}
+
 {% endblock %}
