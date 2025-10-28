@@ -1468,11 +1468,9 @@
 </style>
 <div class="container mt-4">
   <ul class="nav nav-tabs" id="intSourceTabs" role="tablist">
-    <!-- HIDDEN: Dashboard Tab
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Dashboard</button>
     </li>
-    -->
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="inbox-tab" data-bs-toggle="tab" data-bs-target="#inbox" type="button" role="tab">Inbox</button>
     </li>
@@ -1490,8 +1488,8 @@
     </li>
   </ul>
   <div class="tab-content mt-3">
-    <!-- ANALYTICS TAB - HIDDEN -->
-    <div class="tab-pane fade" id="analytics" role="tabpanel" style="display: none;">
+    <!-- ANALYTICS TAB -->
+    <div class="tab-pane fade" id="analytics" role="tabpanel">
       <div class="d-flex justify-content-end mb-3">
         <a href="{{ url_for('int_source_master_export') }}" class="btn btn-lg btn-outline-success" title="Download all data as Excel">
           <i class="bi bi-download"></i> Download All (Excel)
@@ -2935,7 +2933,7 @@
             isVisible = intText === '' || intText === '-' || intText === 'N/A';
           } else {
             // Show only rows with specific INT reference
-            isVisible = intText.includes(activeFilters.intReference);
+            isVisible = intText === activeFilters.intReference;
           }
         }
         
@@ -3604,7 +3602,7 @@
             isVisible = intText === '' || intText === '-' || intText === 'N/A';
           } else {
             // Show only rows with specific INT reference
-            isVisible = intText.includes(activeFilters.intReference);
+            isVisible = intText === activeFilters.intReference;
           }
         }
         
