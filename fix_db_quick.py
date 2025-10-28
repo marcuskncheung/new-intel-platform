@@ -16,9 +16,11 @@ def fix_database():
         'host': os.getenv('POSTGRES_HOST', 'intelligence-db'),
         'database': os.getenv('POSTGRES_DB', 'intelligence_db'),
         'user': os.getenv('POSTGRES_USER', 'postgres'),
-        'password': os.getenv('POSTGRES_PASSWORD'),
+        'password': os.getenv('POSTGRES_PASSWORD', '23482195aA'),
         'port': int(os.getenv('POSTGRES_PORT', 5432))
     }
+    
+    print(f"🔧 Connecting to database at {db_config['host']}:{db_config['port']}...")
     
     print("🔧 Connecting to database...")
     
