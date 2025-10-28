@@ -864,7 +864,7 @@ class Email(db.Model):
     alleged_subject = db.Column(db.Text)            # Encrypted - sensitive PII (Legacy field - TEXT to support long lists)
     alleged_subject_english = db.Column(db.Text)    # English names separated by commas (TEXT for unlimited names)
     alleged_subject_chinese = db.Column(db.Text)    # Chinese names separated by commas (TEXT for unlimited names)
-    alleged_nature = db.Column(db.String(255))      # Encrypted - sensitive content (standardized categories)
+    alleged_nature = db.Column(db.Text)             # Encrypted - sensitive content (JSON array of standardized categories - supports multiple selections)
     allegation_summary = db.Column(db.Text)         # Encrypted - detailed allegation description
     ai_analysis_summary = db.Column(db.Text)        # AI comprehensive analysis results and reasoning
     license_number = db.Column(db.String(255))      # Encrypted - sensitive identifier
@@ -8622,7 +8622,24 @@ def int_source_update_assessment(email_id):
     email.source_reliability = request.form.get("source_reliability", type=int)
     email.content_validity = request.form.get("content_validity", type=int)
     email.preparer = request.form.get("preparer")
-    email.alleged_nature = request.form.get("alleged_nature")
+    
+    # Handle alleged nature - support both JSON array and single string for backward compatibility
+    alleged_nature_input = request.form.get("alleged_nature")
+    if alleged_nature_input:
+        try:
+            # Try to parse as JSON array (new multi-select format)
+            import json
+            alleged_nature_list = json.loads(alleged_nature_input)
+            if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
+                email.alleged_nature = json.dumps(alleged_nature_list)
+            else:
+                email.alleged_nature = None
+        except (json.JSONDecodeError, ValueError):
+            # Fallback: treat as single string (old format)
+            email.alleged_nature = alleged_nature_input if alleged_nature_input.strip() else None
+    else:
+        email.alleged_nature = None
+    
     email.allegation_summary = request.form.get("allegation_summary")  # New detailed field
     email.reviewer_name = request.form.get("reviewer_name")
     email.reviewer_comment = request.form.get("reviewer_comment")
