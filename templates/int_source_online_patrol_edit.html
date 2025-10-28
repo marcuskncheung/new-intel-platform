@@ -121,7 +121,7 @@
         <label class="form-label">Discovery Time <span class="text-danger">*</span></label>
         <small class="text-muted d-block">When did we log/discover it?</small>
         <input name="discovery_time" type="datetime-local" class="form-control"
-               value="{% if entry and entry.discovery_time %}{{ entry.discovery_time.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ now().strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
+               value="{% if entry and entry.discovery_time %}{{ entry.discovery_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" required>
       </div>
     </div>
     
