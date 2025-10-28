@@ -1259,11 +1259,80 @@ class SurveillanceDocument(db.Model):
     filename = db.Column(db.String(255))
     filepath = db.Column(db.String(512))
 
+class ReceivedByHandEntry(db.Model):
+    """
+    📝 RECEIVED BY HAND INTELLIGENCE ENTRY
+    For physical documents, complaints, or reports received in person
+    Similar structure to WhatsApp but optimized for hand-delivered documents
+    """
+    __tablename__ = 'received_by_hand_entry'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    received_time = db.Column(db.DateTime, default=get_hk_time)
+    complaint_name = db.Column(db.String(255))  # Name of person submitting
+    contact_number = db.Column(db.String(64))  # Contact phone/email
+    alleged_person = db.Column(db.String(255))
+    alleged_type = db.Column(db.String(255))  # Type of allegation
+    source = db.Column(db.String(255))  # How received (Walk-in, Mail, etc)
+    details = db.Column(db.Text)
+    
+    # Assessment fields
+    source_reliability = db.Column(db.Integer)
+    content_validity = db.Column(db.Integer)
+    assessment_updated_at = db.Column(db.DateTime, default=get_hk_time)
+    preparer = db.Column(db.String(255))
+    reviewer_name = db.Column(db.String(255))
+    reviewer_comment = db.Column(db.Text)
+    reviewer_decision = db.Column(db.String(16))  # agree/disagree
+    intelligence_case_opened = db.Column(db.Boolean, default=False)
+    
+    # 🆕 STANDARDIZED ASSESSMENT FIELDS (aligned with Email and WhatsApp)
+    alleged_subject_english = db.Column(db.Text)
+    alleged_subject_chinese = db.Column(db.Text)
+    alleged_nature = db.Column(db.Text)
+    allegation_summary = db.Column(db.Text)
+    license_numbers_json = db.Column(db.Text)
+    intermediary_types_json = db.Column(db.Text)
+    license_number = db.Column(db.String(64))
+    
+    # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
+    
+    # Relationships
+    documents = db.relationship('ReceivedByHandDocument', backref='entry', lazy=True, cascade="all, delete-orphan")
+    
+    @property
+    def int_reference(self):
+        """🔗 Get unified INT reference from CaseProfile"""
+        if self.caseprofile_id:
+            case = db.session.get(CaseProfile, self.caseprofile_id)
+            return case.int_reference if case else None
+        return None
+    
+    @property
+    def combined_score(self):
+        """Calculate combined assessment score"""
+        return (self.source_reliability or 0) + (self.content_validity or 0)
+
+class ReceivedByHandDocument(db.Model):
+    """
+    Documents attached to received-by-hand entries
+    Stores PDFs, images, scanned documents, etc.
+    """
+    __tablename__ = 'received_by_hand_document'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    file_data = db.Column(db.LargeBinary, nullable=False)  # Store file in database
+    file_type = db.Column(db.String(50))  # pdf, image, doc, etc.
+    uploaded_at = db.Column(db.DateTime, default=get_hk_time)
+
 # --- SQLAlchemy model for Database table ---
 class CaseProfile(db.Model):
     """
     🔗 UNIFIED INT-### REFERENCE SYSTEM
-    Central intelligence item registry - links ALL sources (Email, WhatsApp, Patrol)
+    Central intelligence item registry - links ALL sources (Email, WhatsApp, Patrol, Received by Hand)
     """
     __tablename__ = "case_profile"
     
@@ -1276,12 +1345,13 @@ class CaseProfile(db.Model):
     
     # ✅ Source Classification
     date_of_receipt = db.Column(db.DateTime, nullable=False, index=True)  # ISO timestamp for sorting
-    source_type = db.Column(db.String(20), nullable=False, index=True)  # EMAIL, WHATSAPP, PATROL
+    source_type = db.Column(db.String(30), nullable=False, index=True)  # EMAIL, WHATSAPP, PATROL, RECEIVED_BY_HAND
     
     # ✅ Source Foreign Keys (one-to-one relationship)
     email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=True, unique=True)
     whatsapp_id = db.Column(db.Integer, db.ForeignKey('whats_app_entry.id'), nullable=True, unique=True)
     patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id'), nullable=True, unique=True)
+    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id'), nullable=True, unique=True)
     
     # Legacy fields (backward compatibility)
     source = db.Column(db.String(255))  # Detailed source info
@@ -1307,6 +1377,7 @@ class CaseProfile(db.Model):
     email = db.relationship('Email', backref='case_profile', foreign_keys=[email_id], uselist=False)
     whatsapp = db.relationship('WhatsAppEntry', backref='case_profile', foreign_keys=[whatsapp_id], uselist=False)
     patrol = db.relationship('OnlinePatrolEntry', backref='case_profile', foreign_keys=[patrol_id], uselist=False)
+    received_by_hand = db.relationship('ReceivedByHandEntry', backref='case_profile', foreign_keys=[received_by_hand_id], uselist=False)
     duplicates = db.relationship('CaseProfile', 
                                  foreign_keys=[duplicate_of_id],
                                  remote_side=[id],
@@ -1696,8 +1767,8 @@ def create_unified_intelligence_entry(source_record, source_type, created_by="SY
     Create CaseProfile entry linking to any source record
     
     Args:
-        source_record: Email, WhatsAppEntry, or OnlinePatrolEntry object
-        source_type: "EMAIL", "WHATSAPP", or "PATROL"
+        source_record: Email, WhatsAppEntry, OnlinePatrolEntry, or ReceivedByHandEntry object
+        source_type: "EMAIL", "WHATSAPP", "PATROL", or "RECEIVED_BY_HAND"
         created_by: Who created this (AI_AUTO, MANUAL, SYSTEM)
     
     Returns:
@@ -1732,6 +1803,13 @@ def create_unified_intelligence_entry(source_record, source_type, created_by="SY
             foreign_key = {'patrol_id': source_record.id}
             alleged_en = source_record.sender
             alleged_cn = None
+            description = source_record.details
+            
+        elif source_type == "RECEIVED_BY_HAND":
+            date_of_receipt = source_record.received_time or get_hk_time()
+            foreign_key = {'received_by_hand_id': source_record.id}
+            alleged_en = source_record.complaint_name
+            alleged_cn = source_record.alleged_person
             description = source_record.details
         else:
             raise ValueError(f"Unknown source type: {source_type}")
@@ -3555,6 +3633,7 @@ def int_source():
     whatsapp_data = WhatsAppEntry.query.order_by(WhatsAppEntry.id.desc()).all()
     online_patrol_data = OnlinePatrolEntry.query.order_by(OnlinePatrolEntry.id.desc()).all()
     surveillance_data = SurveillanceEntry.query.order_by(SurveillanceEntry.id.desc()).all()
+    received_by_hand_data = ReceivedByHandEntry.query.order_by(ReceivedByHandEntry.id.desc()).all()
 
     # ------------------------------
     # Build data for Analytics charts
@@ -3624,6 +3703,7 @@ def int_source():
         whatsapp_data=whatsapp_data,
         online_patrol_data=online_patrol_data,
         surveillance_data=surveillance_data,
+        received_by_hand_data=received_by_hand_data,
         unique_int_references=unique_int_references
         # Add more here if your template uses them
     )
