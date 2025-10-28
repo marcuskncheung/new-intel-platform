@@ -8645,6 +8645,249 @@ def int_source_patrol_update_assessment(entry_id):
     else:
         return redirect(url_for('alleged_subject_list'))
 
+# ============================================================
+# 📝 RECEIVED BY HAND ROUTES
+# ============================================================
+
+@app.route("/received_by_hand_export/<fmt>")
+@login_required
+def received_by_hand_export(fmt):
+    """Export received by hand entries to Excel or CSV"""
+    import io
+    
+    if fmt == "csv":
+        import csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "INT Reference", "Date Received", "Complainant Name", "Contact Number",
+            "Alleged Person", "Alleged Type", "Source", "Details",
+            "Source Reliability", "Content Validity", "Combined Score",
+            "Preparer", "Reviewer Name", "Reviewer Comment", "Reviewer Decision",
+            "Case Opened"
+        ])
+        for rbh in ReceivedByHandEntry.query.order_by(ReceivedByHandEntry.id.desc()).all():
+            int_ref = ""
+            if rbh.caseprofile_id:
+                case = db.session.get(CaseProfile, rbh.caseprofile_id)
+                int_ref = case.int_reference if case else ""
+            
+            combined_score = (rbh.source_reliability or 0) + (rbh.content_validity or 0)
+            
+            writer.writerow([
+                int_ref,
+                rbh.received_time.strftime('%Y-%m-%d %H:%M') if rbh.received_time else '',
+                rbh.complaint_name or '',
+                rbh.contact_number or '',
+                rbh.alleged_person or '',
+                rbh.alleged_type or '',
+                rbh.source or '',
+                rbh.details or '',
+                rbh.source_reliability or '',
+                rbh.content_validity or '',
+                combined_score if combined_score > 0 else '',
+                rbh.preparer or '',
+                rbh.reviewer_name or '',
+                rbh.reviewer_comment or '',
+                rbh.reviewer_decision or '',
+                'Yes' if rbh.intelligence_case_opened else 'No'
+            ])
+        mem = io.BytesIO()
+        mem.write(output.getvalue().encode('utf-8'))
+        mem.seek(0)
+        return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="received_by_hand.csv")
+    
+    elif fmt == "excel":
+        import pandas as pd
+        import io
+        output = io.BytesIO()
+        
+        def get_int_reference(rbh):
+            if rbh.caseprofile_id:
+                case = db.session.get(CaseProfile, rbh.caseprofile_id)
+                return case.int_reference if case else ""
+            return ""
+        
+        df = pd.DataFrame([{
+            "INT Reference": get_int_reference(rbh),
+            "Date Received": rbh.received_time.strftime('%Y-%m-%d %H:%M') if rbh.received_time else '',
+            "Complainant Name": rbh.complaint_name or '',
+            "Contact Number": rbh.contact_number or '',
+            "Alleged Person": rbh.alleged_person or '',
+            "Alleged Type": rbh.alleged_type or '',
+            "Source": rbh.source or '',
+            "Details": rbh.details or '',
+            "Source Reliability": rbh.source_reliability or '',
+            "Content Validity": rbh.content_validity or '',
+            "Combined Score": (rbh.source_reliability or 0) + (rbh.content_validity or 0),
+            "Preparer": rbh.preparer or '',
+            "Reviewer Name": rbh.reviewer_name or '',
+            "Reviewer Comment": rbh.reviewer_comment or '',
+            "Reviewer Decision": rbh.reviewer_decision or '',
+            "Case Opened": 'Yes' if rbh.intelligence_case_opened else 'No'
+        } for rbh in ReceivedByHandEntry.query.order_by(ReceivedByHandEntry.id.desc()).all()])
+        
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Received by Hand")
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name="received_by_hand.xlsx"
+        )
+    else:
+        abort(404)
+
+
+@app.route("/add_received_by_hand", methods=["GET", "POST"])
+@login_required
+def add_received_by_hand():
+    """Add a new received by hand entry"""
+    if request.method == "POST":
+        try:
+            # Get form data
+            complaint_name = request.form.get("complaint_name", "").strip()
+            contact_number = request.form.get("contact_number", "").strip()
+            alleged_person = request.form.get("alleged_person", "").strip()
+            alleged_type = request.form.get("alleged_type", "").strip()
+            source = request.form.get("source", "Walk-in").strip()
+            details = request.form.get("details", "").strip()
+            
+            # Assessment fields
+            source_reliability = request.form.get("source_reliability")
+            content_validity = request.form.get("content_validity")
+            preparer = request.form.get("preparer", "").strip()
+            
+            # Create entry
+            entry = ReceivedByHandEntry(
+                complaint_name=complaint_name if complaint_name else None,
+                contact_number=contact_number if contact_number else None,
+                alleged_person=alleged_person if alleged_person else None,
+                alleged_type=alleged_type if alleged_type else None,
+                source=source if source else None,
+                details=details if details else None,
+                source_reliability=int(source_reliability) if source_reliability else None,
+                content_validity=int(content_validity) if content_validity else None,
+                preparer=preparer if preparer else None,
+                received_time=get_hk_time()
+            )
+            
+            db.session.add(entry)
+            db.session.flush()
+            
+            # Create CaseProfile and INT reference
+            case_profile = CaseProfile(
+                received_by_hand_id=entry.id,
+                created_at=get_hk_time()
+            )
+            db.session.add(case_profile)
+            db.session.flush()
+            
+            # Assign INT reference
+            case_profile.int_reference = generate_int_reference(case_profile.id)
+            entry.caseprofile_id = case_profile.id
+            
+            db.session.commit()
+            
+            flash(f"Received by Hand entry created successfully with INT Reference: {case_profile.int_reference}", "success")
+            return redirect(url_for('int_source'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error creating entry: {str(e)}", "error")
+            print(f"Database error: {e}")
+            return redirect(url_for('int_source'))
+    
+    # GET request - show form
+    return render_template("add_received_by_hand.html")
+
+
+@app.route("/received_by_hand/<int:entry_id>", methods=["GET", "POST"])
+@login_required
+def received_by_hand_detail(entry_id):
+    """View and edit received by hand entry details"""
+    entry = db.session.get(ReceivedByHandEntry, entry_id)
+    if not entry:
+        flash("Entry not found.", "error")
+        return redirect(url_for('int_source'))
+    
+    if request.method == "POST":
+        try:
+            # Update basic fields
+            entry.complaint_name = request.form.get("complaint_name", "").strip() or None
+            entry.contact_number = request.form.get("contact_number", "").strip() or None
+            entry.alleged_person = request.form.get("alleged_person", "").strip() or None
+            entry.alleged_type = request.form.get("alleged_type", "").strip() or None
+            entry.source = request.form.get("source", "").strip() or None
+            entry.details = request.form.get("details", "").strip() or None
+            
+            # Update assessment fields
+            source_reliability = request.form.get("source_reliability")
+            content_validity = request.form.get("content_validity")
+            entry.source_reliability = int(source_reliability) if source_reliability else None
+            entry.content_validity = int(content_validity) if content_validity else None
+            entry.preparer = request.form.get("preparer", "").strip() or None
+            entry.reviewer_name = request.form.get("reviewer_name", "").strip() or None
+            entry.reviewer_comment = request.form.get("reviewer_comment", "").strip() or None
+            entry.reviewer_decision = request.form.get("reviewer_decision", "").strip() or None
+            
+            # Determine case opening
+            combined_score = (entry.source_reliability or 0) + (entry.content_validity or 0)
+            if combined_score >= 8 and entry.reviewer_decision == 'agree':
+                entry.intelligence_case_opened = True
+            elif entry.reviewer_decision == 'disagree':
+                entry.intelligence_case_opened = False
+            
+            entry.assessment_updated_at = get_hk_time()
+            db.session.commit()
+            
+            flash("Entry updated successfully.", "success")
+            return redirect(url_for('received_by_hand_detail', entry_id=entry_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating entry: {str(e)}", "error")
+            print(f"Database error: {e}")
+    
+    # Get INT reference
+    int_reference = None
+    if entry.caseprofile_id:
+        case = db.session.get(CaseProfile, entry.caseprofile_id)
+        int_reference = case.int_reference if case else None
+    
+    return render_template("received_by_hand_detail.html", entry=entry, int_reference=int_reference)
+
+
+@app.route("/delete_received_by_hand/<int:entry_id>", methods=["POST"])
+@login_required
+def delete_received_by_hand(entry_id):
+    """Delete a received by hand entry"""
+    try:
+        entry = db.session.get(ReceivedByHandEntry, entry_id)
+        if not entry:
+            flash("Entry not found.", "error")
+            return redirect(url_for('int_source'))
+        
+        # Delete associated CaseProfile
+        if entry.caseprofile_id:
+            case = db.session.get(CaseProfile, entry.caseprofile_id)
+            if case:
+                db.session.delete(case)
+        
+        # Delete entry
+        db.session.delete(entry)
+        db.session.commit()
+        
+        # Reorder INT references chronologically
+        reorder_int_numbers_chronologically()
+        
+        flash("Received by Hand entry deleted successfully and INT numbers reordered.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting entry: {str(e)}", "error")
+        print(f"Database error: {e}")
+    
+    return redirect(url_for('int_source'))
+
 # Add this route to fix url_for('int_source_update_assessment', email_id=...) errors in your templates
 @app.route("/int_source/email/<int:email_id>/update_assessment", methods=["POST"])
 @login_required
