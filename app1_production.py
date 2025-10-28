@@ -3726,11 +3726,82 @@ def int_source():
 @login_required
 def int_analytics():
     """
-    🚫 INT Analytics Dashboard - DISABLED
-    This dashboard has been disabled and will redirect to the main intelligence source page.
+    INT Analytics Dashboard - Shows statistics and overview of all INT references
+    Boss can review all INT numbers and click to view details of each source
     """
-    flash('INT Analytics dashboard is currently disabled.', 'warning')
-    return redirect(url_for('int_source'))
+    try:
+        # Get all INT references with their associated intelligence counts
+        int_references = db.session.query(
+            CaseProfile.int_reference,
+            CaseProfile.id.label('case_id')
+        ).filter(
+            CaseProfile.int_reference.isnot(None)
+        ).order_by(CaseProfile.int_reference.desc()).all()
+        
+        # Build INT statistics
+        int_stats = []
+        for int_ref, case_id in int_references:
+            # Count emails linked to this INT
+            email_count = db.session.query(Email).filter(
+                Email.case_profile_id == case_id
+            ).count()
+            
+            # Count WhatsApp entries
+            whatsapp_count = db.session.query(WhatsAppEntry).filter(
+                WhatsAppEntry.case_profile_id == case_id
+            ).count()
+            
+            # Count Online Patrol entries
+            online_count = db.session.query(OnlinePatrolEntry).filter(
+                OnlinePatrolEntry.case_profile_id == case_id
+            ).count()
+            
+            # Count Surveillance entries
+            surveillance_count = db.session.query(SurveillanceEntry).filter(
+                SurveillanceEntry.case_profile_id == case_id
+            ).count()
+            
+            # Count Received by Hand entries
+            received_by_hand_count = db.session.query(ReceivedByHandEntry).filter(
+                ReceivedByHandEntry.case_profile_id == case_id
+            ).count()
+            
+            total_sources = email_count + whatsapp_count + online_count + surveillance_count + received_by_hand_count
+            
+            int_stats.append({
+                'int_reference': int_ref,
+                'case_id': case_id,
+                'email_count': email_count,
+                'whatsapp_count': whatsapp_count,
+                'online_count': online_count,
+                'surveillance_count': surveillance_count,
+                'received_by_hand_count': received_by_hand_count,
+                'total_sources': total_sources
+            })
+        
+        # Overall statistics
+        total_ints = len(int_references)
+        total_emails = Email.query.count()
+        total_whatsapp = WhatsAppEntry.query.count()
+        total_online = OnlinePatrolEntry.query.count()
+        total_surveillance = SurveillanceEntry.query.count()
+        total_received_by_hand = ReceivedByHandEntry.query.count()
+        
+        return render_template(
+            'int_analytics.html',
+            int_stats=int_stats,
+            total_ints=total_ints,
+            total_emails=total_emails,
+            total_whatsapp=total_whatsapp,
+            total_online=total_online,
+            total_surveillance=total_surveillance,
+            total_received_by_hand=total_received_by_hand
+        )
+        
+    except Exception as e:
+        print(f"[ERROR] INT Analytics error: {e}")
+        flash(f'Error loading INT Analytics: {str(e)}', 'danger')
+        return redirect(url_for('int_source'))
 
 
 @app.route('/int_reference_detail/<int_reference>')
