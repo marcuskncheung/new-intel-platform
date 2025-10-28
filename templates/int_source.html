@@ -1468,9 +1468,11 @@
 </style>
 <div class="container mt-4">
   <ul class="nav nav-tabs" id="intSourceTabs" role="tablist">
+    <!-- DASHBOARD TAB DISABLED
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Dashboard</button>
     </li>
+    -->
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="inbox-tab" data-bs-toggle="tab" data-bs-target="#inbox" type="button" role="tab">Inbox</button>
     </li>
@@ -1479,6 +1481,9 @@
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="online-tab" data-bs-toggle="tab" data-bs-target="#online" type="button" role="tab">Online Patrol</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="received-by-hand-tab" data-bs-toggle="tab" data-bs-target="#received-by-hand" type="button" role="tab">Received by Hand</button>
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="surveillance-tab" data-bs-toggle="tab" data-bs-target="#surveillance" type="button" role="tab">Surveillance Operation</button>
@@ -2367,6 +2372,82 @@
               <td>
                 <div class="pro-action-btns">
                   <a href="{{ url_for('surveillance_detail', entry_id=s.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- RECEIVED BY HAND TAB -->
+    <div class="tab-pane fade" id="received-by-hand" role="tabpanel">
+      <div class="pro-section-header">
+        <span><i class="bi bi-hand-thumbs-up"></i> Received by Hand</span>
+        <div class="btn-group">
+          <a href="{{ url_for('received_by_hand_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+          <a href="{{ url_for('add_received_by_hand') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm pro-table" id="rbh-entries-table">
+          <thead>
+            <tr>
+              <th>INT Reference</th>
+              <th>Date Received</th>
+              <th>Complainant Name</th>
+              <th>Contact Number</th>
+              <th>Description</th>
+              <th>Received By</th>
+              <th>Source Reliability</th>
+              <th>Content Validity</th>
+              <th>Total Score</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rbh in received_by_hand_data %}
+            {% set combined_score = (rbh.source_reliability or 0) + (rbh.content_validity or 0) %}
+            <tr>
+              <td>
+                {% if rbh.case_profile and rbh.case_profile.int_reference %}
+                  <span class="badge-pro">{{ rbh.case_profile.int_reference }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>{{ rbh.date_received.strftime('%Y-%m-%d') if rbh.date_received else '—' }}</td>
+              <td>{{ rbh.complainant_name or '—' }}</td>
+              <td>{{ rbh.contact_number or '—' }}</td>
+              <td>{{ (rbh.description[:50] + '...') if rbh.description and rbh.description|length > 50 else (rbh.description or '—') }}</td>
+              <td>{{ rbh.received_by or '—' }}</td>
+              <td>
+                {% if rbh.source_reliability %}
+                  <span class="badge bg-info">{{ rbh.source_reliability }}/5</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if rbh.content_validity %}
+                  <span class="badge bg-info">{{ rbh.content_validity }}/5</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if combined_score > 0 %}
+                  <span class="badge {% if combined_score >= 8 %}bg-success{% elif combined_score >= 6 %}bg-warning{% else %}bg-secondary{% endif %}">
+                    {{ combined_score }}/10
+                  </span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="pro-action-btns">
+                  <a href="{{ url_for('received_by_hand_detail', entry_id=rbh.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
                 </div>
               </td>
             </tr>
