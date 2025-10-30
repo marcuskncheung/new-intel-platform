@@ -3987,8 +3987,23 @@ def int_reference_detail(int_reference):
         
         print(f"[DEBUG] Total intelligence items found: {len(intelligence_items)}")
         
-        # Sort by date (newest first)
-        intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
+        # Sort by date (newest first) - convert all dates to datetime objects
+        def get_sort_date(item):
+            date_val = item['date']
+            if not date_val:
+                return datetime.min
+            # If it's already a datetime, return it
+            if isinstance(date_val, datetime):
+                return date_val
+            # If it's a string, try to parse it
+            if isinstance(date_val, str):
+                try:
+                    return datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+                except:
+                    return datetime.min
+            return datetime.min
+        
+        intelligence_items.sort(key=get_sort_date, reverse=True)
         
         # Separate intelligence items by type for template
         emails_list = [item['entry'] for item in intelligence_items if item['type'] == 'email']

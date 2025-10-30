@@ -83,14 +83,64 @@
           <i class="bi bi-hand-thumbs-up-fill"></i>
           Received by Hand Entry #{{ entry.id }}
         </h3>
-        {% if entry.int_reference %}
-        <span class="badge bg-light text-dark">{{ entry.int_reference }}</span>
+        {% set int_ref = get_case_int_reference(entry) %}
+        {% if int_ref %}
+        <span class="badge bg-light text-dark">{{ int_ref }}</span>
         {% endif %}
       </div>
       <div class="btn-actions">
         <a href="{{ url_for('int_source') }}" class="btn btn-light btn-sm">
           <i class="bi bi-arrow-left"></i> Back
         </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Case Reference Number Section -->
+  <div class="detail-card">
+    <div class="detail-body">
+      <h5 class="mb-3">
+        <i class="fas fa-hashtag"></i> Case Reference Number
+      </h5>
+      <form method="POST" action="{{ url_for('update_received_by_hand_int_reference', entry_id=entry.id) }}">
+        <div class="row align-items-end">
+          <div class="col-md-8">
+            <label class="form-label"><strong>INT Reference Number:</strong></label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-hashtag"></i>
+              </span>
+              <input type="text" 
+                     class="form-control form-control-lg" 
+                     name="int_reference_number" 
+                     value="{{ get_case_int_reference(entry) or '' }}"
+                     placeholder="INT-001, INT-123, etc."
+                     pattern="INT-\d{1,4}"
+                     title="Format: INT-001, INT-123"
+                     style="font-weight: bold; font-family: monospace; font-size: 1.25rem;">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Save
+              </button>
+            </div>
+            <small class="text-muted mt-2 d-block">
+              <i class="bi bi-info-circle"></i> 
+              Format: INT-XXX (e.g., INT-001, INT-123). You can edit this directly.
+            </small>
+          </div>
+        </div>
+      </form>
+      
+      <!-- Reorder All INT Numbers Button -->
+      <div class="mt-3">
+        <form method="POST" action="{{ url_for('reorder_all_unified_int_references') }}" 
+              onsubmit="return confirm('⚠️ Reorder ALL INT numbers chronologically?\n\nThis will:\n• Renumber ALL INT references based on date received (oldest = INT-001)\n• Update all linked emails, WhatsApp, patrols, etc.\n• Fix any gaps or out-of-order INT numbers\n\nContinue?');">
+          <button type="submit" class="btn btn-warning btn-sm">
+            <i class="fas fa-sort-numeric-up"></i> Reorder All INT Numbers Chronologically
+          </button>
+          <small class="text-muted ms-2">
+            Use this after assigning INT to fill gaps or fix ordering
+          </small>
+        </form>
       </div>
     </div>
   </div>
