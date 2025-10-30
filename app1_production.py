@@ -3905,14 +3905,24 @@ def int_reference_detail(int_reference):
             flash(f'INT reference {int_reference} not found', 'danger')
             return redirect(url_for('int_analytics'))
         
+        print(f"\n[DEBUG INT-DETAIL] Processing {int_reference}")
+        print(f"[DEBUG] CaseProfile ID: {case.id}")
+        print(f"[DEBUG] Source Type: {case.source_type}")
+        print(f"[DEBUG] Email ID: {case.email_id}")
+        print(f"[DEBUG] WhatsApp ID: {case.whatsapp_id}")
+        print(f"[DEBUG] Patrol ID: {case.patrol_id}")
+        print(f"[DEBUG] Received By Hand ID: {case.received_by_hand_id}")
+        
         # Collect all intelligence entries linked to this INT
         intelligence_items = []
         
         # Query each source type by their foreign key IDs (more reliable than using relationships)
         # Check for Email entries
         if case.email_id:
+            print(f"[DEBUG] Querying Email ID: {case.email_id}")
             email = Email.query.get(case.email_id)
             if email:
+                print(f"[DEBUG] ✅ Found email: {email.subject}")
                 intelligence_items.append({
                     'type': 'email',
                     'id': email.id,
@@ -3923,11 +3933,15 @@ def int_reference_detail(int_reference):
                     'score': (email.source_reliability or 0) + (email.content_validity or 0),
                     'entry': email
                 })
+            else:
+                print(f"[DEBUG] ❌ Email {case.email_id} not found in database!")
         
         # Check for WhatsApp entries
         if case.whatsapp_id:
+            print(f"[DEBUG] Querying WhatsApp ID: {case.whatsapp_id}")
             wa = WhatsAppEntry.query.get(case.whatsapp_id)
             if wa:
+                print(f"[DEBUG] ✅ Found WhatsApp: {wa.complaint_name}")
                 intelligence_items.append({
                     'type': 'whatsapp',
                     'id': wa.id,
@@ -3938,11 +3952,15 @@ def int_reference_detail(int_reference):
                     'score': (wa.source_reliability or 0) + (wa.content_validity or 0),
                     'entry': wa
                 })
+            else:
+                print(f"[DEBUG] ❌ WhatsApp {case.whatsapp_id} not found in database!")
         
         # Check for Online Patrol entries
         if case.patrol_id:
+            print(f"[DEBUG] Querying Patrol ID: {case.patrol_id}")
             patrol = OnlinePatrolEntry.query.get(case.patrol_id)
             if patrol:
+                print(f"[DEBUG] ✅ Found Patrol: {patrol.sender}")
                 intelligence_items.append({
                     'type': 'patrol',
                     'id': patrol.id,
@@ -3953,11 +3971,15 @@ def int_reference_detail(int_reference):
                     'score': (patrol.source_reliability or 0) + (patrol.content_validity or 0),
                     'entry': patrol
                 })
+            else:
+                print(f"[DEBUG] ❌ Patrol {case.patrol_id} not found in database!")
         
         # Check for Received By Hand entries
         if case.received_by_hand_id:
+            print(f"[DEBUG] Querying Received By Hand ID: {case.received_by_hand_id}")
             received = ReceivedByHandEntry.query.get(case.received_by_hand_id)
             if received:
+                print(f"[DEBUG] ✅ Found Received By Hand: {received.complaint_name}")
                 intelligence_items.append({
                     'type': 'received_by_hand',
                     'id': received.id,
@@ -3968,8 +3990,12 @@ def int_reference_detail(int_reference):
                     'score': (received.source_reliability or 0) + (received.content_validity or 0),
                     'entry': received
                 })
+            else:
+                print(f"[DEBUG] ❌ Received By Hand {case.received_by_hand_id} not found in database!")
         
         # Note: Surveillance is not yet linked to CaseProfile system
+        
+        print(f"[DEBUG] Total intelligence items found: {len(intelligence_items)}")
         
         # Sort by date (newest first)
         intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
