@@ -3990,12 +3990,26 @@ def int_reference_detail(int_reference):
         # Sort by date (newest first)
         intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
         
+        # Separate intelligence items by type for template
+        emails_list = [item['entry'] for item in intelligence_items if item['type'] == 'email']
+        whatsapp_list = [item['entry'] for item in intelligence_items if item['type'] == 'whatsapp']
+        patrol_list = [item['entry'] for item in intelligence_items if item['type'] == 'patrol']
+        received_by_hand_list = [item['entry'] for item in intelligence_items if item['type'] == 'received_by_hand']
+        
+        print(f"[DEBUG] Separated lists - Emails: {len(emails_list)}, WhatsApp: {len(whatsapp_list)}, Patrol: {len(patrol_list)}, Received: {len(received_by_hand_list)}")
+        
         return render_template(
             'int_reference_detail.html',
             int_reference=int_reference,
             case=case,
             intelligence_items=intelligence_items,
-            total_items=len(intelligence_items)
+            total_items=len(intelligence_items),
+            # Template expects these separate lists
+            emails=emails_list,
+            whatsapp_entries=whatsapp_list,
+            patrol_entries=patrol_list,
+            surveillance_entries=[],  # Not yet implemented
+            received_by_hand_entries=received_by_hand_list
         )
         
     except Exception as e:
