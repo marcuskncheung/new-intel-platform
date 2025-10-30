@@ -3817,9 +3817,12 @@ def int_analytics():
                 'case_id': case_id,
                 'email_count': email_count,
                 'whatsapp_count': whatsapp_count,
-                'online_count': online_count,
+                'patrol_count': online_count,  # Template expects 'patrol_count'
                 'surveillance_count': surveillance_count,
                 'received_by_hand_count': received_by_hand_count,
+                'total_items': total_sources,  # Template expects 'total_items'
+                # Keep old keys for chart compatibility
+                'online_count': online_count,
                 'total_sources': total_sources
             })
         
@@ -3875,6 +3878,7 @@ def int_analytics():
         return render_template(
             'int_analytics.html',
             int_stats=int_stats,
+            int_details=int_stats,  # Template expects 'int_details' for the list
             stats=stats,
             distribution_data=distribution,
             top_int_data=top_int_data
