@@ -3908,49 +3908,81 @@ def int_reference_detail(int_reference):
         # Collect all intelligence entries linked to this INT
         intelligence_items = []
         
-        # CaseProfile has one-to-one relationships, so check which source this INT is linked to
-        if case.email and case.source_type == 'EMAIL':
-            email = case.email
-            intelligence_items.append({
-                'type': 'email',
-                'id': email.id,
-                'date': email.received,
-                'subject': email.subject,
-                'sender': email.sender,
-                'status': email.status or 'Pending',
-                'score': (email.source_reliability or 0) + (email.content_validity or 0),
-                'entry': email
-            })
+        # Query each source type by their foreign key IDs (more reliable than using relationships)
+        # Check for Email entries
+        if case.email_id:
+            email = Email.query.get(case.email_id)
+            if email:
+                intelligence_items.append({
+                    'type': 'email',
+                    'id': email.id,
+                    'date': email.received,
+                    'subject': email.subject,
+                    'sender': email.sender,
+                    'status': email.status or 'Pending',
+                    'score': (email.source_reliability or 0) + (email.content_validity or 0),
+                    'entry': email
+                })
         
-        # Get WhatsApp entry if this INT is linked to WhatsApp
-        if case.whatsapp and case.source_type == 'WHATSAPP':
-            wa = case.whatsapp
-            intelligence_items.append({
-                'type': 'whatsapp',
-                'id': wa.id,
-                'date': wa.received_time,
-                'subject': wa.complaint_name,
-                'sender': wa.phone_number,
-                'status': 'Case Opened' if wa.intelligence_case_opened else 'Pending',
-                'score': (wa.source_reliability or 0) + (wa.content_validity or 0),
-                'entry': wa
-            })
+        # Check for WhatsApp entries
+        if case.whatsapp_id:
+            wa = WhatsAppEntry.query.get(case.whatsapp_id)
+            if wa:
+                intelligence_items.append({
+                    'type': 'whatsapp',
+                    'id': wa.id,
+                    'date': wa.received_time,
+                    'subject': wa.complaint_name,
+                    'sender': wa.phone_number,
+                    'status': 'Case Opened' if wa.intelligence_case_opened else 'Pending',
+                    'score': (wa.source_reliability or 0) + (wa.content_validity or 0),
+                    'entry': wa
+                })
         
-        # Get Online Patrol entry if this INT is linked to Patrol
-        if case.patrol and case.source_type == 'PATROL':
-            patrol = case.patrol
-            intelligence_items.append({
-                'type': 'patrol',
-                'id': patrol.id,
-                'date': patrol.complaint_time,
-                'subject': patrol.sender,
-                'sender': patrol.source,
-                'status': patrol.status or 'Pending',
-                'score': (patrol.source_reliability or 0) + (patrol.content_validity or 0),
-                'entry': patrol
-            })
+        # Check for Online Patrol entries
+        if case.patrol_id:
+            patrol = OnlinePatrolEntry.query.get(case.patrol_id)
+            if patrol:
+                intelligence_items.append({
+                    'type': 'patrol',
+                    'id': patrol.id,
+                    'date': patrol.complaint_time,
+                    'subject': patrol.sender,
+                    'sender': patrol.source,
+                    'status': patrol.status or 'Pending',
+                    'score': (patrol.source_reliability or 0) + (patrol.content_validity or 0),
+                    'entry': patrol
+                })
         
-        # Note: Surveillance not yet linked to CaseProfile
+        # Check for Surveillance entries
+        if case.surveillance_id:
+            surveillance = SurveillanceEntry.query.get(case.surveillance_id)
+            if surveillance:
+                intelligence_items.append({
+                    'type': 'surveillance',
+                    'id': surveillance.id,
+                    'date': surveillance.date,
+                    'subject': surveillance.operation_number or 'Surveillance',
+                    'sender': surveillance.conducted_by or 'Unknown',
+                    'status': 'Adverse Finding' if surveillance.has_adverse_finding else 'Normal',
+                    'score': 0,  # Surveillance doesn't use scoring system
+                    'entry': surveillance
+                })
+        
+        # Check for Received By Hand entries
+        if case.received_by_hand_id:
+            received = ReceivedByHandEntry.query.get(case.received_by_hand_id)
+            if received:
+                intelligence_items.append({
+                    'type': 'received_by_hand',
+                    'id': received.id,
+                    'date': received.received_time,
+                    'subject': received.complaint_name,
+                    'sender': received.contact_number or 'N/A',
+                    'status': received.reviewer_decision or 'Pending',
+                    'score': (received.source_reliability or 0) + (received.content_validity or 0),
+                    'entry': received
+                })
         
         # Sort by date (newest first)
         intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
