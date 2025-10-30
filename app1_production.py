@@ -8858,21 +8858,23 @@ def add_received_by_hand():
             db.session.add(entry)
             db.session.flush()
             
-            # Create CaseProfile and INT reference
-            case_profile = CaseProfile(
-                received_by_hand_id=entry.id,
-                created_at=get_hk_time()
-            )
-            db.session.add(case_profile)
-            db.session.flush()
-            
-            # Assign INT reference
-            case_profile.int_reference = generate_int_reference(case_profile.id)
-            entry.caseprofile_id = case_profile.id
+            # 🔗 STAGE 2: Auto-generate unified INT reference
+            try:
+                case_profile = create_unified_intelligence_entry(
+                    source_record=entry,
+                    source_type="RECEIVED_BY_HAND",
+                    created_by=f"USER-{current_user.username if current_user else 'SYSTEM'}"
+                )
+                if case_profile:
+                    print(f"[UNIFIED INT] Received by Hand entry {entry.id} linked to {case_profile.int_reference}")
+                    flash(f"Received by Hand entry created successfully with INT Reference: {case_profile.int_reference}", "success")
+                else:
+                    flash("Received by Hand entry created successfully (INT reference pending)", "warning")
+            except Exception as e:
+                print(f"[UNIFIED INT] Error linking Received by Hand entry: {e}")
+                flash("Received by Hand entry created successfully (INT reference error)", "warning")
             
             db.session.commit()
-            
-            flash(f"Received by Hand entry created successfully with INT Reference: {case_profile.int_reference}", "success")
             return redirect(url_for('int_source'))
         except Exception as e:
             db.session.rollback()
