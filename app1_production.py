@@ -8383,15 +8383,50 @@ def surveillance_detail(entry_id):
 @login_required
 def update_whatsapp_int_reference(entry_id):
     """Update INT reference number for WhatsApp entry"""
-    entry = WhatsAppEntry.query.get_or_404(entry_id)
-    entry.int_reference_number = request.form.get("int_reference_number", "").strip().upper()
-    
     try:
+        new_int_number = request.form.get('int_reference_number', '').strip().upper()
+        
+        if not new_int_number:
+            flash('INT reference number is required', 'error')
+            return redirect(url_for('whatsapp_detail', entry_id=entry_id))
+        
+        # Validate format
+        import re
+        if not re.match(r'^INT-\d{1,4}$', new_int_number):
+            flash('Invalid format. Use INT-XXX (e.g., INT-001)', 'error')
+            return redirect(url_for('whatsapp_detail', entry_id=entry_id))
+        
+        # Get WhatsApp entry
+        entry = WhatsAppEntry.query.get_or_404(entry_id)
+        
+        # Check if CaseProfile with this INT reference already exists
+        case_profile = CaseProfile.query.filter_by(int_reference=new_int_number).first()
+        
+        if not case_profile:
+            # Create new CaseProfile for this INT reference
+            case_profile = CaseProfile(
+                int_reference=new_int_number,
+                date_of_receipt=entry.datetime or get_hk_time(),
+                source_type='WHATSAPP',
+                whatsapp_id=entry.id
+            )
+            db.session.add(case_profile)
+            db.session.flush()
+            print(f"[INT-REF] Created new CaseProfile with INT {new_int_number} for WhatsApp {entry_id}")
+        
+        # Link WhatsApp entry to this CaseProfile
+        entry.caseprofile_id = case_profile.id
+        
         db.session.commit()
-        flash("INT Reference Number updated successfully.", "success")
+        flash(f"WhatsApp entry successfully assigned to case {new_int_number}", "success")
+        print(f"[INT-REF] Linked WhatsApp {entry_id} to CaseProfile {case_profile.id} (INT: {new_int_number})")
+        
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating INT reference: {e}", "danger")
+        print(f"[INT-REF] Error: {e}")
+        import traceback
+        traceback.print_exc()
     
     return redirect(url_for('whatsapp_detail', entry_id=entry_id))
 
@@ -8400,15 +8435,50 @@ def update_whatsapp_int_reference(entry_id):
 @login_required
 def update_patrol_int_reference(entry_id):
     """Update INT reference number for Online Patrol entry"""
-    entry = OnlinePatrolEntry.query.get_or_404(entry_id)
-    entry.int_reference_number = request.form.get("int_reference_number", "").strip().upper()
-    
     try:
+        new_int_number = request.form.get('int_reference_number', '').strip().upper()
+        
+        if not new_int_number:
+            flash('INT reference number is required', 'error')
+            return redirect(url_for('online_patrol_detail', entry_id=entry_id))
+        
+        # Validate format
+        import re
+        if not re.match(r'^INT-\d{1,4}$', new_int_number):
+            flash('Invalid format. Use INT-XXX (e.g., INT-001)', 'error')
+            return redirect(url_for('online_patrol_detail', entry_id=entry_id))
+        
+        # Get Online Patrol entry
+        entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+        
+        # Check if CaseProfile with this INT reference already exists
+        case_profile = CaseProfile.query.filter_by(int_reference=new_int_number).first()
+        
+        if not case_profile:
+            # Create new CaseProfile for this INT reference
+            case_profile = CaseProfile(
+                int_reference=new_int_number,
+                date_of_receipt=entry.date or get_hk_time(),
+                source_type='PATROL',
+                patrol_id=entry.id
+            )
+            db.session.add(case_profile)
+            db.session.flush()
+            print(f"[INT-REF] Created new CaseProfile with INT {new_int_number} for Patrol {entry_id}")
+        
+        # Link Online Patrol entry to this CaseProfile
+        entry.caseprofile_id = case_profile.id
+        
         db.session.commit()
-        flash("INT Reference Number updated successfully.", "success")
+        flash(f"Online Patrol entry successfully assigned to case {new_int_number}", "success")
+        print(f"[INT-REF] Linked Patrol {entry_id} to CaseProfile {case_profile.id} (INT: {new_int_number})")
+        
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating INT reference: {e}", "danger")
+        print(f"[INT-REF] Error: {e}")
+        import traceback
+        traceback.print_exc()
     
     return redirect(url_for('online_patrol_detail', entry_id=entry_id))
 

@@ -73,6 +73,19 @@
               </div>
             </div>
           </form>
+          
+          <!-- Reorder All INT Numbers Button -->
+          <div class="mt-3">
+            <form method="POST" action="{{ url_for('reorder_all_unified_int_references') }}" 
+                  onsubmit="return confirm('⚠️ Reorder ALL INT numbers chronologically?\n\nThis will:\n• Renumber ALL INT references based on date received (oldest = INT-001)\n• Update all linked emails, WhatsApp, patrols, etc.\n• Fix any gaps or out-of-order INT numbers\n\nContinue?');">
+              <button type="submit" class="btn btn-warning btn-sm">
+                <i class="fas fa-sort-numeric-up"></i> Reorder All INT Numbers Chronologically
+              </button>
+              <small class="text-muted ms-2">
+                Use this after assigning INT to fill gaps or fix ordering
+              </small>
+            </form>
+          </div>
         </div>
       </div>
 
