@@ -3831,15 +3831,25 @@ def int_analytics():
         total_surveillance = SurveillanceEntry.query.count()
         total_received_by_hand = ReceivedByHandEntry.query.count()
         
+        # Calculate average items per INT
+        total_items = total_emails + total_whatsapp + total_online + total_surveillance + total_received_by_hand
+        avg_items_per_int = total_items / total_ints if total_ints > 0 else 0
+        
+        # Package stats into a dictionary for the template
+        stats = {
+            'total_int_references': total_ints,
+            'total_emails': total_emails,
+            'total_whatsapp': total_whatsapp,
+            'total_patrol': total_online,
+            'total_surveillance': total_surveillance,
+            'total_received_by_hand': total_received_by_hand,
+            'avg_items_per_int': avg_items_per_int
+        }
+        
         return render_template(
             'int_analytics.html',
             int_stats=int_stats,
-            total_ints=total_ints,
-            total_emails=total_emails,
-            total_whatsapp=total_whatsapp,
-            total_online=total_online,
-            total_surveillance=total_surveillance,
-            total_received_by_hand=total_received_by_hand
+            stats=stats
         )
         
     except Exception as e:
