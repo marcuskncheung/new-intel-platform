@@ -3835,6 +3835,32 @@ def int_analytics():
         total_items = total_emails + total_whatsapp + total_online + total_surveillance + total_received_by_hand
         avg_items_per_int = total_items / total_ints if total_ints > 0 else 0
         
+        # Calculate distribution data (items per INT grouping)
+        distribution = [0, 0, 0, 0, 0]  # [1 item, 2-5, 6-10, 11-20, 20+]
+        for stat in int_stats:
+            total = stat['total_sources']
+            if total == 1:
+                distribution[0] += 1
+            elif 2 <= total <= 5:
+                distribution[1] += 1
+            elif 6 <= total <= 10:
+                distribution[2] += 1
+            elif 11 <= total <= 20:
+                distribution[3] += 1
+            else:
+                distribution[4] += 1
+        
+        # Calculate top INTs data (top 10 INTs by total sources)
+        sorted_stats = sorted(int_stats, key=lambda x: x['total_sources'], reverse=True)[:10]
+        top_int_data = {
+            'labels': [stat['int_reference'] for stat in sorted_stats],
+            'email': [stat['email_count'] for stat in sorted_stats],
+            'whatsapp': [stat['whatsapp_count'] for stat in sorted_stats],
+            'patrol': [stat['online_count'] for stat in sorted_stats],
+            'surveillance': [stat['surveillance_count'] for stat in sorted_stats],
+            'received_by_hand': [stat['received_by_hand_count'] for stat in sorted_stats]
+        }
+        
         # Package stats into a dictionary for the template
         stats = {
             'total_int_references': total_ints,
@@ -3849,7 +3875,9 @@ def int_analytics():
         return render_template(
             'int_analytics.html',
             int_stats=int_stats,
-            stats=stats
+            stats=stats,
+            distribution_data=distribution,
+            top_int_data=top_int_data
         )
         
     except Exception as e:
