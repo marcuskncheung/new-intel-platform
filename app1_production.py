@@ -3954,21 +3954,6 @@ def int_reference_detail(int_reference):
                     'entry': patrol
                 })
         
-        # Check for Surveillance entries
-        if case.surveillance_id:
-            surveillance = SurveillanceEntry.query.get(case.surveillance_id)
-            if surveillance:
-                intelligence_items.append({
-                    'type': 'surveillance',
-                    'id': surveillance.id,
-                    'date': surveillance.date,
-                    'subject': surveillance.operation_number or 'Surveillance',
-                    'sender': surveillance.conducted_by or 'Unknown',
-                    'status': 'Adverse Finding' if surveillance.has_adverse_finding else 'Normal',
-                    'score': 0,  # Surveillance doesn't use scoring system
-                    'entry': surveillance
-                })
-        
         # Check for Received By Hand entries
         if case.received_by_hand_id:
             received = ReceivedByHandEntry.query.get(case.received_by_hand_id)
@@ -3983,6 +3968,8 @@ def int_reference_detail(int_reference):
                     'score': (received.source_reliability or 0) + (received.content_validity or 0),
                     'entry': received
                 })
+        
+        # Note: Surveillance is not yet linked to CaseProfile system
         
         # Sort by date (newest first)
         intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
