@@ -2131,7 +2131,7 @@
                   {% set nature_list = [] %}
                   {% if w.alleged_nature.startswith('[') %}
                     {# JSON array format #}
-                    {% set nature_list = w.alleged_nature|fromjson %}
+                    {% set nature_list = w.alleged_nature|from_json %}
                   {% else %}
                     {# Old format - single string #}
                     {% set nature_list = [w.alleged_nature] %}
