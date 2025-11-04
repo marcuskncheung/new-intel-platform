@@ -8756,18 +8756,8 @@ def int_source_patrol_update_assessment(entry_id):
     # Store in database
     entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
     entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
-                english_name=eng_name.strip() if eng_name else None,
-                chinese_name=chi_name.strip() if chi_name else None,
-                license_type=lic_type.strip() if lic_type else None,
-                license_number=lic_num.strip() if lic_num else None,
-                sequence_order=i
-            )
-            db.session.add(alleged_subject)
     
-    # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
-    # Store in database
-    entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
-    entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+    # Update legacy field
     
     # Update legacy field
     if processed_english and processed_chinese:
