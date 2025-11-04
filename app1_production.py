@@ -8201,7 +8201,18 @@ def whatsapp_detail(entry_id):
                 return redirect(url_for('alleged_subject_list'))
 
     # GET: show detail page
-    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images)
+    # ✅ CRITICAL FIX: Read alleged subjects from WhatsAppAllegedSubject relational table (same as Email)
+    alleged_subjects = WhatsAppAllegedSubject.query.filter_by(whatsapp_id=entry.id)\
+                                                    .order_by(WhatsAppAllegedSubject.sequence_order)\
+                                                    .all()
+    
+    # FALLBACK: If no records in new table, use old comma-separated columns
+    if not alleged_subjects and (entry.alleged_subject_english or entry.alleged_subject_chinese):
+        print(f"[WHATSAPP DETAIL] ⚠️ WhatsApp {entry.id}: No records in whatsapp_alleged_subjects table, using legacy fields")
+        # Note: This fallback uses index-based pairing which may be incorrect
+        # Recommended: Edit the assessment to migrate data to new table
+    
+    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images, alleged_subjects=alleged_subjects)
 
 # Add this route to fix url_for('surveillance_detail', entry_id=...) errors in your templates
 @app.route("/surveillance/<int:entry_id>", methods=["GET", "POST"])
