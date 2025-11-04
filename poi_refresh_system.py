@@ -536,28 +536,80 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         
         if orphaned_pois:
             print(f"\n[VERIFICATION] ⚠️ WARNING: Found {len(orphaned_pois)} POI profiles WITHOUT source links!")
-            print(f"[VERIFICATION] 🧹 AUTO-CLEANUP: Marking orphaned POIs as INACTIVE...")
+            print(f"[VERIFICATION] 🗑️ AUTO-CLEANUP: DELETING orphaned POIs (wrong/duplicate entries)...")
             
-            # Mark orphaned POIs as INACTIVE (they lost all their sources after re-assessment)
+            # DELETE orphaned POIs (they lost all their sources after re-assessment)
             # This handles the case where:
             # - Old POI-071 had wrong "English A + Chinese B" pairing
             # - User edited email to separate into correct "English A + Chinese C" and "English D + Chinese B"
             # - Refresh creates new POI for correct pairings
-            # - Old POI-071 becomes orphaned (no sources point to it anymore)
+            # - Old POI-071 becomes orphaned (no sources point to it anymore) → DELETE IT
             for orphan in orphaned_pois:
                 poi = db.session.query(AllegedPersonProfile).filter_by(
                     poi_id=orphan['poi_id']
                 ).first()
                 
                 if poi:
-                    poi.status = 'INACTIVE'
-                    print(f"[VERIFICATION] ✅ Marked INACTIVE: {poi.poi_id} - {poi.name_english} ({poi.name_chinese})")
+                    print(f"[VERIFICATION] 🗑️ Deleting: {poi.poi_id} - {poi.name_english} ({poi.name_chinese})")
+                    db.session.delete(poi)
             
             db.session.commit()
-            print(f"[VERIFICATION] ✅ Auto-cleanup completed: {len(orphaned_pois)} orphaned POIs marked as INACTIVE")
-            print(f"[VERIFICATION] 💡 TIP: These POIs are now hidden from active list. Review them in admin panel if needed.")
+            print(f"[VERIFICATION] ✅ Auto-cleanup completed: {len(orphaned_pois)} orphaned POIs deleted")
         else:
             print(f"\n[VERIFICATION] ✅ All POI profiles have source links")
+        
+        # ====================================================================
+        # SAFE AUTO-RENUMBER: Renumber POI IDs to fill gaps
+        # ====================================================================
+        print("\n[RENUMBER] 🔢 Renumbering POI IDs to remove gaps...")
+        
+        # Get all ACTIVE POIs sorted by created_at (oldest first)
+        active_pois = db.session.query(AllegedPersonProfile).filter(
+            AllegedPersonProfile.status == 'ACTIVE'
+        ).order_by(AllegedPersonProfile.created_at.asc()).all()
+        
+        if len(active_pois) > 0:
+            print(f"[RENUMBER] Found {len(active_pois)} active POIs to renumber")
+            
+            # PHASE 1: Rename to temporary IDs (avoid conflicts)
+            print("[RENUMBER] Phase 1: Moving to temporary IDs...")
+            for idx, poi in enumerate(active_pois, start=1):
+                old_id = poi.poi_id
+                temp_id = f"TEMP-{idx:04d}"
+                
+                # Update POI profile
+                poi.poi_id = temp_id
+                
+                # Update all links
+                db.session.query(POIIntelligenceLink).filter_by(poi_id=old_id).update(
+                    {'poi_id': temp_id}, synchronize_session=False
+                )
+                
+                print(f"[RENUMBER] {old_id} → {temp_id}")
+            
+            db.session.commit()
+            print("[RENUMBER] Phase 1 complete")
+            
+            # PHASE 2: Rename to final sequential IDs
+            print("[RENUMBER] Phase 2: Assigning final POI IDs...")
+            for idx, poi in enumerate(active_pois, start=1):
+                temp_id = f"TEMP-{idx:04d}"
+                final_id = f"POI-{idx:03d}"
+                
+                # Update POI profile
+                poi.poi_id = final_id
+                
+                # Update all links
+                db.session.query(POIIntelligenceLink).filter_by(poi_id=temp_id).update(
+                    {'poi_id': final_id}, synchronize_session=False
+                )
+                
+                print(f"[RENUMBER] {temp_id} → {final_id}")
+            
+            db.session.commit()
+            print(f"[RENUMBER] ✅ Renumbered {len(active_pois)} POIs: POI-001 to POI-{len(active_pois):03d}")
+        else:
+            print("[RENUMBER] No POIs to renumber")
         
         # ====================================================================
         # SUMMARY
@@ -575,7 +627,9 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         print(f"POI Profiles Created: {total_created}")
         print(f"POI Profiles Updated: {total_updated}")
         print(f"Universal Links Created: {total_links}")
-        print(f"Orphaned POIs Cleaned: {orphaned_count}")
+        print(f"Orphaned POIs Deleted: {orphaned_count}")
+        print(f"Final POI Count: {len(active_pois)}")
+        print(f"POI Range: POI-001 to POI-{len(active_pois):03d}")
         print("=" * 80)
         
         return {
