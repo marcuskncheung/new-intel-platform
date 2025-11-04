@@ -2077,7 +2077,6 @@
           <thead>
             <tr>
               <th>Source ID</th>
-              <th>INT Reference</th>
               <th>Received Time</th>
               <th>Complaint Name</th>
               <th>Phone Number</th>
@@ -2094,18 +2093,6 @@
             <tr>
               <td>
                 <span class="badge bg-info">WHATSAPP-{{ w.id }}</span>
-              </td>
-              <td>
-                {% set int_ref = get_case_int_reference(w) %}
-                {% if int_ref %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=int_ref) }}" 
-                     class="badge bg-primary text-decoration-none" 
-                     title="View INT Reference Details">
-                    {{ int_ref }}
-                  </a>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
               </td>
               <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
               <td>{{ w.complaint_name }}</td>
@@ -2127,7 +2114,7 @@
                   {% set nature_list = [] %}
                   {% if w.alleged_nature.startswith('[') %}
                     {# JSON array format #}
-                    {% set nature_list = w.alleged_nature|from_json %}
+                    {% set nature_list = w.alleged_nature|fromjson %}
                   {% else %}
                     {# Old format - single string #}
                     {% set nature_list = [w.alleged_nature] %}
@@ -2335,13 +2322,17 @@
                 <span class="badge bg-info">PATROL-{{ o.id }}</span>
               </td>
               <td>
-                {% set int_ref = get_case_int_reference(o) %}
-                {% if int_ref %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=int_ref) }}" 
-                     class="badge bg-primary text-decoration-none" 
-                     title="View INT Reference Details">
-                    {{ int_ref }}
-                  </a>
+                {% if o.caseprofile_id %}
+                  {% set case = o.case_profile if o.case_profile else None %}
+                  {% if case and case.int_reference %}
+                    <a href="{{ url_for('int_reference_detail', int_reference=case.int_reference) }}" 
+                       class="badge bg-primary text-decoration-none" 
+                       title="View INT Reference Details">
+                      {{ case.int_reference }}
+                    </a>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
@@ -2490,13 +2481,8 @@
             {% set combined_score = (rbh.source_reliability or 0) + (rbh.content_validity or 0) %}
             <tr>
               <td>
-                {% set int_ref = get_case_int_reference(rbh) %}
-                {% if int_ref %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=int_ref) }}" 
-                     class="badge bg-primary text-decoration-none" 
-                     title="View INT Reference Details">
-                    {{ int_ref }}
-                  </a>
+                {% if rbh.case_profile and rbh.case_profile.int_reference %}
+                  <span class="badge-pro">{{ rbh.case_profile.int_reference }}</span>
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}

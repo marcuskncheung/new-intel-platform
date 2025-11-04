@@ -74,23 +74,81 @@
       <input name="phone_number" class="form-control" value="{{ entry.phone_number if entry else '' }}">
     </div>
     <div class="mb-3">
-      <label class="form-label">Alleged Person(s)</label>
+      <label class="form-label fw-bold">Alleged Person(s)</label>
+      <small class="text-muted d-block mb-2">Enter English and Chinese names for each person (Chinese name is optional)</small>
       <div id="alleged-persons">
-        {% if entry and entry.alleged_person %}
-          {% for alleged_person in entry.alleged_person.split(',') %}
-            <div class="input-group mb-2">
-              <input type="text" name="alleged_person[]" class="form-control" value="{{ alleged_person.strip() }}">
-              <button class="btn btn-sm btn-danger" type="button" onclick="removeAllegedPerson(this)">-</button>
+        {% if entry and entry.alleged_subject_english %}
+          {% set english_names = entry.alleged_subject_english.split(',') %}
+          {% set chinese_names = entry.alleged_subject_chinese.split(',') if entry.alleged_subject_chinese else [] %}
+          {% for eng_name in english_names %}
+            <div class="person-pair mb-3 p-3 border rounded bg-light">
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label small">English Name</label>
+                  <input type="text" name="alleged_person_english[]" class="form-control" value="{{ eng_name.strip() }}" placeholder="John Smith">
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label small">Chinese Name (Optional)</label>
+                  <input type="text" name="alleged_person_chinese[]" class="form-control" value="{{ chinese_names[loop.index0].strip() if loop.index0 < chinese_names|length else '' }}" placeholder="約翰史密斯">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                  <button class="btn btn-sm btn-danger w-100" type="button" onclick="removePersonPair(this)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           {% endfor %}
+        {% elif entry and entry.alleged_person %}
+          {# Legacy format - try to split by English/Chinese detection #}
+          {% set all_names = entry.alleged_person.split(',') %}
+          {% set paired_count = 0 %}
+          {% for name in all_names %}
+            {% set is_chinese = name and '\u4e00' <= name[0] <= '\u9fff' %}
+            {% if not is_chinese or paired_count == 0 %}
+              <div class="person-pair mb-3 p-3 border rounded bg-light">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label class="form-label small">English Name</label>
+                    <input type="text" name="alleged_person_english[]" class="form-control" value="{{ name.strip() if not is_chinese else '' }}" placeholder="John Smith">
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label small">Chinese Name (Optional)</label>
+                    <input type="text" name="alleged_person_chinese[]" class="form-control" value="{{ name.strip() if is_chinese else '' }}" placeholder="約翰史密斯">
+                  </div>
+                  <div class="col-md-1 d-flex align-items-end">
+                    <button class="btn btn-sm btn-danger w-100" type="button" onclick="removePersonPair(this)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {% set paired_count = paired_count + 1 %}
+            {% endif %}
+          {% endfor %}
         {% else %}
-          <div class="input-group mb-2">
-            <input type="text" name="alleged_person[]" class="form-control">
-            <button class="btn btn-sm btn-danger d-none" type="button" onclick="removeAllegedPerson(this)">-</button>
+          <div class="person-pair mb-3 p-3 border rounded bg-light">
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label small">English Name</label>
+                <input type="text" name="alleged_person_english[]" class="form-control" placeholder="John Smith">
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small">Chinese Name (Optional)</label>
+                <input type="text" name="alleged_person_chinese[]" class="form-control" placeholder="約翰史密斯">
+              </div>
+              <div class="col-md-1 d-flex align-items-end">
+                <button class="btn btn-sm btn-danger w-100 d-none" type="button" onclick="removePersonPair(this)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
           </div>
         {% endif %}
       </div>
-      <button class="btn btn-sm btn-success" type="button" onclick="addAllegedPerson()">+ Add Person</button>
+      <button class="btn btn-sm btn-success" type="button" onclick="addPersonPair()">
+        <i class="bi bi-plus-circle"></i> Add Another Person
+      </button>
     </div>
     <div class="mb-3">
       <label class="form-label">Alleged Type</label>
@@ -231,24 +289,45 @@
   {% endif %}
 </div>
 <script>
-  function addAllegedPerson() {
-    var allegedPersonContainer = document.getElementById('alleged-persons');
-    var newAllegedPerson = document.createElement('div');
-    newAllegedPerson.className = 'input-group mb-2';
-    newAllegedPerson.innerHTML = '<input type="text" name="alleged_person[]" class="form-control"><button class="btn btn-sm btn-danger" type="button" onclick="removeAllegedPerson(this)">-</button>';
-    allegedPersonContainer.appendChild(newAllegedPerson);
-    var removeButtons = allegedPersonContainer.querySelectorAll('.btn-danger');
-    if (removeButtons.length > 1) {
-      removeButtons.forEach(button => button.classList.remove('d-none'));
+  function addPersonPair() {
+    var container = document.getElementById('alleged-persons');
+    var newPair = document.createElement('div');
+    newPair.className = 'person-pair mb-3 p-3 border rounded bg-light';
+    newPair.innerHTML = `
+      <div class="row">
+        <div class="col-md-6">
+          <label class="form-label small">English Name</label>
+          <input type="text" name="alleged_person_english[]" class="form-control" placeholder="John Smith">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label small">Chinese Name (Optional)</label>
+          <input type="text" name="alleged_person_chinese[]" class="form-control" placeholder="約翰史密斯">
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button class="btn btn-sm btn-danger w-100" type="button" onclick="removePersonPair(this)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    container.appendChild(newPair);
+    
+    // Show all delete buttons if there's more than one pair
+    var deleteButtons = container.querySelectorAll('.btn-danger');
+    if (deleteButtons.length > 1) {
+      deleteButtons.forEach(btn => btn.classList.remove('d-none'));
     }
   }
 
-  function removeAllegedPerson(button) {
-    var allegedPersonContainer = document.getElementById('alleged-persons');
-    allegedPersonContainer.removeChild(button.parentNode);
-    var removeButtons = allegedPersonContainer.querySelectorAll('.btn-danger');
-    if (removeButtons.length <= 1) {
-      removeButtons.forEach(button => button.classList.add('d-none'));
+  function removePersonPair(button) {
+    var container = document.getElementById('alleged-persons');
+    var pair = button.closest('.person-pair');
+    container.removeChild(pair);
+    
+    // Hide delete button if only one pair remains
+    var deleteButtons = container.querySelectorAll('.btn-danger');
+    if (deleteButtons.length <= 1) {
+      deleteButtons.forEach(btn => btn.classList.add('d-none'));
     }
   }
 </script>

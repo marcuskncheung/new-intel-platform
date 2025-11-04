@@ -3785,29 +3785,29 @@ def int_analytics():
         # Build INT statistics
         int_stats = []
         for int_ref, case_id in int_references:
-            # Count emails linked to this INT (use caseprofile_id, not case_profile_id)
+            # Count emails linked to this INT
             email_count = db.session.query(Email).filter(
-                Email.caseprofile_id == case_id
+                Email.case_profile_id == case_id
             ).count()
             
-            # Count WhatsApp entries (use caseprofile_id)
+            # Count WhatsApp entries
             whatsapp_count = db.session.query(WhatsAppEntry).filter(
-                WhatsAppEntry.caseprofile_id == case_id
+                WhatsAppEntry.case_profile_id == case_id
             ).count()
             
-            # Count Online Patrol entries (use caseprofile_id)
+            # Count Online Patrol entries
             online_count = db.session.query(OnlinePatrolEntry).filter(
-                OnlinePatrolEntry.caseprofile_id == case_id
+                OnlinePatrolEntry.case_profile_id == case_id
             ).count()
             
-            # Count Surveillance entries (use caseprofile_id)
+            # Count Surveillance entries
             surveillance_count = db.session.query(SurveillanceEntry).filter(
-                SurveillanceEntry.caseprofile_id == case_id
+                SurveillanceEntry.case_profile_id == case_id
             ).count()
             
-            # Count Received by Hand entries (use caseprofile_id)
+            # Count Received by Hand entries
             received_by_hand_count = db.session.query(ReceivedByHandEntry).filter(
-                ReceivedByHandEntry.caseprofile_id == case_id
+                ReceivedByHandEntry.case_profile_id == case_id
             ).count()
             
             total_sources = email_count + whatsapp_count + online_count + surveillance_count + received_by_hand_count
@@ -3817,12 +3817,9 @@ def int_analytics():
                 'case_id': case_id,
                 'email_count': email_count,
                 'whatsapp_count': whatsapp_count,
-                'patrol_count': online_count,  # Template expects 'patrol_count'
+                'online_count': online_count,
                 'surveillance_count': surveillance_count,
                 'received_by_hand_count': received_by_hand_count,
-                'total_items': total_sources,  # Template expects 'total_items'
-                # Keep old keys for chart compatibility
-                'online_count': online_count,
                 'total_sources': total_sources
             })
         
@@ -3834,54 +3831,15 @@ def int_analytics():
         total_surveillance = SurveillanceEntry.query.count()
         total_received_by_hand = ReceivedByHandEntry.query.count()
         
-        # Calculate average items per INT
-        total_items = total_emails + total_whatsapp + total_online + total_surveillance + total_received_by_hand
-        avg_items_per_int = total_items / total_ints if total_ints > 0 else 0
-        
-        # Calculate distribution data (items per INT grouping)
-        distribution = [0, 0, 0, 0, 0]  # [1 item, 2-5, 6-10, 11-20, 20+]
-        for stat in int_stats:
-            total = stat['total_sources']
-            if total == 1:
-                distribution[0] += 1
-            elif 2 <= total <= 5:
-                distribution[1] += 1
-            elif 6 <= total <= 10:
-                distribution[2] += 1
-            elif 11 <= total <= 20:
-                distribution[3] += 1
-            else:
-                distribution[4] += 1
-        
-        # Calculate top INTs data (top 10 INTs by total sources)
-        sorted_stats = sorted(int_stats, key=lambda x: x['total_sources'], reverse=True)[:10]
-        top_int_data = {
-            'labels': [stat['int_reference'] for stat in sorted_stats],
-            'email': [stat['email_count'] for stat in sorted_stats],
-            'whatsapp': [stat['whatsapp_count'] for stat in sorted_stats],
-            'patrol': [stat['online_count'] for stat in sorted_stats],
-            'surveillance': [stat['surveillance_count'] for stat in sorted_stats],
-            'received_by_hand': [stat['received_by_hand_count'] for stat in sorted_stats]
-        }
-        
-        # Package stats into a dictionary for the template
-        stats = {
-            'total_int_references': total_ints,
-            'total_emails': total_emails,
-            'total_whatsapp': total_whatsapp,
-            'total_patrol': total_online,
-            'total_surveillance': total_surveillance,
-            'total_received_by_hand': total_received_by_hand,
-            'avg_items_per_int': avg_items_per_int
-        }
-        
         return render_template(
             'int_analytics.html',
             int_stats=int_stats,
-            int_details=int_stats,  # Template expects 'int_details' for the list
-            stats=stats,
-            distribution_data=distribution,
-            top_int_data=top_int_data
+            total_ints=total_ints,
+            total_emails=total_emails,
+            total_whatsapp=total_whatsapp,
+            total_online=total_online,
+            total_surveillance=total_surveillance,
+            total_received_by_hand=total_received_by_hand
         )
         
     except Exception as e:
@@ -3905,25 +3863,12 @@ def int_reference_detail(int_reference):
             flash(f'INT reference {int_reference} not found', 'danger')
             return redirect(url_for('int_analytics'))
         
-        print(f"\n[DEBUG INT-DETAIL] Processing {int_reference}")
-        print(f"[DEBUG] CaseProfile ID: {case.id}")
-        print(f"[DEBUG] Source Type: {case.source_type}")
-        print(f"[DEBUG] Email ID (forward link): {case.email_id}")
-        print(f"[DEBUG] WhatsApp ID (forward link): {case.whatsapp_id}")
-        print(f"[DEBUG] Patrol ID (forward link): {case.patrol_id}")
-        print(f"[DEBUG] Received By Hand ID (forward link): {case.received_by_hand_id}")
-        
         # Collect all intelligence entries linked to this INT
         intelligence_items = []
         
-        # ⚠️ CRITICAL FIX: Use BACKWARD relationship (caseprofile_id) instead of forward link (email_id)
-        # The database uses Email.caseprofile_id → CaseProfile.id, not CaseProfile.email_id → Email.id
-        
-        # Check for Email entries (use backward link)
-        emails = Email.query.filter_by(caseprofile_id=case.id).all()
-        print(f"[DEBUG] Found {len(emails)} emails using backward link (Email.caseprofile_id)")
-        for email in emails:
-            print(f"[DEBUG] ✅ Email: {email.subject}")
+        # CaseProfile has one-to-one relationships, so check which source this INT is linked to
+        if case.email and case.source_type == 'EMAIL':
+            email = case.email
             intelligence_items.append({
                 'type': 'email',
                 'id': email.id,
@@ -3935,11 +3880,9 @@ def int_reference_detail(int_reference):
                 'entry': email
             })
         
-        # Check for WhatsApp entries (use backward link)
-        whatsapps = WhatsAppEntry.query.filter_by(caseprofile_id=case.id).all()
-        print(f"[DEBUG] Found {len(whatsapps)} WhatsApp entries using backward link")
-        for wa in whatsapps:
-            print(f"[DEBUG] ✅ WhatsApp: {wa.complaint_name}")
+        # Get WhatsApp entry if this INT is linked to WhatsApp
+        if case.whatsapp and case.source_type == 'WHATSAPP':
+            wa = case.whatsapp
             intelligence_items.append({
                 'type': 'whatsapp',
                 'id': wa.id,
@@ -3951,11 +3894,9 @@ def int_reference_detail(int_reference):
                 'entry': wa
             })
         
-        # Check for Online Patrol entries (use backward link)
-        patrols = OnlinePatrolEntry.query.filter_by(caseprofile_id=case.id).all()
-        print(f"[DEBUG] Found {len(patrols)} Patrol entries using backward link")
-        for patrol in patrols:
-            print(f"[DEBUG] ✅ Patrol: {patrol.sender}")
+        # Get Online Patrol entry if this INT is linked to Patrol
+        if case.patrol and case.source_type == 'PATROL':
+            patrol = case.patrol
             intelligence_items.append({
                 'type': 'patrol',
                 'id': patrol.id,
@@ -3967,64 +3908,17 @@ def int_reference_detail(int_reference):
                 'entry': patrol
             })
         
-        # Check for Received By Hand entries (use backward link)
-        received_list = ReceivedByHandEntry.query.filter_by(caseprofile_id=case.id).all()
-        print(f"[DEBUG] Found {len(received_list)} Received By Hand entries using backward link")
-        for received in received_list:
-            print(f"[DEBUG] ✅ Received By Hand: {received.complaint_name}")
-            intelligence_items.append({
-                'type': 'received_by_hand',
-                'id': received.id,
-                'date': received.received_time,
-                'subject': received.complaint_name,
-                'sender': received.contact_number or 'N/A',
-                'status': received.reviewer_decision or 'Pending',
-                'score': (received.source_reliability or 0) + (received.content_validity or 0),
-                'entry': received
-            })
+        # Note: Surveillance not yet linked to CaseProfile
         
-        # Note: Surveillance is not yet linked to CaseProfile system
-        
-        print(f"[DEBUG] Total intelligence items found: {len(intelligence_items)}")
-        
-        # Sort by date (newest first) - convert all dates to datetime objects
-        def get_sort_date(item):
-            date_val = item['date']
-            if not date_val:
-                return datetime.min
-            # If it's already a datetime, return it
-            if isinstance(date_val, datetime):
-                return date_val
-            # If it's a string, try to parse it
-            if isinstance(date_val, str):
-                try:
-                    return datetime.fromisoformat(date_val.replace('Z', '+00:00'))
-                except:
-                    return datetime.min
-            return datetime.min
-        
-        intelligence_items.sort(key=get_sort_date, reverse=True)
-        
-        # Separate intelligence items by type for template
-        emails_list = [item['entry'] for item in intelligence_items if item['type'] == 'email']
-        whatsapp_list = [item['entry'] for item in intelligence_items if item['type'] == 'whatsapp']
-        patrol_list = [item['entry'] for item in intelligence_items if item['type'] == 'patrol']
-        received_by_hand_list = [item['entry'] for item in intelligence_items if item['type'] == 'received_by_hand']
-        
-        print(f"[DEBUG] Separated lists - Emails: {len(emails_list)}, WhatsApp: {len(whatsapp_list)}, Patrol: {len(patrol_list)}, Received: {len(received_by_hand_list)}")
+        # Sort by date (newest first)
+        intelligence_items.sort(key=lambda x: x['date'] if x['date'] else datetime.min, reverse=True)
         
         return render_template(
             'int_reference_detail.html',
             int_reference=int_reference,
             case=case,
             intelligence_items=intelligence_items,
-            total_items=len(intelligence_items),
-            # Template expects these separate lists
-            emails=emails_list,
-            whatsapp_entries=whatsapp_list,
-            patrol_entries=patrol_list,
-            surveillance_entries=[],  # Not yet implemented
-            received_by_hand_entries=received_by_hand_list
+            total_items=len(intelligence_items)
         )
         
     except Exception as e:
@@ -6654,10 +6548,34 @@ def add_whatsapp():
         received_time = request.form.get("received_time")
         complaint_name = request.form.get("complaint_name")
         phone_number = request.form.get("phone_number")
-        alleged_person = request.form.getlist("alleged_person[]")
-        # Filter out empty persons and join with commas
-        filtered_persons = [person.strip() for person in alleged_person if person.strip()]
-        alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
+        
+        # 🔧 NEW: Get paired English and Chinese names
+        alleged_person_english_list = request.form.getlist("alleged_person_english[]")
+        alleged_person_chinese_list = request.form.getlist("alleged_person_chinese[]")
+        
+        # Filter and pair the names
+        english_names = []
+        chinese_names = []
+        all_person_names = []  # For legacy alleged_person field
+        
+        for i, eng_name in enumerate(alleged_person_english_list):
+            eng_clean = eng_name.strip() if eng_name else ""
+            chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
+            
+            # Store non-empty names
+            if eng_clean:
+                english_names.append(eng_clean)
+                all_person_names.append(eng_clean)
+            if chi_clean:
+                chinese_names.append(chi_clean)
+                # Add Chinese to legacy field only if no English name for this person
+                if not eng_clean:
+                    all_person_names.append(chi_clean)
+        
+        alleged_person_str = ', '.join(all_person_names) if all_person_names else None
+        alleged_subject_english = ', '.join(english_names) if english_names else None
+        alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
+        
         alleged_type = request.form.get("alleged_type")
         details = request.form.get("details")
         preparer = request.form.get("preparer")
@@ -6676,6 +6594,8 @@ def add_whatsapp():
             complaint_name=complaint_name,
             phone_number=phone_number,
             alleged_person=alleged_person_str,
+            alleged_subject_english=alleged_subject_english,
+            alleged_subject_chinese=alleged_subject_chinese,
             alleged_type=alleged_type,
             details=details,
             preparer=preparer,
@@ -6712,23 +6632,28 @@ def add_whatsapp():
 
         db.session.commit()
         
-        # 🤖 AUTO-CREATE POI PROFILES FOR WHATSAPP ALLEGED PERSONS
-        if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+        # 🤖 AUTO-CREATE POI PROFILES FOR WHATSAPP ALLEGED PERSONS (with proper pairing)
+        if ALLEGED_PERSON_AUTOMATION and (english_names or chinese_names):
             try:
                 print(f"[WHATSAPP AUTOMATION] 🚀 Auto-creating POI profiles for WhatsApp entry {entry.id}")
                 
-                # Split alleged persons by comma
-                alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                # Process each person with paired English/Chinese names
+                max_persons = max(len(english_names), len(chinese_names))
                 
-                # Process each alleged person
-                for person_name in alleged_persons:
-                    # Try to determine if it's English or Chinese name
-                    is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                for i in range(max_persons):
+                    eng_name = english_names[i] if i < len(english_names) else None
+                    chi_name = chinese_names[i] if i < len(chinese_names) else None
+                    
+                    # Skip if both are empty
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    print(f"[WHATSAPP AUTOMATION] Processing person #{i+1}: EN='{eng_name}' CN='{chi_name}'")
                     
                     result = create_or_update_alleged_person_profile(
                         db, AllegedPersonProfile, EmailAllegedPersonLink,
-                        name_english=None if is_chinese else person_name,
-                        name_chinese=person_name if is_chinese else None,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
                         email_id=None,  # Not from email
                         source="WHATSAPP",
                         update_mode="merge"
@@ -6760,7 +6685,7 @@ def add_whatsapp():
                         except Exception as link_error:
                             print(f"[WHATSAPP AUTOMATION] ⚠️ Could not create universal link: {link_error}")
                     
-                flash(f"WhatsApp entry created and {len(alleged_persons)} POI profile(s) processed.", "success")
+                flash(f"WhatsApp entry created and {max_persons} POI profile(s) processed.", "success")
                 
             except Exception as automation_error:
                 print(f"[WHATSAPP AUTOMATION] ❌ Error in POI automation: {automation_error}")
@@ -8035,13 +7960,33 @@ def whatsapp_detail(entry_id):
             # Save complaint info edit (edit mode)
             entry.complaint_name = request.form.get("complaint_name")
             entry.phone_number = request.form.get("phone_number")
-            alleged_person = request.form.getlist("alleged_person[]")
-            # Filter out empty persons and join with commas
-            filtered_persons = [person.strip() for person in alleged_person if person.strip()]
-            alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
-            entry.alleged_person = alleged_person_str
+            
+            # 🔧 NEW: Get paired English and Chinese names (same as add route)
+            alleged_person_english_list = request.form.getlist("alleged_person_english[]")
+            alleged_person_chinese_list = request.form.getlist("alleged_person_chinese[]")
+            
+            # Filter and pair the names
+            english_names = []
+            chinese_names = []
+            all_person_names = []
+            
+            for i, eng_name in enumerate(alleged_person_english_list):
+                eng_clean = eng_name.strip() if eng_name else ""
+                chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
+                
+                if eng_clean:
+                    english_names.append(eng_clean)
+                    all_person_names.append(eng_clean)
+                if chi_clean:
+                    chinese_names.append(chi_clean)
+                    if not eng_clean:
+                        all_person_names.append(chi_clean)
+            
+            entry.alleged_person = ', '.join(all_person_names) if all_person_names else None
+            entry.alleged_subject_english = ', '.join(english_names) if english_names else None
+            entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
             entry.alleged_type = request.form.get("alleged_type")
-            entry.alleged_nature = request.form.get("alleged_nature")  # Save alleged nature multi-select (JSON array)
+            entry.alleged_nature = request.form.get("alleged_nature")
             entry.details = request.form.get("details")
             
             # SECURITY FIX for CodeQL Alert #23: Clear-text logging of sensitive information
@@ -8072,23 +8017,28 @@ def whatsapp_detail(entry_id):
                 db.session.commit()
                 print(f"[DEBUG] After commit, entry: {entry}", file=sys.stderr)
                 
-                # 🤖 AUTO-UPDATE POI PROFILES WHEN COMPLAINT DETAILS CHANGE
-                if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+                # 🤖 AUTO-UPDATE POI PROFILES WHEN COMPLAINT DETAILS CHANGE (with proper pairing)
+                if ALLEGED_PERSON_AUTOMATION and (english_names or chinese_names):
                     try:
                         print(f"[WHATSAPP AUTOMATION] 🚀 Auto-updating POI profiles for WhatsApp entry {entry.id}")
                         
-                        # Split alleged persons by comma
-                        alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                        # Process each person with paired English/Chinese names
+                        max_persons = max(len(english_names), len(chinese_names))
                         
-                        # Process each alleged person
-                        for person_name in alleged_persons:
-                            # Try to determine if it's English or Chinese name
-                            is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                        for i in range(max_persons):
+                            eng_name = english_names[i] if i < len(english_names) else None
+                            chi_name = chinese_names[i] if i < len(chinese_names) else None
+                            
+                            # Skip if both are empty
+                            if not eng_name and not chi_name:
+                                continue
+                            
+                            print(f"[WHATSAPP AUTOMATION] Processing person #{i+1}: EN='{eng_name}' CN='{chi_name}'")
                             
                             result = create_or_update_alleged_person_profile(
                                 db, AllegedPersonProfile, EmailAllegedPersonLink,
-                                name_english=None if is_chinese else person_name,
-                                name_chinese=person_name if is_chinese else None,
+                                name_english=eng_name,
+                                name_chinese=chi_name,
                                 email_id=None,
                                 source="WHATSAPP",
                                 update_mode="merge"
@@ -8120,7 +8070,7 @@ def whatsapp_detail(entry_id):
                                 except Exception as link_error:
                                     print(f"[WHATSAPP AUTOMATION] ⚠️ Could not create universal link: {link_error}")
                         
-                        flash(f"Complaint details updated and {len(alleged_persons)} POI profile(s) processed.", "success")
+                        flash(f"Complaint details updated and {max_persons} POI profile(s) processed.", "success")
                         
                     except Exception as automation_error:
                         print(f"[WHATSAPP AUTOMATION] ❌ Error in POI automation: {automation_error}")
@@ -8398,50 +8348,15 @@ def surveillance_detail(entry_id):
 @login_required
 def update_whatsapp_int_reference(entry_id):
     """Update INT reference number for WhatsApp entry"""
+    entry = WhatsAppEntry.query.get_or_404(entry_id)
+    entry.int_reference_number = request.form.get("int_reference_number", "").strip().upper()
+    
     try:
-        new_int_number = request.form.get('int_reference_number', '').strip().upper()
-        
-        if not new_int_number:
-            flash('INT reference number is required', 'error')
-            return redirect(url_for('whatsapp_detail', entry_id=entry_id))
-        
-        # Validate format
-        import re
-        if not re.match(r'^INT-\d{1,4}$', new_int_number):
-            flash('Invalid format. Use INT-XXX (e.g., INT-001)', 'error')
-            return redirect(url_for('whatsapp_detail', entry_id=entry_id))
-        
-        # Get WhatsApp entry
-        entry = WhatsAppEntry.query.get_or_404(entry_id)
-        
-        # Check if CaseProfile with this INT reference already exists
-        case_profile = CaseProfile.query.filter_by(int_reference=new_int_number).first()
-        
-        if not case_profile:
-            # Create new CaseProfile for this INT reference
-            case_profile = CaseProfile(
-                int_reference=new_int_number,
-                date_of_receipt=entry.datetime or get_hk_time(),
-                source_type='WHATSAPP',
-                whatsapp_id=entry.id
-            )
-            db.session.add(case_profile)
-            db.session.flush()
-            print(f"[INT-REF] Created new CaseProfile with INT {new_int_number} for WhatsApp {entry_id}")
-        
-        # Link WhatsApp entry to this CaseProfile
-        entry.caseprofile_id = case_profile.id
-        
         db.session.commit()
-        flash(f"WhatsApp entry successfully assigned to case {new_int_number}", "success")
-        print(f"[INT-REF] Linked WhatsApp {entry_id} to CaseProfile {case_profile.id} (INT: {new_int_number})")
-        
+        flash("INT Reference Number updated successfully.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating INT reference: {e}", "danger")
-        print(f"[INT-REF] Error: {e}")
-        import traceback
-        traceback.print_exc()
     
     return redirect(url_for('whatsapp_detail', entry_id=entry_id))
 
@@ -8450,50 +8365,15 @@ def update_whatsapp_int_reference(entry_id):
 @login_required
 def update_patrol_int_reference(entry_id):
     """Update INT reference number for Online Patrol entry"""
+    entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+    entry.int_reference_number = request.form.get("int_reference_number", "").strip().upper()
+    
     try:
-        new_int_number = request.form.get('int_reference_number', '').strip().upper()
-        
-        if not new_int_number:
-            flash('INT reference number is required', 'error')
-            return redirect(url_for('online_patrol_detail', entry_id=entry_id))
-        
-        # Validate format
-        import re
-        if not re.match(r'^INT-\d{1,4}$', new_int_number):
-            flash('Invalid format. Use INT-XXX (e.g., INT-001)', 'error')
-            return redirect(url_for('online_patrol_detail', entry_id=entry_id))
-        
-        # Get Online Patrol entry
-        entry = OnlinePatrolEntry.query.get_or_404(entry_id)
-        
-        # Check if CaseProfile with this INT reference already exists
-        case_profile = CaseProfile.query.filter_by(int_reference=new_int_number).first()
-        
-        if not case_profile:
-            # Create new CaseProfile for this INT reference
-            case_profile = CaseProfile(
-                int_reference=new_int_number,
-                date_of_receipt=entry.date or get_hk_time(),
-                source_type='PATROL',
-                patrol_id=entry.id
-            )
-            db.session.add(case_profile)
-            db.session.flush()
-            print(f"[INT-REF] Created new CaseProfile with INT {new_int_number} for Patrol {entry_id}")
-        
-        # Link Online Patrol entry to this CaseProfile
-        entry.caseprofile_id = case_profile.id
-        
         db.session.commit()
-        flash(f"Online Patrol entry successfully assigned to case {new_int_number}", "success")
-        print(f"[INT-REF] Linked Patrol {entry_id} to CaseProfile {case_profile.id} (INT: {new_int_number})")
-        
+        flash("INT Reference Number updated successfully.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating INT reference: {e}", "danger")
-        print(f"[INT-REF] Error: {e}")
-        import traceback
-        traceback.print_exc()
     
     return redirect(url_for('online_patrol_detail', entry_id=entry_id))
 
