@@ -8630,16 +8630,16 @@ def int_source_whatsapp_update_assessment(entry_id):
             db.session.add(alleged_subject)
     
     # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
-    # Store in database
-    entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
-    entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+    # Store in database - filter out None values before joining
+    entry.alleged_subject_english = ', '.join([n for n in processed_english if n]) if processed_english else None
+    entry.alleged_subject_chinese = ', '.join([n for n in processed_chinese if n]) if processed_chinese else None
     
     # Update legacy field for backward compatibility
     if processed_english and processed_chinese:
         combined_subjects = []
         for i in range(max(len(processed_english), len(processed_chinese))):
-            eng = processed_english[i] if i < len(processed_english) else ""
-            chn = processed_chinese[i] if i < len(processed_chinese) else ""
+            eng = processed_english[i] if i < len(processed_english) and processed_english[i] else ""
+            chn = processed_chinese[i] if i < len(processed_chinese) and processed_chinese[i] else ""
             if eng and chn:
                 combined_subjects.append(f"{eng} ({chn})")
             elif eng:
@@ -8648,9 +8648,11 @@ def int_source_whatsapp_update_assessment(entry_id):
                 combined_subjects.append(f"({chn})")
         entry.alleged_person = ', '.join(combined_subjects)
     elif processed_english:
-        entry.alleged_person = ', '.join(processed_english)
+        # Filter out None values before joining
+        entry.alleged_person = ', '.join([n for n in processed_english if n])
     elif processed_chinese:
-        entry.alleged_person = ', '.join(processed_chinese)
+        # Filter out None values before joining
+        entry.alleged_person = ', '.join([n for n in processed_chinese if n])
     else:
         entry.alleged_person = None
     
