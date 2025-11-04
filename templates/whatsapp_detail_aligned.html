@@ -205,22 +205,9 @@
                 <td><b>Alleged Subject(s)</b></td>
                 <td>
                   <div id="alleged-subjects">
-                    {% if entry.alleged_subject_english or entry.alleged_subject_chinese %}
-                      {% set english_names = entry.alleged_subject_english.split(',') if entry.alleged_subject_english else [] %}
-                      {% set chinese_names = entry.alleged_subject_chinese.split(',') if entry.alleged_subject_chinese else [] %}
-                      {% set max_len = [english_names|length, chinese_names|length] | max %}
-                      
-                      {# Parse saved license info from JSON #}
-                      {% set license_numbers = [] %}
-                      {% set intermediary_types = [] %}
-                      {% if entry.license_numbers_json %}
-                        {% set license_numbers = entry.license_numbers_json | from_json %}
-                      {% endif %}
-                      {% if entry.intermediary_types_json %}
-                        {% set intermediary_types = entry.intermediary_types_json | from_json %}
-                      {% endif %}
-                      
-                      {% for i in range(max_len) %}
+                    {# ✅ CRITICAL FIX: Use relational table data (correct English-Chinese pairing guaranteed) #}
+                    {% if alleged_subjects %}
+                      {% for subject in alleged_subjects %}
                         <div class="alleged-subject-row mb-3 p-3 border rounded" style="background-color: #f8f9fa;">
                           <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="text-primary mb-0">📋 Alleged Subject {{ loop.index }}</h6>
@@ -233,21 +220,21 @@
                             <div class="col-md-6">
                               <label class="form-label">📝 English Name</label>
                               <input type="text" name="alleged_subjects_en[]" class="form-control" 
-                                     value="{{ english_names[i].strip() if i < english_names|length else '' }}" 
+                                     value="{{ subject.english_name or '' }}" 
                                      placeholder="Enter English name">
                             </div>
                             <div class="col-md-6">
                               <label class="form-label">🈚 Chinese Name (中文姓名)</label>
                               <input type="text" name="alleged_subjects_cn[]" class="form-control" 
-                                     value="{{ chinese_names[i].strip() if i < chinese_names|length else '' }}"
+                                     value="{{ subject.chinese_name or '' }}"
                                      placeholder="Enter Chinese name">
                             </div>
                           </div>
                           
                           {# Get saved license info for this person #}
-                          {% set has_license = i < license_numbers|length and license_numbers[i] %}
-                          {% set license_type = intermediary_types[i] if i < intermediary_types|length else '' %}
-                          {% set license_num = license_numbers[i] if i < license_numbers|length else '' %}
+                          {% set has_license = subject.license_number %}
+                          {% set license_type = subject.license_type or '' %}
+                          {% set license_num = subject.license_number or '' %}
                           
                           <div class="mb-3">
                             <div class="form-check">

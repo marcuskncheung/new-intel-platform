@@ -8039,6 +8039,10 @@ def get_case_statistics():
 def whatsapp_detail(entry_id):
     entry = WhatsAppEntry.query.get_or_404(entry_id)
     images = WhatsAppImage.query.filter_by(whatsapp_id=entry_id).all()
+    
+    # ✅ CRITICAL FIX: Load alleged subjects from relational table (correct pairing guaranteed)
+    alleged_subjects = WhatsAppAllegedSubject.query.filter_by(whatsapp_id=entry_id).order_by(WhatsAppAllegedSubject.sequence_order).all()
+    
     # Accept both query param and form hidden field for edit mode detection
     is_edit = request.args.get('edit') == '1' or request.form.get('edit_mode') == '1'
 
@@ -8052,8 +8056,14 @@ def whatsapp_detail(entry_id):
             entry.phone_number = request.form.get("phone_number")
             
             # 🔧 NEW: Get paired English and Chinese names (same as add route)
-            alleged_person_english_list = request.form.getlist("alleged_person_english[]")
-            alleged_person_chinese_list = request.form.getlist("alleged_person_chinese[]")
+            alleged_person_english_list = request.form.getlist("alleged_subjects_en[]")
+            alleged_person_chinese_list = request.form.getlist("alleged_subjects_cn[]")
+            license_types = request.form.getlist("intermediary_type[]")
+            license_numbers_list = request.form.getlist("license_numbers[]")
+            
+            # ✅ CRITICAL FIX: Save to WhatsAppAllegedSubject relational table (correct pairing)
+            # Delete old alleged subjects for this WhatsApp entry
+            WhatsAppAllegedSubject.query.filter_by(whatsapp_id=entry.id).delete()
             
             # Filter and pair the names
             english_names = []
@@ -8063,15 +8073,32 @@ def whatsapp_detail(entry_id):
             for i, eng_name in enumerate(alleged_person_english_list):
                 eng_clean = eng_name.strip() if eng_name else ""
                 chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
+                lic_type = license_types[i].strip() if i < len(license_types) and license_types[i] else ""
+                lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) and license_numbers_list[i] else ""
                 
-                if eng_clean:
-                    english_names.append(eng_clean)
-                    all_person_names.append(eng_clean)
-                if chi_clean:
-                    chinese_names.append(chi_clean)
-                    if not eng_clean:
-                        all_person_names.append(chi_clean)
+                # Only create if at least one name provided
+                if eng_clean or chi_clean:
+                    # Save to relational table with correct pairing
+                    alleged_subject = WhatsAppAllegedSubject(
+                        whatsapp_id=entry.id,
+                        english_name=eng_clean if eng_clean else None,
+                        chinese_name=chi_clean if chi_clean else None,
+                        license_type=lic_type if lic_type else None,
+                        license_number=lic_num if lic_num else None,
+                        sequence_order=i
+                    )
+                    db.session.add(alleged_subject)
+                    
+                    # Keep track for legacy columns
+                    if eng_clean:
+                        english_names.append(eng_clean)
+                        all_person_names.append(eng_clean)
+                    if chi_clean:
+                        chinese_names.append(chi_clean)
+                        if not eng_clean:
+                            all_person_names.append(chi_clean)
             
+            # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
             entry.alleged_person = ', '.join(all_person_names) if all_person_names else None
             entry.alleged_subject_english = ', '.join(english_names) if english_names else None
             entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
@@ -8227,8 +8254,8 @@ def whatsapp_detail(entry_id):
                 # No linked POI, go to alleged subject list
                 return redirect(url_for('alleged_subject_list'))
 
-    # GET: show detail page
-    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images)
+    # GET: show detail page with relational data
+    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images, alleged_subjects=alleged_subjects)
 
 # Add this route to fix url_for('surveillance_detail', entry_id=...) errors in your templates
 @app.route("/surveillance/<int:entry_id>", methods=["GET", "POST"])
