@@ -48,8 +48,29 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     - Exact match for Chinese names (very strict)
     - Fuzzy matching for English names
     - Handles name variations and common misspellings
+    - Excludes company names from matching personal names
     """
     if not name1 or not name2:
+        return 0.0
+    
+    # ✅ CRITICAL FIX: Check if either name is a company name
+    company_indicators = [
+        'limited', 'ltd', 'llc', 'inc', 'corp', 'corporation',
+        'company', 'co', 'group', 'holdings', 'international',
+        '有限公司', '公司', '集團', '控股', '國際', '投資',
+        'consultant', 'consulting', 'services', 'advisory',
+        'financial', 'insurance', 'wealth', 'asset'
+    ]
+    
+    name1_lower = name1.lower()
+    name2_lower = name2.lower()
+    
+    is_company1 = any(indicator in name1_lower for indicator in company_indicators)
+    is_company2 = any(indicator in name2_lower for indicator in company_indicators)
+    
+    # If one is a company name and the other isn't, they can't match
+    if is_company1 != is_company2:
+        print(f"[NAME MATCHING] Rejecting match: '{name1}' vs '{name2}' - one is company, one is person")
         return 0.0
         
     norm1 = normalize_name_for_matching(name1)
@@ -108,10 +129,21 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
         
         # 🔧 ENHANCED: If one name is a complete subset of the other, it's likely the same person
         # Example: {"cao", "yue"} ⊆ {"cao", "yue", "spero"} → 0.95 match
+        # ✅ CRITICAL FIX: Require at least 2 words AND longer name ≤ 2x shorter name
+        # This prevents "LEUNG" matching "LEUNG TAI LIN" or "LEUNG SOMETHING COMPANY LIMITED"
         if words1.issubset(words2) or words2.issubset(words1):
-            # One name is completely contained in the other
-            # Return high score (0.95) if ALL words from shorter name are in longer name
-            return 0.95
+            shorter_words = min(len(words1), len(words2))
+            longer_words = max(len(words1), len(words2))
+            
+            # Require at least 2 words in shorter name (avoid single-word false matches)
+            # AND longer name can't be more than 2x the shorter name (avoid company names)
+            if shorter_words >= 2 and longer_words <= shorter_words * 2:
+                # One name is completely contained in the other
+                # Return high score (0.95) if ALL words from shorter name are in longer name
+                return 0.95
+            else:
+                # Too few words or too much length difference - treat as partial match
+                return word_similarity * 0.75
         
         # Combine character and word similarity
         similarity = max(similarity, word_similarity * 0.85)
