@@ -366,51 +366,6 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # SCAN ONLINE PATROL
         # ====================================================================
         print("\n[3/4] Scanning Online Patrol entries...")
-                    db, AllegedPersonProfile, EmailAllegedPersonLink,
-                    name_english=eng_name,
-                    name_chinese=chi_name,
-                    email_id=None,
-                    source="WHATSAPP",
-                    update_mode="merge"
-                )
-                
-                if result.get('action') == 'created':
-                    results['whatsapp']['profiles_created'] += 1
-                elif result.get('action') == 'updated':
-                    results['whatsapp']['profiles_updated'] += 1
-                
-                # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
-                if result.get('poi_id'):
-                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                        poi_id=result['poi_id'],
-                        source_type='WHATSAPP',
-                        source_id=entry.id
-                    ).first()
-                    
-                    if not existing_link:
-                        new_link = POIIntelligenceLink(
-                            poi_id=result['poi_id'],
-                            source_type='WHATSAPP',
-                            source_id=entry.id,
-                            case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
-                            confidence_score=0.90,
-                            extraction_method='REFRESH'
-                        )
-                        db.session.add(new_link)
-                        results['whatsapp']['links_created'] += 1
-                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← WHATSAPP-{entry.id}")
-            
-            # 🔧 FIX: Commit after processing EACH entry
-            db.session.commit()
-            
-            print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced: {max_len} POI link(s) created")
-        
-        print(f"  ✅ WhatsApp: {results['whatsapp']['scanned']} scanned, {results['whatsapp']['profiles_created']} created, {results['whatsapp']['profiles_updated']} updated, {results['whatsapp']['links_created']} links")
-        
-        # ====================================================================
-        # SCAN PATROL
-        # ====================================================================
-        print("\n[3/4] Scanning Online Patrol entries...")
         patrol_entries = db.session.query(OnlinePatrolEntry).filter(
             (OnlinePatrolEntry.alleged_subject_english.isnot(None)) | 
             (OnlinePatrolEntry.alleged_subject_chinese.isnot(None))
