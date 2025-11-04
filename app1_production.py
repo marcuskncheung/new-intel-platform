@@ -6986,6 +6986,10 @@ def add_online_patrol():
 @login_required
 def online_patrol_detail(entry_id):
     entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+    
+    # ✅ CRITICAL FIX: Load alleged subjects from relational table (correct pairing guaranteed)
+    alleged_subjects = OnlinePatrolAllegedSubject.query.filter_by(patrol_id=entry_id).order_by(OnlinePatrolAllegedSubject.sequence_order).all()
+    
     is_edit = request.args.get('edit') == '1' or request.form.get('edit_mode') == '1'
 
     if request.method == "POST":
@@ -7001,11 +7005,55 @@ def online_patrol_detail(entry_id):
             entry.source = request.form.get("source")
             entry.status = request.form.get("status")
             entry.details = request.form.get("details")
-            alleged_person = request.form.getlist("alleged_person[]")
-            # Filter out empty persons and join with commas
-            filtered_persons = [person.strip() for person in alleged_person if person.strip()]
-            alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
+            
+            # ✅ CRITICAL FIX: Get paired English and Chinese names from form
+            alleged_person_english_list = request.form.getlist("alleged_subjects_en[]")
+            alleged_person_chinese_list = request.form.getlist("alleged_subjects_cn[]")
+            license_types = request.form.getlist("intermediary_type[]")
+            license_numbers_list = request.form.getlist("license_numbers[]")
+            
+            # ✅ CRITICAL FIX: Save to OnlinePatrolAllegedSubject relational table (correct pairing)
+            # Delete old alleged subjects for this Online Patrol entry
+            OnlinePatrolAllegedSubject.query.filter_by(patrol_id=entry.id).delete()
+            
+            # Filter and pair the names
+            english_names = []
+            chinese_names = []
+            all_person_names = []
+            
+            for i in range(max(len(alleged_person_english_list), len(alleged_person_chinese_list))):
+                eng_clean = alleged_person_english_list[i].strip() if i < len(alleged_person_english_list) and alleged_person_english_list[i] else ""
+                chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
+                lic_type = license_types[i].strip() if i < len(license_types) and license_types[i] else ""
+                lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) and license_numbers_list[i] else ""
+                
+                # Only create if at least one name provided
+                if eng_clean or chi_clean:
+                    # Save to relational table with correct pairing
+                    alleged_subject = OnlinePatrolAllegedSubject(
+                        patrol_id=entry.id,
+                        english_name=eng_clean if eng_clean else None,
+                        chinese_name=chi_clean if chi_clean else None,
+                        license_type=lic_type if lic_type else None,
+                        license_number=lic_num if lic_num else None,
+                        sequence_order=i
+                    )
+                    db.session.add(alleged_subject)
+                    
+                    # Keep track for legacy columns
+                    if eng_clean:
+                        english_names.append(eng_clean)
+                        all_person_names.append(eng_clean)
+                    if chi_clean:
+                        chinese_names.append(chi_clean)
+                        if not eng_clean:
+                            all_person_names.append(chi_clean)
+            
+            # SAFETY: Keep old columns for backward compatibility
+            alleged_person_str = ', '.join(all_person_names) if all_person_names else None
             entry.alleged_person = alleged_person_str
+            entry.alleged_subject_english = ', '.join(english_names) if english_names else None
+            entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
             
             from secure_logger import secure_log_debug
             secure_log_debug(
@@ -7117,8 +7165,8 @@ def online_patrol_detail(entry_id):
                 # No linked POI, go to alleged subject list
                 return redirect(url_for('alleged_subject_list'))
 
-    # GET: show detail page
-    return render_template("int_source_online_patrol_aligned.html", entry=entry)
+    # GET: show detail page with relational data
+    return render_template("int_source_online_patrol_aligned.html", entry=entry, alleged_subjects=alleged_subjects)
 
 @app.route("/delete_online_patrol/<int:entry_id>", methods=["POST"])
 @login_required
@@ -9118,6 +9166,9 @@ def received_by_hand_detail(entry_id):
         flash("Entry not found.", "error")
         return redirect(url_for('int_source'))
     
+    # ✅ CRITICAL FIX: Load alleged subjects from relational table (correct pairing guaranteed)
+    alleged_subjects = ReceivedByHandAllegedSubject.query.filter_by(received_by_hand_id=entry_id).order_by(ReceivedByHandAllegedSubject.sequence_order).all()
+    
     if request.method == "POST":
         try:
             # Update basic fields
@@ -9262,7 +9313,7 @@ def received_by_hand_detail(entry_id):
         case = db.session.get(CaseProfile, entry.caseprofile_id)
         int_reference = case.int_reference if case else None
     
-    return render_template("received_by_hand_detail.html", entry=entry, int_reference=int_reference)
+    return render_template("received_by_hand_detail.html", entry=entry, int_reference=int_reference, alleged_subjects=alleged_subjects)
 
 
 @app.route("/delete_received_by_hand/<int:entry_id>", methods=["POST"])
