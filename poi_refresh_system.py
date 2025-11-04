@@ -234,20 +234,138 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             
             db.session.flush()
             
-            # Now create fresh links based on CURRENT assessment details
-            english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
-            chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
+            # ✅ CRITICAL BUG FIX #2: Read from WhatsAppAllegedSubject relational table (correct pairing)
+            from app1_production import WhatsAppAllegedSubject
+            alleged_subjects = db.session.query(WhatsAppAllegedSubject).filter_by(whatsapp_id=entry.id).order_by(WhatsAppAllegedSubject.sequence_order).all()
             
-            max_len = max(len(english_names), len(chinese_names))
+            if not alleged_subjects:
+                # FALLBACK: Use old comma-separated fields if relational table is empty
+                print(f"[POI REFRESH] ⚠️ WhatsApp {entry.id}: No records in whatsapp_alleged_subjects table, using legacy fields")
+                english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
+                chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
+                
+                # ⚠️ CRITICAL WARNING: Check for name count mismatch
+                if len(english_names) != len(chinese_names) and english_names and chinese_names:
+                    print(f"[POI REFRESH] ⚠️ WARNING: WhatsApp {entry.id} has {len(english_names)} English names but {len(chinese_names)} Chinese names!")
+                    print(f"[POI REFRESH] ⚠️ Names may be incorrectly paired! Please update the assessment to save to relational table.")
+                
+                max_len = max(len(english_names), len(chinese_names))
+                
+                for i in range(max_len):
+                    eng_name = english_names[i] if i < len(english_names) else None
+                    chi_name = chinese_names[i] if i < len(chinese_names) else None
+                    
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    # Don't duplicate - check if POI already exists
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,
+                        source="WHATSAPP",
+                        update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
+                    )
+                    
+                    if result.get('action') == 'created':
+                        results['whatsapp']['profiles_created'] += 1
+                    elif result.get('action') == 'updated':
+                        results['whatsapp']['profiles_updated'] += 1
+                    
+                    # Create universal link (check for duplicates)
+                    if result.get('poi_id'):
+                        try:
+                            # ✅ Check if link already exists
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['poi_id'],
+                                source_type='WHATSAPP',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                print(f"[POI REFRESH] ➕ Creating link: {result['poi_id']} ← WHATSAPP-{entry.id}")
+                                new_link = POIIntelligenceLink(
+                                    poi_id=result['poi_id'],
+                                    source_type='WHATSAPP',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
+                                    confidence_score=0.90,
+                                    extraction_method='REFRESH'
+                                )
+                                db.session.add(new_link)
+                                db.session.flush()
+                                results['whatsapp']['links_created'] += 1
+                                print(f"[POI REFRESH] ✅ Link created: {result['poi_id']} ← WHATSAPP-{entry.id}")
+                            else:
+                                print(f"[POI REFRESH] ⏭️  Link already exists: {result['poi_id']} ← WHATSAPP-{entry.id}")
+                        except Exception as link_error:
+                            print(f"[POI REFRESH] ❌ ERROR creating link: {link_error}")
+            else:
+                # ✅ NEW METHOD: Read from relational table (guaranteed correct pairing)
+                print(f"[POI REFRESH] ✅ WhatsApp {entry.id}: Processing {len(alleged_subjects)} alleged subjects from relational table")
+                
+                for subject in alleged_subjects:
+                    eng_name = subject.english_name
+                    chi_name = subject.chinese_name
+                    
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    # Don't duplicate - check if POI already exists
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,
+                        source="WHATSAPP",
+                        update_mode="merge"  # Merge mode: only add missing fields, don't overwrite
+                    )
+                    
+                    if result.get('action') == 'created':
+                        results['whatsapp']['profiles_created'] += 1
+                    elif result.get('action') == 'updated':
+                        results['whatsapp']['profiles_updated'] += 1
+                    
+                    # Create universal link (check for duplicates)
+                    if result.get('poi_id'):
+                        try:
+                            # ✅ Check if link already exists
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['poi_id'],
+                                source_type='WHATSAPP',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                print(f"[POI REFRESH] ➕ Creating link: {result['poi_id']} ← WHATSAPP-{entry.id}")
+                                new_link = POIIntelligenceLink(
+                                    poi_id=result['poi_id'],
+                                    source_type='WHATSAPP',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
+                                    confidence_score=0.90,
+                                    extraction_method='REFRESH'
+                                )
+                                db.session.add(new_link)
+                                db.session.flush()
+                                results['whatsapp']['links_created'] += 1
+                                print(f"[POI REFRESH] ✅ Link created: {result['poi_id']} ← WHATSAPP-{entry.id}")
+                            else:
+                                print(f"[POI REFRESH] ⏭️  Link already exists: {result['poi_id']} ← WHATSAPP-{entry.id}")
+                        except Exception as link_error:
+                            print(f"[POI REFRESH] ❌ ERROR creating link: {link_error}")
             
-            for i in range(max_len):
-                eng_name = english_names[i] if i < len(english_names) else None
-                chi_name = chinese_names[i] if i < len(chinese_names) else None
-                
-                if not eng_name and not chi_name:
-                    continue
-                
-                result = create_or_update_alleged_person_profile(
+            # Commit after each WhatsApp entry
+            db.session.commit()
+            print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced")
+        
+        print(f"  ✅ WhatsApp: {results['whatsapp']['scanned']} scanned, {results['whatsapp']['profiles_created']} created, {results['whatsapp']['profiles_updated']} updated, {results['whatsapp']['links_created']} links")
+        
+        # ====================================================================
+        # SCAN ONLINE PATROL
+        # ====================================================================
+        print("\n[3/4] Scanning Online Patrol entries...")
                     db, AllegedPersonProfile, EmailAllegedPersonLink,
                     name_english=eng_name,
                     name_chinese=chi_name,

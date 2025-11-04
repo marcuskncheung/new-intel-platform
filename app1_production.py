@@ -8590,16 +8590,19 @@ def int_source_whatsapp_update_assessment(entry_id):
     max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
     
     for i in range(max_len):
-        english_name = english_names[i].strip() if i < len(english_names) else ""
-        chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+        english_name = english_names[i].strip() if i < len(english_names) and english_names[i] else ""
+        chinese_name = chinese_names[i].strip() if i < len(chinese_names) and chinese_names[i] else ""
         
+        # ✅ CRITICAL BUG FIX #1: Only append if at least one name is non-empty
+        # Don't append empty strings - append None instead to preserve pairing
         if english_name or chinese_name:
-            processed_english.append(english_name)
-            processed_chinese.append(chinese_name)
+            # Append actual value or None (not empty string "")
+            processed_english.append(english_name if english_name else None)
+            processed_chinese.append(chinese_name if chinese_name else None)
             
             if i < len(license_numbers_list):
-                license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
-                license_type = license_types[i] if i < len(license_types) else ""
+                license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) and license_numbers_list[i] else ""
+                license_type = license_types[i] if i < len(license_types) and license_types[i] else ""
                 license_info.append(license_num if license_num else "")
                 intermediary_info.append(license_type if license_type else "")
     
