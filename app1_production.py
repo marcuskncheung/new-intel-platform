@@ -1097,6 +1097,57 @@ class EmailAllegedSubject(db.Model):
         db.Index('idx_email_alleged_subjects_chinese', 'chinese_name'),
     )
 
+class WhatsAppAllegedSubject(db.Model):
+    """
+    Relational table for WhatsApp alleged subjects.
+    Each alleged person is a separate row with guaranteed correct English-Chinese pairing.
+    Mimics email_alleged_subjects structure for consistency.
+    """
+    __tablename__ = 'whatsapp_alleged_subjects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    whatsapp_id = db.Column(db.Integer, db.ForeignKey('whats_app_entry.id', ondelete='CASCADE'), nullable=False)
+    english_name = db.Column(db.String(255), nullable=True)
+    chinese_name = db.Column(db.String(255), nullable=True)
+    is_insurance_intermediary = db.Column(db.Boolean, default=False)
+    license_type = db.Column(db.String(100), nullable=True)
+    license_number = db.Column(db.String(100), nullable=True)
+    sequence_order = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.CheckConstraint('english_name IS NOT NULL OR chinese_name IS NOT NULL', name='check_whatsapp_has_name'),
+        db.UniqueConstraint('whatsapp_id', 'sequence_order', name='unique_whatsapp_subject'),
+        db.Index('idx_whatsapp_alleged_subjects_whatsapp_id', 'whatsapp_id'),
+        db.Index('idx_whatsapp_alleged_subjects_english', 'english_name'),
+        db.Index('idx_whatsapp_alleged_subjects_chinese', 'chinese_name'),
+    )
+
+class OnlinePatrolAllegedSubject(db.Model):
+    """
+    Relational table for Online Patrol alleged subjects.
+    Each alleged person is a separate row with guaranteed correct English-Chinese pairing.
+    """
+    __tablename__ = 'online_patrol_alleged_subjects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id', ondelete='CASCADE'), nullable=False)
+    english_name = db.Column(db.String(255), nullable=True)
+    chinese_name = db.Column(db.String(255), nullable=True)
+    is_insurance_intermediary = db.Column(db.Boolean, default=False)
+    license_type = db.Column(db.String(100), nullable=True)
+    license_number = db.Column(db.String(100), nullable=True)
+    sequence_order = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.CheckConstraint('english_name IS NOT NULL OR chinese_name IS NOT NULL', name='check_patrol_has_name'),
+        db.UniqueConstraint('patrol_id', 'sequence_order', name='unique_patrol_subject'),
+        db.Index('idx_patrol_alleged_subjects_patrol_id', 'patrol_id'),
+        db.Index('idx_patrol_alleged_subjects_english', 'english_name'),
+        db.Index('idx_patrol_alleged_subjects_chinese', 'chinese_name'),
+    )
+
 class WhatsAppEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     received_time = db.Column(db.DateTime)
@@ -8451,6 +8502,30 @@ def int_source_whatsapp_update_assessment(entry_id):
                 license_info.append(license_num if license_num else "")
                 intermediary_info.append(license_type if license_type else "")
     
+    # ✅ CRITICAL FIX: Save to WhatsAppAllegedSubject relational table (mimics Email system)
+    # Delete old alleged subjects for this WhatsApp entry
+    WhatsAppAllegedSubject.query.filter_by(whatsapp_id=entry.id).delete()
+    
+    # Insert new alleged subjects with correct English-Chinese pairing
+    for i in range(max(len(processed_english), len(processed_chinese))):
+        eng_name = processed_english[i] if i < len(processed_english) else None
+        chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+        lic_type = license_types[i] if i < len(license_types) else None
+        lic_num = license_numbers_list[i] if i < len(license_numbers_list) else None
+        
+        # Only create if at least one name provided
+        if eng_name or chi_name:
+            alleged_subject = WhatsAppAllegedSubject(
+                whatsapp_id=entry.id,
+                english_name=eng_name.strip() if eng_name else None,
+                chinese_name=chi_name.strip() if chi_name else None,
+                license_type=lic_type.strip() if lic_type else None,
+                license_number=lic_num.strip() if lic_num else None,
+                sequence_order=i
+            )
+            db.session.add(alleged_subject)
+    
+    # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
     # Store in database
     entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
     entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
@@ -8654,6 +8729,42 @@ def int_source_patrol_update_assessment(entry_id):
                 license_info.append(license_num if license_num else "")
                 intermediary_info.append(license_type if license_type else "")
     
+    # ✅ CRITICAL FIX: Save to OnlinePatrolAllegedSubject relational table (mimics Email system)
+    # Delete old alleged subjects for this Online Patrol entry
+    OnlinePatrolAllegedSubject.query.filter_by(patrol_id=entry.id).delete()
+    
+    # Insert new alleged subjects with correct English-Chinese pairing
+    for i in range(max(len(processed_english), len(processed_chinese))):
+        eng_name = processed_english[i] if i < len(processed_english) else None
+        chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+        lic_type = license_types[i] if i < len(license_types) else None
+        lic_num = license_numbers_list[i] if i < len(license_numbers_list) else None
+        
+        # Only create if at least one name provided
+        if eng_name or chi_name:
+            alleged_subject = OnlinePatrolAllegedSubject(
+                patrol_id=entry.id,
+                english_name=eng_name.strip() if eng_name else None,
+                chinese_name=chi_name.strip() if chi_name else None,
+                license_type=lic_type.strip() if lic_type else None,
+                license_number=lic_num.strip() if lic_num else None,
+                sequence_order=i
+            )
+            db.session.add(alleged_subject)
+    
+    # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
+    # Store in database
+    entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
+    entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+                english_name=eng_name.strip() if eng_name else None,
+                chinese_name=chi_name.strip() if chi_name else None,
+                license_type=lic_type.strip() if lic_type else None,
+                license_number=lic_num.strip() if lic_num else None,
+                sequence_order=i
+            )
+            db.session.add(alleged_subject)
+    
+    # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
     # Store in database
     entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
     entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None

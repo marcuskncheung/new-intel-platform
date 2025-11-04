@@ -192,7 +192,7 @@
           <div class="item-meta">
             <i class="bi bi-person"></i> {{ email.sender or 'Unknown' }}
             &nbsp;|&nbsp;
-            <i class="bi bi-calendar"></i> {{ email.received or 'N/A' }}
+            <i class="bi bi-calendar"></i> {{ email.received.strftime('%Y-%m-%d %H:%M') if email.received else 'N/A' }}
           </div>
         </div>
         <div class="item-action">
