@@ -1148,32 +1148,6 @@ class OnlinePatrolAllegedSubject(db.Model):
         db.Index('idx_patrol_alleged_subjects_chinese', 'chinese_name'),
     )
 
-class ReceivedByHandAllegedSubject(db.Model):
-    """
-    ✅ RELATIONAL TABLE: Alleged Subjects for Received By Hand Entries (mimics Email system)
-    Guarantees correct English-Chinese name pairing using sequence_order
-    Prevents wrong combinations like "LEUNG TAI LIN" with "錢某某"
-    """
-    __tablename__ = 'received_by_hand_alleged_subjects'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id', ondelete='CASCADE'), nullable=False)
-    english_name = db.Column(db.String(255), nullable=True)
-    chinese_name = db.Column(db.String(255), nullable=True)
-    is_insurance_intermediary = db.Column(db.Boolean, default=False)
-    license_type = db.Column(db.String(100), nullable=True)
-    license_number = db.Column(db.String(100), nullable=True)
-    sequence_order = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    __table_args__ = (
-        db.CheckConstraint('english_name IS NOT NULL OR chinese_name IS NOT NULL', name='check_rbh_has_name'),
-        db.UniqueConstraint('received_by_hand_id', 'sequence_order', name='unique_rbh_subject'),
-        db.Index('idx_rbh_alleged_subjects_rbh_id', 'received_by_hand_id'),
-        db.Index('idx_rbh_alleged_subjects_english', 'english_name'),
-        db.Index('idx_rbh_alleged_subjects_chinese', 'chinese_name'),
-    )
-
 class WhatsAppEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     received_time = db.Column(db.DateTime)
@@ -2870,13 +2844,12 @@ def delete_alleged_person_profile(profile_id):
         
         print(f"[DELETE PROFILE] ✅ Successfully deleted profile {poi_id}")
         
-        # 🔄 AUTO-RENUMBER: Automatically renumber all POI IDs to remove gaps
-        renumber_count = renumber_all_poi_ids()
+        # 🔄 AUTO-RENUMBER: DISABLED to prevent database constraint errors
+        # POI ID gaps (POI-142, POI-144, POI-146) are normal and expected
+        # Manual renumber can be triggered from admin panel if needed
+        # renumber_count = renumber_all_poi_ids()
         
-        if renumber_count > 0:
-            flash(f"Profile {poi_id} deleted and {renumber_count} POI IDs automatically renumbered to remove gaps", "success")
-        else:
-            flash(f"Profile {poi_id} and {link_count} linked allegation(s) deleted successfully", "success")
+        flash(f"Profile {poi_id} and {link_count} linked allegation(s) deleted successfully", "success")
         
     except Exception as e:
         db.session.rollback()
@@ -6986,10 +6959,6 @@ def add_online_patrol():
 @login_required
 def online_patrol_detail(entry_id):
     entry = OnlinePatrolEntry.query.get_or_404(entry_id)
-    
-    # ✅ CRITICAL FIX: Load alleged subjects from relational table (correct pairing guaranteed)
-    alleged_subjects = OnlinePatrolAllegedSubject.query.filter_by(patrol_id=entry_id).order_by(OnlinePatrolAllegedSubject.sequence_order).all()
-    
     is_edit = request.args.get('edit') == '1' or request.form.get('edit_mode') == '1'
 
     if request.method == "POST":
@@ -7005,55 +6974,11 @@ def online_patrol_detail(entry_id):
             entry.source = request.form.get("source")
             entry.status = request.form.get("status")
             entry.details = request.form.get("details")
-            
-            # ✅ CRITICAL FIX: Get paired English and Chinese names from form
-            alleged_person_english_list = request.form.getlist("alleged_subjects_en[]")
-            alleged_person_chinese_list = request.form.getlist("alleged_subjects_cn[]")
-            license_types = request.form.getlist("intermediary_type[]")
-            license_numbers_list = request.form.getlist("license_numbers[]")
-            
-            # ✅ CRITICAL FIX: Save to OnlinePatrolAllegedSubject relational table (correct pairing)
-            # Delete old alleged subjects for this Online Patrol entry
-            OnlinePatrolAllegedSubject.query.filter_by(patrol_id=entry.id).delete()
-            
-            # Filter and pair the names
-            english_names = []
-            chinese_names = []
-            all_person_names = []
-            
-            for i in range(max(len(alleged_person_english_list), len(alleged_person_chinese_list))):
-                eng_clean = alleged_person_english_list[i].strip() if i < len(alleged_person_english_list) and alleged_person_english_list[i] else ""
-                chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
-                lic_type = license_types[i].strip() if i < len(license_types) and license_types[i] else ""
-                lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) and license_numbers_list[i] else ""
-                
-                # Only create if at least one name provided
-                if eng_clean or chi_clean:
-                    # Save to relational table with correct pairing
-                    alleged_subject = OnlinePatrolAllegedSubject(
-                        patrol_id=entry.id,
-                        english_name=eng_clean if eng_clean else None,
-                        chinese_name=chi_clean if chi_clean else None,
-                        license_type=lic_type if lic_type else None,
-                        license_number=lic_num if lic_num else None,
-                        sequence_order=i
-                    )
-                    db.session.add(alleged_subject)
-                    
-                    # Keep track for legacy columns
-                    if eng_clean:
-                        english_names.append(eng_clean)
-                        all_person_names.append(eng_clean)
-                    if chi_clean:
-                        chinese_names.append(chi_clean)
-                        if not eng_clean:
-                            all_person_names.append(chi_clean)
-            
-            # SAFETY: Keep old columns for backward compatibility
-            alleged_person_str = ', '.join(all_person_names) if all_person_names else None
+            alleged_person = request.form.getlist("alleged_person[]")
+            # Filter out empty persons and join with commas
+            filtered_persons = [person.strip() for person in alleged_person if person.strip()]
+            alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
             entry.alleged_person = alleged_person_str
-            entry.alleged_subject_english = ', '.join(english_names) if english_names else None
-            entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
             
             from secure_logger import secure_log_debug
             secure_log_debug(
@@ -7165,8 +7090,8 @@ def online_patrol_detail(entry_id):
                 # No linked POI, go to alleged subject list
                 return redirect(url_for('alleged_subject_list'))
 
-    # GET: show detail page with relational data
-    return render_template("int_source_online_patrol_aligned.html", entry=entry, alleged_subjects=alleged_subjects)
+    # GET: show detail page
+    return render_template("int_source_online_patrol_aligned.html", entry=entry)
 
 @app.route("/delete_online_patrol/<int:entry_id>", methods=["POST"])
 @login_required
@@ -8087,10 +8012,6 @@ def get_case_statistics():
 def whatsapp_detail(entry_id):
     entry = WhatsAppEntry.query.get_or_404(entry_id)
     images = WhatsAppImage.query.filter_by(whatsapp_id=entry_id).all()
-    
-    # ✅ CRITICAL FIX: Load alleged subjects from relational table (correct pairing guaranteed)
-    alleged_subjects = WhatsAppAllegedSubject.query.filter_by(whatsapp_id=entry_id).order_by(WhatsAppAllegedSubject.sequence_order).all()
-    
     # Accept both query param and form hidden field for edit mode detection
     is_edit = request.args.get('edit') == '1' or request.form.get('edit_mode') == '1'
 
@@ -8104,14 +8025,8 @@ def whatsapp_detail(entry_id):
             entry.phone_number = request.form.get("phone_number")
             
             # 🔧 NEW: Get paired English and Chinese names (same as add route)
-            alleged_person_english_list = request.form.getlist("alleged_subjects_en[]")
-            alleged_person_chinese_list = request.form.getlist("alleged_subjects_cn[]")
-            license_types = request.form.getlist("intermediary_type[]")
-            license_numbers_list = request.form.getlist("license_numbers[]")
-            
-            # ✅ CRITICAL FIX: Save to WhatsAppAllegedSubject relational table (correct pairing)
-            # Delete old alleged subjects for this WhatsApp entry
-            WhatsAppAllegedSubject.query.filter_by(whatsapp_id=entry.id).delete()
+            alleged_person_english_list = request.form.getlist("alleged_person_english[]")
+            alleged_person_chinese_list = request.form.getlist("alleged_person_chinese[]")
             
             # Filter and pair the names
             english_names = []
@@ -8121,32 +8036,15 @@ def whatsapp_detail(entry_id):
             for i, eng_name in enumerate(alleged_person_english_list):
                 eng_clean = eng_name.strip() if eng_name else ""
                 chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
-                lic_type = license_types[i].strip() if i < len(license_types) and license_types[i] else ""
-                lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) and license_numbers_list[i] else ""
                 
-                # Only create if at least one name provided
-                if eng_clean or chi_clean:
-                    # Save to relational table with correct pairing
-                    alleged_subject = WhatsAppAllegedSubject(
-                        whatsapp_id=entry.id,
-                        english_name=eng_clean if eng_clean else None,
-                        chinese_name=chi_clean if chi_clean else None,
-                        license_type=lic_type if lic_type else None,
-                        license_number=lic_num if lic_num else None,
-                        sequence_order=i
-                    )
-                    db.session.add(alleged_subject)
-                    
-                    # Keep track for legacy columns
-                    if eng_clean:
-                        english_names.append(eng_clean)
-                        all_person_names.append(eng_clean)
-                    if chi_clean:
-                        chinese_names.append(chi_clean)
-                        if not eng_clean:
-                            all_person_names.append(chi_clean)
+                if eng_clean:
+                    english_names.append(eng_clean)
+                    all_person_names.append(eng_clean)
+                if chi_clean:
+                    chinese_names.append(chi_clean)
+                    if not eng_clean:
+                        all_person_names.append(chi_clean)
             
-            # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
             entry.alleged_person = ', '.join(all_person_names) if all_person_names else None
             entry.alleged_subject_english = ', '.join(english_names) if english_names else None
             entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
@@ -8302,8 +8200,8 @@ def whatsapp_detail(entry_id):
                 # No linked POI, go to alleged subject list
                 return redirect(url_for('alleged_subject_list'))
 
-    # GET: show detail page with relational data
-    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images, alleged_subjects=alleged_subjects)
+    # GET: show detail page
+    return render_template("whatsapp_detail_aligned.html", entry=entry, images=images)
 
 # Add this route to fix url_for('surveillance_detail', entry_id=...) errors in your templates
 @app.route("/surveillance/<int:entry_id>", methods=["GET", "POST"])
@@ -8590,19 +8488,16 @@ def int_source_whatsapp_update_assessment(entry_id):
     max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
     
     for i in range(max_len):
-        english_name = english_names[i].strip() if i < len(english_names) and english_names[i] else ""
-        chinese_name = chinese_names[i].strip() if i < len(chinese_names) and chinese_names[i] else ""
+        english_name = english_names[i].strip() if i < len(english_names) else ""
+        chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
         
-        # ✅ CRITICAL BUG FIX #1: Only append if at least one name is non-empty
-        # Don't append empty strings - append None instead to preserve pairing
         if english_name or chinese_name:
-            # Append actual value or None (not empty string "")
-            processed_english.append(english_name if english_name else None)
-            processed_chinese.append(chinese_name if chinese_name else None)
+            processed_english.append(english_name)
+            processed_chinese.append(chinese_name)
             
             if i < len(license_numbers_list):
-                license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) and license_numbers_list[i] else ""
-                license_type = license_types[i] if i < len(license_types) and license_types[i] else ""
+                license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+                license_type = license_types[i] if i < len(license_types) else ""
                 license_info.append(license_num if license_num else "")
                 intermediary_info.append(license_type if license_type else "")
     
@@ -8630,16 +8525,16 @@ def int_source_whatsapp_update_assessment(entry_id):
             db.session.add(alleged_subject)
     
     # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
-    # Store in database - filter out None values before joining
-    entry.alleged_subject_english = ', '.join([n for n in processed_english if n]) if processed_english else None
-    entry.alleged_subject_chinese = ', '.join([n for n in processed_chinese if n]) if processed_chinese else None
+    # Store in database
+    entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
+    entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
     
     # Update legacy field for backward compatibility
     if processed_english and processed_chinese:
         combined_subjects = []
         for i in range(max(len(processed_english), len(processed_chinese))):
-            eng = processed_english[i] if i < len(processed_english) and processed_english[i] else ""
-            chn = processed_chinese[i] if i < len(processed_chinese) and processed_chinese[i] else ""
+            eng = processed_english[i] if i < len(processed_english) else ""
+            chn = processed_chinese[i] if i < len(processed_chinese) else ""
             if eng and chn:
                 combined_subjects.append(f"{eng} ({chn})")
             elif eng:
@@ -8648,11 +8543,9 @@ def int_source_whatsapp_update_assessment(entry_id):
                 combined_subjects.append(f"({chn})")
         entry.alleged_person = ', '.join(combined_subjects)
     elif processed_english:
-        # Filter out None values before joining
-        entry.alleged_person = ', '.join([n for n in processed_english if n])
+        entry.alleged_person = ', '.join(processed_english)
     elif processed_chinese:
-        # Filter out None values before joining
-        entry.alleged_person = ', '.join([n for n in processed_chinese if n])
+        entry.alleged_person = ', '.join(processed_chinese)
     else:
         entry.alleged_person = None
     
@@ -9171,119 +9064,15 @@ def received_by_hand_detail(entry_id):
         flash("Entry not found.", "error")
         return redirect(url_for('int_source'))
     
-    # ✅ CRITICAL FIX: Load alleged subjects from relational table (correct pairing guaranteed)
-    alleged_subjects = ReceivedByHandAllegedSubject.query.filter_by(received_by_hand_id=entry_id).order_by(ReceivedByHandAllegedSubject.sequence_order).all()
-    
     if request.method == "POST":
         try:
             # Update basic fields
             entry.complaint_name = request.form.get("complaint_name", "").strip() or None
             entry.contact_number = request.form.get("contact_number", "").strip() or None
+            entry.alleged_person = request.form.get("alleged_person", "").strip() or None
+            entry.alleged_type = request.form.get("alleged_type", "").strip() or None
             entry.source = request.form.get("source", "").strip() or None
             entry.details = request.form.get("details", "").strip() or None
-            
-            # Handle multiple alleged subjects with English and Chinese names
-            english_names = request.form.getlist("alleged_subjects_en[]")
-            chinese_names = request.form.getlist("alleged_subjects_cn[]")
-            license_types = request.form.getlist("intermediary_type[]")
-            license_numbers_list = request.form.getlist("license_numbers[]")
-            
-            # Process alleged subjects
-            processed_english = []
-            processed_chinese = []
-            license_info = []
-            intermediary_info = []
-            
-            max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
-            
-            for i in range(max_len):
-                english_name = english_names[i].strip() if i < len(english_names) else ""
-                chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
-                
-                if english_name or chinese_name:
-                    processed_english.append(english_name)
-                    processed_chinese.append(chinese_name)
-                    
-                    if i < len(license_numbers_list):
-                        license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
-                        license_type = license_types[i] if i < len(license_types) else ""
-                        license_info.append(license_num if license_num else "")
-                        intermediary_info.append(license_type if license_type else "")
-            
-            # ✅ CRITICAL FIX: Save to ReceivedByHandAllegedSubject relational table (mimics Email system)
-            # Delete old alleged subjects for this Received By Hand entry
-            ReceivedByHandAllegedSubject.query.filter_by(received_by_hand_id=entry.id).delete()
-            
-            # Insert new alleged subjects with correct English-Chinese pairing
-            for i in range(max(len(processed_english), len(processed_chinese))):
-                eng_name = processed_english[i] if i < len(processed_english) else None
-                chi_name = processed_chinese[i] if i < len(processed_chinese) else None
-                lic_type = license_types[i] if i < len(license_types) else None
-                lic_num = license_numbers_list[i] if i < len(license_numbers_list) else None
-                
-                # Only create if at least one name provided
-                if eng_name or chi_name:
-                    alleged_subject = ReceivedByHandAllegedSubject(
-                        received_by_hand_id=entry.id,
-                        english_name=eng_name.strip() if eng_name else None,
-                        chinese_name=chi_name.strip() if chi_name else None,
-                        license_type=lic_type.strip() if lic_type else None,
-                        license_number=lic_num.strip() if lic_num else None,
-                        sequence_order=i
-                    )
-                    db.session.add(alleged_subject)
-            
-            # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
-            entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
-            entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
-            
-            # Update legacy field for backward compatibility
-            if processed_english and processed_chinese:
-                combined_subjects = []
-                for i in range(max(len(processed_english), len(processed_chinese))):
-                    eng = processed_english[i] if i < len(processed_english) else ""
-                    chn = processed_chinese[i] if i < len(processed_chinese) else ""
-                    if eng and chn:
-                        combined_subjects.append(f"{eng} ({chn})")
-                    elif eng:
-                        combined_subjects.append(eng)
-                    elif chn:
-                        combined_subjects.append(f"({chn})")
-                entry.alleged_person = ', '.join(combined_subjects)
-            elif processed_english:
-                entry.alleged_person = ', '.join(processed_english)
-            elif processed_chinese:
-                entry.alleged_person = ', '.join(processed_chinese)
-            else:
-                entry.alleged_person = None
-            
-            # Handle alleged nature and type
-            entry.alleged_type = request.form.get("alleged_type", "").strip() or None
-            alleged_nature_input = request.form.get("alleged_nature")
-            if alleged_nature_input:
-                try:
-                    import json
-                    alleged_nature_list = json.loads(alleged_nature_input)
-                    if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
-                        entry.alleged_nature = json.dumps(alleged_nature_list)
-                    else:
-                        entry.alleged_nature = None
-                except (json.JSONDecodeError, ValueError):
-                    entry.alleged_nature = alleged_nature_input if alleged_nature_input.strip() else None
-            else:
-                entry.alleged_nature = None
-            
-            entry.allegation_summary = request.form.get("allegation_summary", "").strip() or None
-            
-            # Store license information
-            if license_info and any(license_info):
-                entry.license_numbers_json = json.dumps(license_info)
-                entry.intermediary_types_json = json.dumps(intermediary_info)
-                entry.license_number = next((lic for lic in license_info if lic), None)
-            else:
-                entry.license_numbers_json = None
-                entry.intermediary_types_json = None
-                entry.license_number = None
             
             # Update assessment fields
             source_reliability = request.form.get("source_reliability")
@@ -9318,7 +9107,7 @@ def received_by_hand_detail(entry_id):
         case = db.session.get(CaseProfile, entry.caseprofile_id)
         int_reference = case.int_reference if case else None
     
-    return render_template("received_by_hand_detail.html", entry=entry, int_reference=int_reference, alleged_subjects=alleged_subjects)
+    return render_template("received_by_hand_detail.html", entry=entry, int_reference=int_reference)
 
 
 @app.route("/delete_received_by_hand/<int:entry_id>", methods=["POST"])
