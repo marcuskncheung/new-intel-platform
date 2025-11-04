@@ -598,19 +598,6 @@ def safe_datetime_filter(value, format='%Y-%m-%d %H:%M'):
     
     if isinstance(value, str):
         # Try to parse the string as a datetime
-
-@app.template_filter('fromjson')
-def fromjson_filter(value):
-    """Parse JSON string to Python object for Jinja2 templates"""
-    import json
-    if not value:
-        return []
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except (json.JSONDecodeError, ValueError):
-            return []
-    return value
         for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
             try:
                 parsed_dt = datetime.strptime(value, fmt)
@@ -626,6 +613,19 @@ def fromjson_filter(value):
 @app.template_filter('regex_replace')
 def regex_replace(s, find, replace):
     return re.sub(find, replace, s)
+
+@app.template_filter('fromjson')
+def fromjson_filter(value):
+    """Parse JSON string to Python object for Jinja2 templates"""
+    import json
+    if not value:
+        return []
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, ValueError):
+            return []
+    return value
 
 # Add context processor to make helper functions available in templates
 @app.context_processor
