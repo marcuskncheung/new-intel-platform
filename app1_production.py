@@ -1148,6 +1148,32 @@ class OnlinePatrolAllegedSubject(db.Model):
         db.Index('idx_patrol_alleged_subjects_chinese', 'chinese_name'),
     )
 
+class ReceivedByHandAllegedSubject(db.Model):
+    """
+    ✅ RELATIONAL TABLE: Alleged Subjects for Received By Hand Entries (mimics Email system)
+    Guarantees correct English-Chinese name pairing using sequence_order
+    Prevents wrong combinations like "LEUNG TAI LIN" with "錢某某"
+    """
+    __tablename__ = 'received_by_hand_alleged_subjects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id', ondelete='CASCADE'), nullable=False)
+    english_name = db.Column(db.String(255), nullable=True)
+    chinese_name = db.Column(db.String(255), nullable=True)
+    is_insurance_intermediary = db.Column(db.Boolean, default=False)
+    license_type = db.Column(db.String(100), nullable=True)
+    license_number = db.Column(db.String(100), nullable=True)
+    sequence_order = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.CheckConstraint('english_name IS NOT NULL OR chinese_name IS NOT NULL', name='check_rbh_has_name'),
+        db.UniqueConstraint('received_by_hand_id', 'sequence_order', name='unique_rbh_subject'),
+        db.Index('idx_rbh_alleged_subjects_rbh_id', 'received_by_hand_id'),
+        db.Index('idx_rbh_alleged_subjects_english', 'english_name'),
+        db.Index('idx_rbh_alleged_subjects_chinese', 'chinese_name'),
+    )
+
 class WhatsAppEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     received_time = db.Column(db.DateTime)
@@ -9070,10 +9096,111 @@ def received_by_hand_detail(entry_id):
             # Update basic fields
             entry.complaint_name = request.form.get("complaint_name", "").strip() or None
             entry.contact_number = request.form.get("contact_number", "").strip() or None
-            entry.alleged_person = request.form.get("alleged_person", "").strip() or None
-            entry.alleged_type = request.form.get("alleged_type", "").strip() or None
             entry.source = request.form.get("source", "").strip() or None
             entry.details = request.form.get("details", "").strip() or None
+            
+            # Handle multiple alleged subjects with English and Chinese names
+            english_names = request.form.getlist("alleged_subjects_en[]")
+            chinese_names = request.form.getlist("alleged_subjects_cn[]")
+            license_types = request.form.getlist("intermediary_type[]")
+            license_numbers_list = request.form.getlist("license_numbers[]")
+            
+            # Process alleged subjects
+            processed_english = []
+            processed_chinese = []
+            license_info = []
+            intermediary_info = []
+            
+            max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
+            
+            for i in range(max_len):
+                english_name = english_names[i].strip() if i < len(english_names) else ""
+                chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+                
+                if english_name or chinese_name:
+                    processed_english.append(english_name)
+                    processed_chinese.append(chinese_name)
+                    
+                    if i < len(license_numbers_list):
+                        license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+                        license_type = license_types[i] if i < len(license_types) else ""
+                        license_info.append(license_num if license_num else "")
+                        intermediary_info.append(license_type if license_type else "")
+            
+            # ✅ CRITICAL FIX: Save to ReceivedByHandAllegedSubject relational table (mimics Email system)
+            # Delete old alleged subjects for this Received By Hand entry
+            ReceivedByHandAllegedSubject.query.filter_by(received_by_hand_id=entry.id).delete()
+            
+            # Insert new alleged subjects with correct English-Chinese pairing
+            for i in range(max(len(processed_english), len(processed_chinese))):
+                eng_name = processed_english[i] if i < len(processed_english) else None
+                chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+                lic_type = license_types[i] if i < len(license_types) else None
+                lic_num = license_numbers_list[i] if i < len(license_numbers_list) else None
+                
+                # Only create if at least one name provided
+                if eng_name or chi_name:
+                    alleged_subject = ReceivedByHandAllegedSubject(
+                        received_by_hand_id=entry.id,
+                        english_name=eng_name.strip() if eng_name else None,
+                        chinese_name=chi_name.strip() if chi_name else None,
+                        license_type=lic_type.strip() if lic_type else None,
+                        license_number=lic_num.strip() if lic_num else None,
+                        sequence_order=i
+                    )
+                    db.session.add(alleged_subject)
+            
+            # SAFETY: Keep old columns for backward compatibility (can be removed after validation period)
+            entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
+            entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+            
+            # Update legacy field for backward compatibility
+            if processed_english and processed_chinese:
+                combined_subjects = []
+                for i in range(max(len(processed_english), len(processed_chinese))):
+                    eng = processed_english[i] if i < len(processed_english) else ""
+                    chn = processed_chinese[i] if i < len(processed_chinese) else ""
+                    if eng and chn:
+                        combined_subjects.append(f"{eng} ({chn})")
+                    elif eng:
+                        combined_subjects.append(eng)
+                    elif chn:
+                        combined_subjects.append(f"({chn})")
+                entry.alleged_person = ', '.join(combined_subjects)
+            elif processed_english:
+                entry.alleged_person = ', '.join(processed_english)
+            elif processed_chinese:
+                entry.alleged_person = ', '.join(processed_chinese)
+            else:
+                entry.alleged_person = None
+            
+            # Handle alleged nature and type
+            entry.alleged_type = request.form.get("alleged_type", "").strip() or None
+            alleged_nature_input = request.form.get("alleged_nature")
+            if alleged_nature_input:
+                try:
+                    import json
+                    alleged_nature_list = json.loads(alleged_nature_input)
+                    if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
+                        entry.alleged_nature = json.dumps(alleged_nature_list)
+                    else:
+                        entry.alleged_nature = None
+                except (json.JSONDecodeError, ValueError):
+                    entry.alleged_nature = alleged_nature_input if alleged_nature_input.strip() else None
+            else:
+                entry.alleged_nature = None
+            
+            entry.allegation_summary = request.form.get("allegation_summary", "").strip() or None
+            
+            # Store license information
+            if license_info and any(license_info):
+                entry.license_numbers_json = json.dumps(license_info)
+                entry.intermediary_types_json = json.dumps(intermediary_info)
+                entry.license_number = next((lic for lic in license_info if lic), None)
+            else:
+                entry.license_numbers_json = None
+                entry.intermediary_types_json = None
+                entry.license_number = None
             
             # Update assessment fields
             source_reliability = request.form.get("source_reliability")
