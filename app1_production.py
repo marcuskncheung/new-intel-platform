@@ -894,6 +894,15 @@ class Email(db.Model):
     case_assigned_by = db.Column(db.String(100), nullable=True)  # Username who assigned the case number
     case_assigned_at = db.Column(db.DateTime, nullable=True)  # When case number was assigned
     
+    # Source Classification Fields - Track origin of intelligence
+    source_category = db.Column(db.String(20), nullable=True)  # 'INTERNAL' or 'EXTERNAL'
+    internal_source_type = db.Column(db.String(50), nullable=True)  # 'MARKET_CONDUCT_SUPERVISION', 'COMPLAINT_TEAM', 'OTHER_INTERNAL'
+    internal_source_other = db.Column(db.String(255), nullable=True)  # Free text for OTHER_INTERNAL
+    external_source_type = db.Column(db.String(50), nullable=True)  # 'REGULATOR', 'LAW_ENFORCEMENT', 'INSURANCE_INDUSTRY', 'OTHER_EXTERNAL'
+    external_regulator = db.Column(db.String(50), nullable=True)  # 'SFC', 'HKMA', 'MPFA', 'OTHER'
+    external_law_enforcement = db.Column(db.String(50), nullable=True)  # 'POLICE', 'ICAC', 'CUSTOMS', 'OTHER'
+    external_source_other = db.Column(db.String(255), nullable=True)  # Free text for OTHER_EXTERNAL or OTHER regulators
+    
     # Intelligence Reference Number (INT-XX system)
     int_reference_number = db.Column(db.String(20), nullable=True, index=True)  # INT-001, INT-002, etc.
     int_reference_order = db.Column(db.Integer, nullable=True, index=True)  # Numeric order for sorting (1, 2, 3...)
@@ -9257,6 +9266,36 @@ def int_source_update_assessment(email_id):
     email.source_reliability = request.form.get("source_reliability", type=int)
     email.content_validity = request.form.get("content_validity", type=int)
     email.preparer = request.form.get("preparer")
+    
+    # Handle source classification - NEW FEATURE
+    email.source_category = request.form.get("source_category")  # 'INTERNAL' or 'EXTERNAL'
+    
+    if email.source_category == 'INTERNAL':
+        email.internal_source_type = request.form.get("internal_source_type")
+        email.internal_source_other = request.form.get("internal_source_other", "").strip() or None
+        # Clear external fields
+        email.external_source_type = None
+        email.external_regulator = None
+        email.external_law_enforcement = None
+        email.external_source_other = None
+    elif email.source_category == 'EXTERNAL':
+        email.external_source_type = request.form.get("external_source_type")
+        
+        # Handle specific external source subtypes
+        if email.external_source_type == 'REGULATOR':
+            email.external_regulator = request.form.get("external_regulator")
+            if email.external_regulator == 'OTHER':
+                email.external_source_other = request.form.get("external_regulator_other", "").strip() or None
+        elif email.external_source_type == 'LAW_ENFORCEMENT':
+            email.external_law_enforcement = request.form.get("external_law_enforcement")
+            if email.external_law_enforcement == 'OTHER':
+                email.external_source_other = request.form.get("external_law_enforcement_other", "").strip() or None
+        elif email.external_source_type == 'OTHER_EXTERNAL':
+            email.external_source_other = request.form.get("external_source_other", "").strip() or None
+        
+        # Clear internal fields
+        email.internal_source_type = None
+        email.internal_source_other = None
     
     # Handle alleged nature - support both JSON array and single string for backward compatibility
     alleged_nature_input = request.form.get("alleged_nature")

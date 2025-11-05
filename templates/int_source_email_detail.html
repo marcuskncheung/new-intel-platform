@@ -302,6 +302,99 @@
             <td><b>Date:</b></td>
             <td>{{ (email.assessment_updated_at or "")|strftime("%Y-%m-%d %H:%M:%S") }}</td>
           </tr>
+          
+          <!-- SOURCE CLASSIFICATION - NEW FEATURE -->
+          <tr>
+            <td><b>Source Category:</b><br><small class="text-muted">Where did this intelligence come from?</small></td>
+            <td>
+              <select name="source_category" id="source_category" class="form-select" onchange="toggleSourceFields()">
+                <option value="">Select Source Category...</option>
+                <option value="INTERNAL" {% if email.source_category == 'INTERNAL' %}selected{% endif %}>🏢 Internal (Within Organization)</option>
+                <option value="EXTERNAL" {% if email.source_category == 'EXTERNAL' %}selected{% endif %}>🌐 External (Outside Organization)</option>
+              </select>
+            </td>
+          </tr>
+          
+          <!-- INTERNAL SOURCE FIELDS -->
+          <tr id="internal_source_row" style="display: {% if email.source_category == 'INTERNAL' %}table-row{% else %}none{% endif %};">
+            <td><b>Internal Source:</b><br><small class="text-muted">Which internal department?</small></td>
+            <td>
+              <select name="internal_source_type" id="internal_source_type" class="form-select mb-2" onchange="toggleInternalOther()">
+                <option value="">Select Internal Source...</option>
+                <option value="MARKET_CONDUCT_SUPERVISION" {% if email.internal_source_type == 'MARKET_CONDUCT_SUPERVISION' %}selected{% endif %}>📊 Market Conduct Supervision Team</option>
+                <option value="COMPLAINT_TEAM" {% if email.internal_source_type == 'COMPLAINT_TEAM' %}selected{% endif %}>📞 Complaint Team</option>
+                <option value="OTHER_INTERNAL" {% if email.internal_source_type == 'OTHER_INTERNAL' %}selected{% endif %}>🔹 Other Internal Department (Please Specify)</option>
+              </select>
+              <div id="internal_other_field" style="display: {% if email.internal_source_type == 'OTHER_INTERNAL' %}block{% else %}none{% endif %};">
+                <input type="text" name="internal_source_other" class="form-control" 
+                       value="{{ email.internal_source_other or '' }}" 
+                       placeholder="Specify other internal department...">
+              </div>
+            </td>
+          </tr>
+          
+          <!-- EXTERNAL SOURCE FIELDS -->
+          <tr id="external_source_row" style="display: {% if email.source_category == 'EXTERNAL' %}table-row{% else %}none{% endif %};">
+            <td><b>External Source Type:</b><br><small class="text-muted">What type of external source?</small></td>
+            <td>
+              <select name="external_source_type" id="external_source_type" class="form-select" onchange="toggleExternalSubFields()">
+                <option value="">Select External Source Type...</option>
+                <option value="REGULATOR" {% if email.external_source_type == 'REGULATOR' %}selected{% endif %}>🏛️ Other Regulator</option>
+                <option value="LAW_ENFORCEMENT" {% if email.external_source_type == 'LAW_ENFORCEMENT' %}selected{% endif %}>👮 Law Enforcement Agency</option>
+                <option value="INSURANCE_INDUSTRY" {% if email.external_source_type == 'INSURANCE_INDUSTRY' %}selected{% endif %}>🏢 Insurance Industry</option>
+                <option value="OTHER_EXTERNAL" {% if email.external_source_type == 'OTHER_EXTERNAL' %}selected{% endif %}>🔸 Other External Source (Please Specify)</option>
+              </select>
+            </td>
+          </tr>
+          
+          <!-- REGULATOR SUB-FIELD -->
+          <tr id="regulator_row" style="display: {% if email.external_source_type == 'REGULATOR' %}table-row{% else %}none{% endif %};">
+            <td><b>Which Regulator:</b></td>
+            <td>
+              <select name="external_regulator" id="external_regulator" class="form-select mb-2" onchange="toggleRegulatorOther()">
+                <option value="">Select Regulator...</option>
+                <option value="SFC" {% if email.external_regulator == 'SFC' %}selected{% endif %}>SFC (Securities and Futures Commission)</option>
+                <option value="HKMA" {% if email.external_regulator == 'HKMA' %}selected{% endif %}>HKMA (Hong Kong Monetary Authority)</option>
+                <option value="MPFA" {% if email.external_regulator == 'MPFA' %}selected{% endif %}>MPFA (Mandatory Provident Fund Schemes Authority)</option>
+                <option value="OTHER" {% if email.external_regulator == 'OTHER' %}selected{% endif %}>Other Regulator (Please Specify)</option>
+              </select>
+              <div id="regulator_other_field" style="display: {% if email.external_regulator == 'OTHER' %}block{% else %}none{% endif %};">
+                <input type="text" name="external_regulator_other" class="form-control" 
+                       value="{{ email.external_source_other if email.external_regulator == 'OTHER' else '' }}" 
+                       placeholder="Specify other regulator...">
+              </div>
+            </td>
+          </tr>
+          
+          <!-- LAW ENFORCEMENT SUB-FIELD -->
+          <tr id="law_enforcement_row" style="display: {% if email.external_source_type == 'LAW_ENFORCEMENT' %}table-row{% else %}none{% endif %};">
+            <td><b>Which Law Enforcement:</b></td>
+            <td>
+              <select name="external_law_enforcement" id="external_law_enforcement" class="form-select mb-2" onchange="toggleLawEnforcementOther()">
+                <option value="">Select Law Enforcement Agency...</option>
+                <option value="POLICE" {% if email.external_law_enforcement == 'POLICE' %}selected{% endif %}>🚔 Hong Kong Police Force</option>
+                <option value="ICAC" {% if email.external_law_enforcement == 'ICAC' %}selected{% endif %}>🕵️ ICAC (Independent Commission Against Corruption)</option>
+                <option value="CUSTOMS" {% if email.external_law_enforcement == 'CUSTOMS' %}selected{% endif %}>🛂 Customs and Excise Department</option>
+                <option value="OTHER" {% if email.external_law_enforcement == 'OTHER' %}selected{% endif %}>Other Law Enforcement (Please Specify)</option>
+              </select>
+              <div id="law_enforcement_other_field" style="display: {% if email.external_law_enforcement == 'OTHER' %}block{% else %}none{% endif %};">
+                <input type="text" name="external_law_enforcement_other" class="form-control" 
+                       value="{{ email.external_source_other if email.external_law_enforcement == 'OTHER' else '' }}" 
+                       placeholder="Specify other law enforcement agency...">
+              </div>
+            </td>
+          </tr>
+          
+          <!-- OTHER EXTERNAL SOURCE FIELD -->
+          <tr id="other_external_row" style="display: {% if email.external_source_type == 'OTHER_EXTERNAL' %}table-row{% else %}none{% endif %};">
+            <td><b>Specify External Source:</b></td>
+            <td>
+              <input type="text" name="external_source_other" class="form-control" 
+                     value="{{ email.external_source_other if email.external_source_type == 'OTHER_EXTERNAL' else '' }}" 
+                     placeholder="Please specify the external source...">
+            </td>
+          </tr>
+          
           <tr>
             <td><b>Preparer:</b></td>
             <td>
@@ -968,6 +1061,65 @@
 </style>
 
 <script>
+// ===== SOURCE CLASSIFICATION FUNCTIONALITY =====
+function toggleSourceFields() {
+  const category = document.getElementById('source_category').value;
+  const internalRow = document.getElementById('internal_source_row');
+  const externalRow = document.getElementById('external_source_row');
+  const regulatorRow = document.getElementById('regulator_row');
+  const lawEnforcementRow = document.getElementById('law_enforcement_row');
+  const otherExternalRow = document.getElementById('other_external_row');
+  
+  if (category === 'INTERNAL') {
+    internalRow.style.display = 'table-row';
+    externalRow.style.display = 'none';
+    regulatorRow.style.display = 'none';
+    lawEnforcementRow.style.display = 'none';
+    otherExternalRow.style.display = 'none';
+  } else if (category === 'EXTERNAL') {
+    internalRow.style.display = 'none';
+    externalRow.style.display = 'table-row';
+    // Show sub-fields based on external source type
+    toggleExternalSubFields();
+  } else {
+    // No category selected - hide all
+    internalRow.style.display = 'none';
+    externalRow.style.display = 'none';
+    regulatorRow.style.display = 'none';
+    lawEnforcementRow.style.display = 'none';
+    otherExternalRow.style.display = 'none';
+  }
+}
+
+function toggleInternalOther() {
+  const type = document.getElementById('internal_source_type').value;
+  const otherField = document.getElementById('internal_other_field');
+  otherField.style.display = (type === 'OTHER_INTERNAL') ? 'block' : 'none';
+}
+
+function toggleExternalSubFields() {
+  const type = document.getElementById('external_source_type').value;
+  const regulatorRow = document.getElementById('regulator_row');
+  const lawEnforcementRow = document.getElementById('law_enforcement_row');
+  const otherExternalRow = document.getElementById('other_external_row');
+  
+  regulatorRow.style.display = (type === 'REGULATOR') ? 'table-row' : 'none';
+  lawEnforcementRow.style.display = (type === 'LAW_ENFORCEMENT') ? 'table-row' : 'none';
+  otherExternalRow.style.display = (type === 'OTHER_EXTERNAL') ? 'table-row' : 'none';
+}
+
+function toggleRegulatorOther() {
+  const regulator = document.getElementById('external_regulator').value;
+  const otherField = document.getElementById('regulator_other_field');
+  otherField.style.display = (regulator === 'OTHER') ? 'block' : 'none';
+}
+
+function toggleLawEnforcementOther() {
+  const lawEnforcement = document.getElementById('external_law_enforcement').value;
+  const otherField = document.getElementById('law_enforcement_other_field');
+  otherField.style.display = (lawEnforcement === 'OTHER') ? 'block' : 'none';
+}
+
 // Force form submission without validation
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form[action*="update_assessment"]');
