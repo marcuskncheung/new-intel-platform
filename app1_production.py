@@ -1615,64 +1615,175 @@ def get_next_available_int():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route("/api/int_references/list")
+@login_required
+def list_int_references():
+    """List all INT references with their source counts"""
+    try:
+        case_profiles = CaseProfile.query.order_by(CaseProfile.int_reference.desc()).all()
+        
+        int_references = []
+        for cp in case_profiles:
+            # Count sources linked to this INT
+            source_count = 0
+            source_types = []
+            
+            if cp.email_id:
+                source_count += 1
+                source_types.append('EMAIL')
+            if cp.whatsapp_id:
+                source_count += 1
+                source_types.append('WHATSAPP')
+            if cp.patrol_id:
+                source_count += 1
+                source_types.append('PATROL')
+            if cp.surveillance_id:
+                source_count += 1
+                source_types.append('SURVEILLANCE')
+            
+            int_references.append({
+                'int_reference': cp.int_reference,
+                'total_sources': source_count,
+                'source_types': source_types,
+                'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
+            })
+        
+        return jsonify({
+            'success': True,
+            'int_references': int_references,
+            'total': len(int_references)
+        })
+        
+    except Exception as e:
+        print(f"[INT API] Error listing INT references: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route("/api/int_references/search")
 @login_required
 def search_int_references():
-    """Search INT references by keyword (person name, nature, etc.)"""
+    """Search INT references by keyword across ALL sources (Email, WhatsApp, Patrol, Surveillance)"""
     try:
         query = request.args.get('q', '').strip()
         
         if not query:
             return jsonify({'success': False, 'error': 'Search query required'}), 400
         
-        # Search in CaseProfiles and their linked emails
+        # Search in CaseProfiles and their linked sources
         results = []
         
         # Get all case profiles
         case_profiles = CaseProfile.query.all()
         
         for cp in case_profiles:
-            # Get linked emails to search in their content
-            linked_emails = Email.query.filter_by(caseprofile_id=cp.id).all()
-            
             match_found = False
             match_reason = []
+            source_types = set()
+            total_sources = 0
             
-            for email in linked_emails:
-                # Search in alleged person names
-                if email.alleged_subject_english and query.lower() in email.alleged_subject_english.lower():
-                    match_found = True
-                    match_reason.append(f"Person: {email.alleged_subject_english.split(',')[0].strip()}")
-                    break
-                if email.alleged_subject_chinese and query.lower() in email.alleged_subject_chinese.lower():
-                    match_found = True
-                    match_reason.append(f"Person: {email.alleged_subject_chinese.split(',')[0].strip()}")
-                    break
-                
-                # Search in alleged nature
-                if email.alleged_nature and query.lower() in email.alleged_nature.lower():
-                    match_found = True
-                    match_reason.append(f"Nature: {email.alleged_nature}")
-                    break
-                
-                # Search in subject line
-                if email.subject and query.lower() in email.subject.lower():
-                    match_found = True
-                    match_reason.append(f"Subject: {email.subject[:50]}...")
-                    break
+            # 1. Search in linked EMAILS
+            if cp.email_id:
+                email = Email.query.get(cp.email_id)
+                if email:
+                    total_sources += 1
+                    source_types.add('EMAIL')
+                    
+                    # Search in alleged person names
+                    if email.alleged_subject_english and query.lower() in email.alleged_subject_english.lower():
+                        match_found = True
+                        match_reason.append(f"Email Person: {email.alleged_subject_english.split(',')[0].strip()}")
+                    if email.alleged_subject_chinese and query.lower() in email.alleged_subject_chinese.lower():
+                        match_found = True
+                        match_reason.append(f"Email Person: {email.alleged_subject_chinese.split(',')[0].strip()}")
+                    
+                    # Search in alleged nature
+                    if email.alleged_nature and query.lower() in email.alleged_nature.lower():
+                        match_found = True
+                        match_reason.append(f"Email Nature: {email.alleged_nature}")
+                    
+                    # Search in subject line
+                    if email.subject and query.lower() in email.subject.lower():
+                        match_found = True
+                        match_reason.append(f"Email Subject: {email.subject[:50]}...")
+            
+            # 2. Search in linked WHATSAPP entries
+            if cp.whatsapp_id:
+                whatsapp = WhatsAppEntry.query.get(cp.whatsapp_id)
+                if whatsapp:
+                    total_sources += 1
+                    source_types.add('WHATSAPP')
+                    
+                    # Search in alleged person
+                    if whatsapp.alleged_person and query.lower() in whatsapp.alleged_person.lower():
+                        match_found = True
+                        match_reason.append(f"WhatsApp Person: {whatsapp.alleged_person.split(',')[0].strip()}")
+                    
+                    # Search in alleged type (nature)
+                    if whatsapp.alleged_type and query.lower() in whatsapp.alleged_type.lower():
+                        match_found = True
+                        match_reason.append(f"WhatsApp Type: {whatsapp.alleged_type}")
+                    
+                    # Search in details
+                    if whatsapp.details and query.lower() in whatsapp.details.lower():
+                        match_found = True
+                        match_reason.append(f"WhatsApp Details: {whatsapp.details[:50]}...")
+            
+            # 3. Search in linked ONLINE PATROL entries
+            if cp.patrol_id:
+                patrol = OnlinePatrolEntry.query.get(cp.patrol_id)
+                if patrol:
+                    total_sources += 1
+                    source_types.add('PATROL')
+                    
+                    # Search in alleged person
+                    if patrol.alleged_person and query.lower() in patrol.alleged_person.lower():
+                        match_found = True
+                        match_reason.append(f"Patrol Person: {patrol.alleged_person.split(',')[0].strip()}")
+                    
+                    # Search in alleged nature
+                    if patrol.alleged_nature and query.lower() in patrol.alleged_nature.lower():
+                        match_found = True
+                        match_reason.append(f"Patrol Nature: {patrol.alleged_nature}")
+                    
+                    # Search in details
+                    if patrol.details and query.lower() in patrol.details.lower():
+                        match_found = True
+                        match_reason.append(f"Patrol Details: {patrol.details[:50]}...")
+            
+            # 4. Search in linked SURVEILLANCE entries
+            if cp.surveillance_id:
+                surveillance = SurveillanceEntry.query.get(cp.surveillance_id)
+                if surveillance:
+                    total_sources += 1
+                    source_types.add('SURVEILLANCE')
+                    
+                    # Search in targets
+                    targets = Target.query.filter_by(surveillance_entry_id=surveillance.id).all()
+                    for target in targets:
+                        if target.name and query.lower() in target.name.lower():
+                            match_found = True
+                            match_reason.append(f"Surveillance Target: {target.name}")
+                            break
+                    
+                    # Search in details of finding
+                    if surveillance.details_of_finding and query.lower() in surveillance.details_of_finding.lower():
+                        match_found = True
+                        match_reason.append(f"Surveillance Finding: {surveillance.details_of_finding[:50]}...")
             
             if match_found:
                 results.append({
                     'int_reference': cp.int_reference,
-                    'total_sources': len(linked_emails),
-                    'match_reason': ', '.join(match_reason),
+                    'total_sources': total_sources,
+                    'source_types': list(source_types),
+                    'match_reason': ', '.join(match_reason[:3]),  # Limit to 3 reasons for readability
                     'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
                 })
         
         return jsonify({
             'success': True,
             'results': results,
-            'query': query
+            'query': query,
+            'total_found': len(results)
         })
         
     except Exception as e:

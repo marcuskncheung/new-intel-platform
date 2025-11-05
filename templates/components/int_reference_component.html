@@ -1,0 +1,189 @@
+<!-- 
+  🔗 UNIFIED INT REFERENCE COMPONENT
+  
+  Reusable component for INT reference assignment across all sources
+  
+  Usage in templates:
+  {% include 'components/int_reference_component.html' with context %}
+  
+  Required variables:
+  - source_type: "EMAIL", "WHATSAPP", "PATROL", "SURVEILLANCE"
+  - source_id: The ID of the source record
+  - source_display_id: Display ID (e.g., "EMAIL-123", "WHATSAPP-45")
+  - current_int_reference: Current INT reference or empty string
+  - update_url: URL for updating INT reference
+-->
+
+<div class="card border-primary mb-4">
+  <div class="card-header bg-primary text-white">
+    <h5 class="mb-0">
+      <i class="fas fa-hashtag"></i> Reference Information
+    </h5>
+  </div>
+  <div class="card-body">
+    <!-- Source ID (Read-only) -->
+    <div class="mb-3">
+      <label class="form-label"><strong>Source ID:</strong></label>
+      <div class="input-group">
+        <span class="input-group-text bg-info text-white">
+          {% if source_type == 'EMAIL' %}
+            <i class="fas fa-envelope"></i>
+          {% elif source_type == 'WHATSAPP' %}
+            <i class="fab fa-whatsapp"></i>
+          {% elif source_type == 'PATROL' %}
+            <i class="fas fa-shield-alt"></i>
+          {% elif source_type == 'SURVEILLANCE' %}
+            <i class="fas fa-video"></i>
+          {% endif %}
+        </span>
+        <input type="text" 
+               class="form-control form-control-lg" 
+               value="{{ source_display_id }}"
+               readonly
+               style="font-weight: bold; font-family: monospace; font-size: 1.25rem; background-color: #f8f9fa;">
+      </div>
+      <small class="text-muted mt-1 d-block">
+        <i class="bi bi-info-circle"></i> 
+        This is the unique identifier for this {{ source_type.lower() }} (cannot be changed).
+      </small>
+    </div>
+
+    <!-- Case INT Assignment (Editable) -->
+    <form method="POST" action="{{ update_url }}">
+      <div class="row align-items-end">
+        <div class="col-md-8">
+          <label class="form-label"><strong>Case INT Reference:</strong></label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-hashtag"></i>
+            </span>
+            <input type="text" 
+                   class="form-control form-control-lg int-reference-input" 
+                   name="int_reference_number" 
+                   value="{{ current_int_reference }}"
+                   placeholder="INT-001, INT-123, etc."
+                   pattern="INT-\d{1,4}"
+                   title="Format: INT-001, INT-123"
+                   style="font-weight: bold; font-family: monospace; font-size: 1.25rem;"
+                   list="int_reference_suggestions_{{ source_type }}_{{ source_id }}"
+                   autocomplete="off">
+            <button type="button" class="btn btn-info btn-next-int" title="Get Next Available INT">
+              <i class="fas fa-plus-circle"></i> Next
+            </button>
+            <button type="button" class="btn btn-secondary btn-search-int" title="Search Existing INT References">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="fas fa-save"></i> Assign Case
+            </button>
+          </div>
+          <!-- Datalist for autocomplete suggestions -->
+          <datalist id="int_reference_suggestions_{{ source_type }}_{{ source_id }}"></datalist>
+          
+          <!-- Search results dropdown -->
+          <div class="int-search-results list-group mt-2" style="display: none; max-height: 300px; overflow-y: auto;"></div>
+          
+          <small class="text-muted mt-2 d-block">
+            <i class="bi bi-info-circle"></i> 
+            Assign this {{ source_type.lower() }} to a case (Format: INT-001, INT-123). Leave empty if not part of a case.
+          </small>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- JavaScript for INT Reference Component -->
+<script>
+(function() {
+  const container = document.currentScript.parentElement;
+  const inputField = container.querySelector('.int-reference-input');
+  const nextBtn = container.querySelector('.btn-next-int');
+  const searchBtn = container.querySelector('.btn-search-int');
+  const searchResults = container.querySelector('.int-search-results');
+  const datalist = container.querySelector('datalist');
+
+  // Load existing INT references for autocomplete
+  fetch('/api/int_references/list')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.int_references) {
+        data.int_references.forEach(intRef => {
+          const option = document.createElement('option');
+          option.value = intRef.int_reference;
+          option.textContent = `${intRef.int_reference} (${intRef.total_sources} sources)`;
+          datalist.appendChild(option);
+        });
+      }
+    })
+    .catch(error => console.error('Error loading INT references:', error));
+
+  // Get next available INT number
+  nextBtn.addEventListener('click', function() {
+    fetch('/api/int_references/next_available')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          inputField.value = data.next_int_reference;
+          alert(`Next available INT reference: ${data.next_int_reference}`);
+        } else {
+          alert('Error getting next INT reference');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error getting next INT reference');
+      });
+  });
+
+  // Search existing INT references
+  searchBtn.addEventListener('click', function() {
+    const query = prompt('Search INT references by person name, nature, or keyword:');
+    if (!query || query.trim() === '') return;
+
+    fetch(`/api/int_references/search?q=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.results.length > 0) {
+          // Show search results
+          searchResults.innerHTML = '';
+          searchResults.style.display = 'block';
+
+          data.results.forEach(result => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${result.int_reference}</h6>
+                <small class="text-muted">${result.date_created}</small>
+              </div>
+              <p class="mb-1"><strong>Sources:</strong> ${result.source_types.join(', ')} (${result.total_sources} total)</p>
+              <small class="text-muted">${result.match_reason}</small>
+            `;
+            item.addEventListener('click', function(e) {
+              e.preventDefault();
+              inputField.value = result.int_reference;
+              searchResults.style.display = 'none';
+            });
+            searchResults.appendChild(item);
+          });
+        } else {
+          alert(`No INT references found matching "${query}"`);
+          searchResults.style.display = 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error searching INT references');
+      });
+  });
+
+  // Hide search results when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!searchResults.contains(e.target) && e.target !== searchBtn) {
+      searchResults.style.display = 'none';
+    }
+  });
+})();
+</script>
