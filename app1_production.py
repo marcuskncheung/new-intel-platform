@@ -1533,54 +1533,6 @@ POIIntelligenceLink = None  # Will be imported later after app context is ready
 # 🔗 INT REFERENCE API ROUTES
 # ========================================
 
-@app.route("/api/int_references/list")
-@login_required
-def list_int_references():
-    """Get list of all existing INT references with descriptions"""
-    try:
-        import traceback
-        # Get all CaseProfiles with their INT references
-        case_profiles = CaseProfile.query.order_by(CaseProfile.int_reference).all()
-        
-        int_refs = []
-        for cp in case_profiles:
-            # Count linked sources
-            email_count = Email.query.filter_by(caseprofile_id=cp.id).count()
-            
-            total_sources = email_count
-            
-            # Get first email for description
-            first_email = Email.query.filter_by(caseprofile_id=cp.id).order_by(Email.received).first()
-            description = ""
-            if first_email:
-                # Extract alleged person names for description
-                if first_email.alleged_subject_english:
-                    description = first_email.alleged_subject_english.split(',')[0].strip()
-                elif first_email.alleged_subject_chinese:
-                    description = first_email.alleged_subject_chinese.split(',')[0].strip()
-                
-                # Add alleged nature if available
-                if first_email.alleged_nature:
-                    description += f" - {first_email.alleged_nature}"
-            
-            int_refs.append({
-                'int_reference': cp.int_reference,
-                'total_sources': total_sources,
-                'email_count': email_count,
-                'description': description,
-                'date_created': cp.date_of_receipt.strftime('%Y-%m-%d') if cp.date_of_receipt else 'N/A'
-            })
-        
-        return jsonify({
-            'success': True,
-            'int_references': int_refs
-        })
-        
-    except Exception as e:
-        print(f"[INT API] Error loading INT references: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @app.route("/api/int_references/next_available")
 @login_required
 def get_next_available_int():
