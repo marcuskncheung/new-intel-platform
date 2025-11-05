@@ -3850,27 +3850,27 @@ def int_analytics():
         for int_ref, case_id in int_references:
             # Count emails linked to this INT
             email_count = db.session.query(Email).filter(
-                Email.case_profile_id == case_id
+                Email.caseprofile_id == case_id
             ).count()
             
             # Count WhatsApp entries
             whatsapp_count = db.session.query(WhatsAppEntry).filter(
-                WhatsAppEntry.case_profile_id == case_id
+                WhatsAppEntry.caseprofile_id == case_id
             ).count()
             
             # Count Online Patrol entries
             online_count = db.session.query(OnlinePatrolEntry).filter(
-                OnlinePatrolEntry.case_profile_id == case_id
+                OnlinePatrolEntry.caseprofile_id == case_id
             ).count()
             
             # Count Surveillance entries
             surveillance_count = db.session.query(SurveillanceEntry).filter(
-                SurveillanceEntry.case_profile_id == case_id
+                SurveillanceEntry.caseprofile_id == case_id
             ).count()
             
             # Count Received by Hand entries
             received_by_hand_count = db.session.query(ReceivedByHandEntry).filter(
-                ReceivedByHandEntry.case_profile_id == case_id
+                ReceivedByHandEntry.caseprofile_id == case_id
             ).count()
             
             total_sources = email_count + whatsapp_count + online_count + surveillance_count + received_by_hand_count
