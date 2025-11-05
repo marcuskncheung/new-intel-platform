@@ -2077,6 +2077,7 @@
           <thead>
             <tr>
               <th>Source ID</th>
+              <th>INT Reference</th>
               <th>Received Time</th>
               <th>Complaint Name</th>
               <th>Phone Number</th>
@@ -2093,6 +2094,22 @@
             <tr>
               <td>
                 <span class="badge bg-info">WHATSAPP-{{ w.id }}</span>
+              </td>
+              <td>
+                {% if w.caseprofile_id %}
+                  {% set case = w.case_profile if w.case_profile else None %}
+                  {% if case and case.int_reference %}
+                    <a href="{{ url_for('int_reference_detail', int_reference=case.int_reference) }}" 
+                       class="badge bg-primary text-decoration-none" 
+                       title="View INT Reference Details">
+                      {{ case.int_reference }}
+                    </a>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
               </td>
               <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
               <td>{{ w.complaint_name }}</td>
