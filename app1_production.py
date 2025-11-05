@@ -7197,6 +7197,21 @@ def online_patrol_detail(entry_id):
     # GET: show detail page
     return render_template("int_source_online_patrol_aligned.html", entry=entry)
 
+@app.route("/online_patrol/photo/<int:photo_id>")
+@login_required
+def view_patrol_photo(photo_id):
+    """
+    📸 Serve online patrol photo from database
+    Similar to whatsapp_image_download for consistency
+    """
+    photo = OnlinePatrolPhoto.query.get_or_404(photo_id)
+    
+    if photo.image_data:
+        mimetype, _ = mimetypes.guess_type(photo.filename)
+        return send_file(io.BytesIO(photo.image_data), mimetype=mimetype or 'image/jpeg')
+    
+    return "Photo not found", 404
+
 @app.route("/delete_online_patrol/<int:entry_id>", methods=["POST"])
 @login_required
 def delete_online_patrol(entry_id):
