@@ -3909,10 +3909,50 @@ def int_analytics():
             'avg_items_per_int': avg_items_per_int
         }
         
+        # Calculate distribution data for chart
+        distribution_data = [0, 0, 0, 0, 0]  # 1 item, 2-5, 6-10, 11-20, 20+
+        for stat in int_stats:
+            total = stat['total_sources']
+            if total == 1:
+                distribution_data[0] += 1
+            elif 2 <= total <= 5:
+                distribution_data[1] += 1
+            elif 6 <= total <= 10:
+                distribution_data[2] += 1
+            elif 11 <= total <= 20:
+                distribution_data[3] += 1
+            else:
+                distribution_data[4] += 1
+        
+        # Prepare top INT data for chart
+        top_ints = sorted(int_stats, key=lambda x: x['total_sources'], reverse=True)[:10]
+        top_int_data = {
+            'labels': [stat['int_reference'] for stat in top_ints],
+            'email': [stat['email_count'] for stat in top_ints],
+            'whatsapp': [stat['whatsapp_count'] for stat in top_ints],
+            'patrol': [stat['online_count'] for stat in top_ints],
+            'surveillance': [stat['surveillance_count'] for stat in top_ints]
+        }
+        
+        # Prepare int_details for template (used in the INT list)
+        int_details = []
+        for stat in int_stats:
+            int_details.append({
+                'int_reference': stat['int_reference'],
+                'total_items': stat['total_sources'],
+                'email_count': stat['email_count'],
+                'whatsapp_count': stat['whatsapp_count'],
+                'patrol_count': stat['online_count'],
+                'surveillance_count': stat['surveillance_count']
+            })
+        
         return render_template(
             'int_analytics.html',
             int_stats=int_stats,
-            stats=stats
+            stats=stats,
+            distribution_data=distribution_data,
+            top_int_data=top_int_data,
+            int_details=int_details
         )
         
     except Exception as e:
