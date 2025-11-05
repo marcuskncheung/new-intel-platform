@@ -2326,9 +2326,9 @@
               <th>INT Reference</th>
               <th>Platform/Source</th>
               <th>Post Time</th>
-              <th>Discovered By</th>
-              <th>Discovery Time</th>
-              <th>Score & Action</th>
+              <th>Alleged Person</th>
+              <th>Alleged Nature</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -2367,53 +2367,56 @@
                 {% endif %}
               </td>
               <td>
-                {{ o.discovered_by or o.sender or '-' }}
-              </td>
-              <td>
-                {% if o.discovery_time %}
-                  {{ o.discovery_time.strftime('%Y-%m-%d %H:%M') if o.discovery_time else '-' }}
-                {% elif o.complaint_time %}
-                  <span class="text-muted" title="Legacy field">{{ o.complaint_time.strftime('%Y-%m-%d %H:%M') if o.complaint_time else '-' }}</span>
+                {% if o.alleged_person %}
+                  {% set alleged_persons = o.alleged_person.split(',') %}
+                  {% for person in alleged_persons %}
+                    {% if person.strip() %}
+                      <span class="badge bg-light text-dark me-1 mb-1">{{ person.strip() }}</span>
+                    {% endif %}
+                  {% endfor %}
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
-                {% if o.photos and o.photos|length > 0 %}
-                  <span class="badge bg-success">
-                    <i class="bi bi-image"></i> {{ o.photos|length }}
-                  </span>
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
-              </td>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <!-- Score Badge -->
-                  {% if o.source_reliability is not none and o.content_validity is not none %}
-                    <span class="badge {% if combined_score >= 8 %}bg-success{% elif combined_score >= 6 %}bg-warning{% else %}bg-secondary{% endif %}">
-                      {{ combined_score }}/10
-                    </span>
+                {% if o.alleged_nature %}
+                  {% set nature_list = [] %}
+                  {% if o.alleged_nature.startswith('[') %}
+                    {# JSON array format #}
+                    {% set nature_list = o.alleged_nature|fromjson %}
                   {% else %}
-                    <span class="badge bg-light text-muted">Unscored</span>
+                    {# Old format - single string #}
+                    {% set nature_list = [o.alleged_nature] %}
                   {% endif %}
-                  
-                  <!-- Action Buttons -->
-                  <div class="pro-action-btns">
-                    <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" 
-                       class="btn btn-sm btn-outline-primary" 
-                       title="View & Edit">
-                      <i class="bi bi-eye"></i>
-                    </a>
-                    <form method="post" 
-                          action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" 
-                          style="display:inline;" 
-                          onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry, photos, and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
-                      <button class="btn btn-sm btn-outline-danger" title="Delete">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </form>
-                  </div>
+                  {% if nature_list and nature_list|length > 0 %}
+                    {% for nature in nature_list[:3] %}{# Show max 3 badges #}
+                      <span class="badge bg-warning text-dark me-1 mb-1" style="font-size: 0.7em;">{{ nature[:40] }}</span>
+                    {% endfor %}
+                    {% if nature_list|length > 3 %}
+                      <span class="badge bg-secondary me-1 mb-1" style="font-size: 0.7em;">+{{ nature_list|length - 3 }} more</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="pro-action-btns">
+                  <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" 
+                     class="btn btn-sm btn-outline-primary" 
+                     title="View & Edit">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <form method="post" 
+                        action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" 
+                        style="display:inline;" 
+                        onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry, photos, and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
+                    <button class="btn btn-sm btn-outline-danger" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
                 </div>
               </td>
             </tr>
