@@ -5460,11 +5460,18 @@ def int_source_inbox_export(fmt):
         import csv
         output = io.StringIO()
         writer = csv.writer(output)
-        # New column order: Time Received, Sender, Subject, Body, Recipients, Source Reliability, Content Validity
-        writer.writerow(["Time Received", "Sender", "Subject", "Body", "Recipients", "Source Reliability", "Content Validity"])
+        # New column order: INT Reference, Time Received, Sender, Subject, Body, Recipients, Source Reliability, Content Validity
+        writer.writerow(["INT Reference", "Time Received", "Sender", "Subject", "Body", "Recipients", "Source Reliability", "Content Validity"])
         for e in filtered_emails:
+            # Get INT reference from CaseProfile
+            int_reference = ''
+            if e.caseprofile_id:
+                case_profile = db.session.query(CaseProfile).filter_by(id=e.caseprofile_id).first()
+                if case_profile and case_profile.int_reference:
+                    int_reference = case_profile.int_reference
+            
             writer.writerow([
-                e.received or '', e.sender or '', e.subject or '', e.body or '', e.recipients or '',
+                int_reference or '', e.received or '', e.sender or '', e.subject or '', e.body or '', e.recipients or '',
                 e.source_reliability, e.content_validity
             ])
         mem = io.BytesIO()
@@ -5553,7 +5560,7 @@ def int_source_inbox_export(fmt):
             else:
                 all_attachments_per_email.append([])  # Empty list for None emails
         info_fields = [
-            "Time Received", "Sender", "Subject", "Body", "Recipients",
+            "INT Reference", "Time Received", "Sender", "Subject", "Body", "Recipients",
             "Source Reliability", "Content Validity", "Intelligence Case Opened",
             "Assessment Updated At", "Alleged Subject", "Preparer",
             "Reviewer Name", "Reviewer Comment"
@@ -5566,6 +5573,15 @@ def int_source_inbox_export(fmt):
             if e is None:  # Skip None emails
                 continue
             row = {field: '' for field in all_columns}
+            
+            # Get INT reference from CaseProfile
+            int_reference = ''
+            if e.caseprofile_id:
+                case_profile = db.session.query(CaseProfile).filter_by(id=e.caseprofile_id).first()
+                if case_profile and case_profile.int_reference:
+                    int_reference = case_profile.int_reference
+            
+            row["INT Reference"] = int_reference
             row["Time Received"] = e.received or ''
             row["Sender"] = e.sender or ''
             row["Subject"] = e.subject or ''
@@ -5621,7 +5637,7 @@ def int_source_inbox_export(fmt):
         # Monthly Trends (if we have date data)
         monthly_trends = pd.DataFrame()
         try:
-            df['Month'] = pd.to_datetime(df['Received'], errors='coerce').dt.to_period('M')
+            df['Month'] = pd.to_datetime(df['Time Received'], errors='coerce').dt.to_period('M')
             monthly_trends = df.groupby('Month').agg({
                 'Subject': 'count',
                 'Intelligence Case Opened': 'sum',
@@ -5634,6 +5650,19 @@ def int_source_inbox_export(fmt):
         except:
             monthly_trends = pd.DataFrame([['No date data available', '', '', '', '']], 
                                         columns=['Month', 'Emails Received', 'Cases Opened', 'Avg Source Reliability', 'Avg Content Validity'])
+        
+        # INT Reference Grouping Analysis
+        int_grouping = df[df['INT Reference'] != ''].groupby('INT Reference').agg({
+            'Subject': 'count',
+            'Sender': lambda x: ', '.join(x.unique()[:3]) + ('...' if len(x.unique()) > 3 else ''),
+            'Time Received': ['min', 'max'],
+            'Source Reliability': 'mean',
+            'Content Validity': 'mean'
+        }).round(1).reset_index()
+        
+        # Flatten multi-level columns
+        int_grouping.columns = ['INT Reference', 'Email Count', 'Senders', 'First Email', 'Last Email', 'Avg Reliability', 'Avg Validity']
+        int_grouping = int_grouping.sort_values('INT Reference', ascending=False)  # Latest INT first
         
         temp_img_paths = []
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -5691,6 +5720,20 @@ def int_source_inbox_export(fmt):
             trends_ws.write('A1', 'MONTHLY INTELLIGENCE TRENDS', title_format)
             trends_ws.set_column('A:E', 20)
             
+            # INT Reference Grouping Sheet (NEW - shows emails grouped by INT)
+            int_grouping.to_excel(writer, sheet_name='INT Grouping', index=False, startrow=2)
+            int_ws = writer.sheets['INT Grouping']
+            int_ws.write('A1', 'EMAILS GROUPED BY INT REFERENCE', title_format)
+            int_ws.set_column('A:A', 18)  # INT Reference
+            int_ws.set_column('B:B', 12)  # Email Count
+            int_ws.set_column('C:C', 40)  # Senders
+            int_ws.set_column('D:E', 20)  # First/Last Email dates
+            int_ws.set_column('F:G', 15)  # Avg Reliability/Validity
+            
+            # Format INT grouping table
+            for row in range(len(int_grouping) + 1):
+                int_ws.set_row(row + 2, None, header_format if row == 0 else cell_format)
+            
             # Main Data Sheet
             df2 = df.copy()
             # Remove attachment objects for main data display and ensure Excel compatibility
@@ -5714,7 +5757,9 @@ def int_source_inbox_export(fmt):
             # Format main data sheet
             for col_num, column in enumerate(df2.columns):
                 worksheet.write(0, col_num, column, header_format)
-                if column == 'Body':
+                if column == 'INT Reference':
+                    worksheet.set_column(col_num, col_num, 18)  # Good width for INT-XXX format
+                elif column == 'Body':
                     worksheet.set_column(col_num, col_num, 50)  # Wider for body content
                 elif column in ['Subject', 'Sender', 'Recipients']:
                     worksheet.set_column(col_num, col_num, 25)
