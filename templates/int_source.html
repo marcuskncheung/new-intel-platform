@@ -2080,10 +2080,8 @@
               <th>INT Reference</th>
               <th>Received Time</th>
               <th>Complaint Name</th>
-              <th>Phone Number</th>
               <th>Alleged Person</th>
               <th>Alleged Nature</th>
-              <th>Combined Score</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
@@ -2108,7 +2106,6 @@
               </td>
               <td>{{ w.received_time|safe_datetime if w.received_time else '' }}</td>
               <td>{{ w.complaint_name }}</td>
-              <td>{{ w.phone_number }}</td>
               <td>
                 {% if w.alleged_person %}
                   {% set alleged_persons = w.alleged_person.split(',') %}
@@ -2143,13 +2140,6 @@
                   {% endif %}
                 {% else %}
                   <span class="text-muted">{{ w.alleged_type or '-' }}</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if w.source_reliability is not none and w.content_validity is not none %}
-                  <span class="badge-pro">{{ combined_score }}</span>
-                {% else %}
-                  <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td>
