@@ -26,78 +26,115 @@
       {% set update_url = url_for('update_patrol_int_reference', entry_id=entry.id) %}
       {% include 'components/int_reference_component.html' with context %}
 
-      <!-- Online Patrol Content Section -->
+      <!-- Online Patrol Content Section - Editable Form -->
       <div class="card border-info mb-4">
         <div class="card-header bg-info text-white">
           <h5 class="mb-0"><i class="bi bi-compass"></i> Online Patrol Details</h5>
         </div>
         <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <table class="table table-sm table-borderless">
-                <tr>
-                  <td width="40%"><strong>Sender:</strong></td>
-                  <td>{{ entry.sender or 'N/A' }}</td>
-                </tr>
-                <tr>
-                  <td><strong>Source:</strong></td>
-                  <td>{{ entry.source or 'N/A' }}</td>
-                </tr>
-                <tr>
-                  <td><strong>Status:</strong></td>
-                  <td>
-                    {% if entry.status %}
-                      <span class="badge bg-primary">{{ entry.status }}</span>
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <td><strong>Complaint Time:</strong></td>
-                  <td>{{ entry.complaint_time.strftime('%Y-%m-%d %H:%M') if entry.complaint_time else 'N/A' }}</td>
-                </tr>
-              </table>
+          <form method="POST" action="{{ url_for('update_patrol_details', entry_id=entry.id) }}" enctype="multipart/form-data">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label"><strong>Source Posted Time:</strong></label>
+                <input type="datetime-local" 
+                       class="form-control" 
+                       name="source_time" 
+                       value="{{ entry.source_time.strftime('%Y-%m-%dT%H:%M') if entry.source_time else '' }}">
+                <small class="text-muted">When the post was made on the source platform</small>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label"><strong>Discovery Time:</strong></label>
+                <input type="datetime-local" 
+                       class="form-control" 
+                       name="discovery_time" 
+                       value="{{ entry.discovery_time.strftime('%Y-%m-%dT%H:%M') if entry.discovery_time else '' }}">
+                <small class="text-muted">When we discovered this intelligence</small>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label"><strong>Source Location:</strong></label>
+                <input type="text" 
+                       class="form-control" 
+                       name="source" 
+                       value="{{ entry.source or '' }}"
+                       placeholder="e.g., Facebook, Instagram, Telegram">
+                <small class="text-muted">Platform or location where found</small>
+              </div>
             </div>
-            <div class="col-md-6">
-              <table class="table table-sm table-borderless">
-                <tr>
-                  <td width="40%"><strong>Entry ID:</strong></td>
-                  <td>PATROL-{{ entry.id }}</td>
-                </tr>
-                <tr>
-                  <td><strong>Case Profile:</strong></td>
-                  <td>
-                    {% if entry.case_profile %}
-                      {{ entry.case_profile.case_number or entry.case_profile.case_name }}
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <td><strong>Created:</strong></td>
-                  <td>{{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at else 'N/A' }}</td>
-                </tr>
-              </table>
+            
+            <div class="mb-3">
+              <label class="form-label"><strong>Upload Photos/PDFs:</strong></label>
+              <input type="file" 
+                     class="form-control" 
+                     name="files" 
+                     multiple 
+                     accept="image/*,.pdf">
+              <small class="text-muted">You can select multiple files (images or PDFs)</small>
+            </div>
+            
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-save"></i> Save Changes
+            </button>
+          </form>
+          
+          <!-- Display Existing Uploaded Files -->
+          {% if images %}
+          <div class="mt-4">
+            <h6 class="text-muted">Uploaded Files:</h6>
+            <div class="row">
+              {% for image in images %}
+              <div class="col-md-3 mb-3">
+                <div class="card">
+                  {% if image.filename and image.filename.lower().endswith('.pdf') %}
+                    <div class="card-body text-center">
+                      <i class="bi bi-file-pdf" style="font-size: 3rem; color: #dc3545;"></i>
+                      <p class="small mt-2">{{ image.filename }}</p>
+                    </div>
+                  {% else %}
+                    <img src="{{ url_for('view_patrol_photo', photo_id=image.id) }}" 
+                         class="card-img-top" 
+                         alt="{{ image.filename }}"
+                         style="max-height: 200px; object-fit: cover; cursor: pointer;"
+                         onclick="window.open(this.src, '_blank')">
+                    <div class="card-body p-2">
+                      <small class="text-muted">{{ image.filename }}</small>
+                    </div>
+                  {% endif %}
+                  <div class="card-footer p-2">
+                    <form method="POST" action="{{ url_for('delete_patrol_file', file_id=image.id) }}" style="display:inline;">
+                      <button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('Delete this file?')">
+                        <i class="bi bi-trash"></i> Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
             </div>
           </div>
-          
-          {% if entry.alleged_type or entry.details or entry.synopsis %}
-          <div class="mt-3">
-            {% if entry.alleged_type %}
-            <div class="mb-2">
-              <strong>Alleged Type:</strong> <span class="badge bg-warning text-dark">{{ entry.alleged_type }}</span>
-            </div>
-            {% endif %}
-            {% if entry.synopsis %}
-            <div class="mb-2">
-              <strong>Synopsis:</strong>
-              <div class="p-2 bg-light rounded border">{{ entry.synopsis }}</div>
-            </div>
-            {% endif %}
-            {% if entry.details %}
-            <div class="mb-2">
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Keep the rest of the content below (alleged type, synopsis, details if they exist) -->
+      {% if entry.alleged_type or entry.details or entry.synopsis %}
+      <div class="card border-secondary mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h6 class="mb-0">Additional Information</h6>
+        </div>
+        <div class="card-body">
+          {% if entry.alleged_type %}
+          <div class="mb-2">
+            <strong>Alleged Type:</strong> <span class="badge bg-warning text-dark">{{ entry.alleged_type }}</span>
+          </div>
+          {% endif %}
+          {% if entry.synopsis %}
+          <div class="mb-2">
+            <strong>Synopsis:</strong>
+            <div class="p-2 bg-light rounded border">{{ entry.synopsis }}</div>
+          </div>
+          {% endif %}
+          {% if entry.details %}
+          <div class="mb-2">
               <strong>Details:</strong>
               <div class="p-3 bg-light rounded border" style="white-space: pre-wrap;">{{ entry.details }}</div>
             </div>

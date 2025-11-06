@@ -8396,6 +8396,69 @@ def whatsapp_detail(entry_id):
     
     return render_template("whatsapp_detail_aligned.html", entry=entry, images=images, alleged_subjects=alleged_subjects)
 
+@app.route('/update_whatsapp_details/<int:entry_id>', methods=['POST'])
+@login_required
+def update_whatsapp_details(entry_id):
+    """Update WhatsApp entry details and handle file uploads"""
+    try:
+        entry = db.session.get(WhatsAppEntry, entry_id)
+        if not entry:
+            flash("WhatsApp entry not found.", "error")
+            return redirect(url_for('int_source'))
+        
+        # Update basic fields
+        entry.complaint_name = request.form.get('complaint_name', '').strip()
+        entry.phone_number = request.form.get('phone_number', '').strip()
+        
+        # Parse and update received time
+        received_time_str = request.form.get('received_time')
+        if received_time_str:
+            from datetime import datetime
+            entry.received_time = datetime.strptime(received_time_str, '%Y-%m-%dT%H:%M')
+        
+        # Handle file uploads
+        if 'files' in request.files:
+            files = request.files.getlist('files')
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    # Save file to database
+                    file_data = file.read()
+                    new_image = WhatsAppImage(
+                        whatsapp_id=entry_id,
+                        image_data=file_data,
+                        filename=filename
+                    )
+                    db.session.add(new_image)
+        
+        db.session.commit()
+        flash('WhatsApp details updated successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating details: {str(e)}', 'error')
+    
+    return redirect(url_for('whatsapp_detail', entry_id=entry_id))
+
+@app.route('/delete_whatsapp_file/<int:file_id>', methods=['POST'])
+@login_required
+def delete_whatsapp_file(file_id):
+    """Delete a WhatsApp uploaded file"""
+    try:
+        image = db.session.get(WhatsAppImage, file_id)
+        if not image:
+            flash("File not found.", "error")
+            return redirect(url_for('int_source'))
+        
+        entry_id = image.whatsapp_id
+        db.session.delete(image)
+        db.session.commit()
+        flash('File deleted successfully', 'success')
+        return redirect(url_for('whatsapp_detail', entry_id=entry_id))
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting file: {str(e)}', 'error')
+        return redirect(url_for('int_source'))
+
 # Add this route to fix url_for('surveillance_detail', entry_id=...) errors in your templates
 @app.route("/surveillance/<int:entry_id>", methods=["GET", "POST"])
 @login_required
