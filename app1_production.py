@@ -3809,13 +3809,10 @@ def int_source():
     print(f"[DEBUG] Final emails count for interface: {len(emails)}")
     
     # Sort all intelligence sources by ID descending (newest first) to match email sorting
-    # Eagerly load case_profile relationship to display INT references in table
-    from sqlalchemy.orm import joinedload
-    
-    whatsapp_data = WhatsAppEntry.query.options(joinedload(WhatsAppEntry.case_profile)).order_by(WhatsAppEntry.id.desc()).all()
-    online_patrol_data = OnlinePatrolEntry.query.options(joinedload(OnlinePatrolEntry.case_profile)).order_by(OnlinePatrolEntry.id.desc()).all()
-    surveillance_data = SurveillanceEntry.query.options(joinedload(SurveillanceEntry.case_profile)).order_by(SurveillanceEntry.id.desc()).all()
-    received_by_hand_data = ReceivedByHandEntry.query.options(joinedload(ReceivedByHandEntry.case_profile)).order_by(ReceivedByHandEntry.id.desc()).all()
+    whatsapp_data = WhatsAppEntry.query.order_by(WhatsAppEntry.id.desc()).all()
+    online_patrol_data = OnlinePatrolEntry.query.order_by(OnlinePatrolEntry.id.desc()).all()
+    surveillance_data = SurveillanceEntry.query.order_by(SurveillanceEntry.id.desc()).all()
+    received_by_hand_data = ReceivedByHandEntry.query.order_by(ReceivedByHandEntry.id.desc()).all()
 
     # ------------------------------
     # Build data for Analytics charts - FIXED VERSION

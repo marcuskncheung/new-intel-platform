@@ -2096,17 +2096,12 @@
                 <span class="badge bg-info">WHATSAPP-{{ w.id }}</span>
               </td>
               <td>
-                {% if w.caseprofile_id %}
-                  {% set case = w.case_profile if w.case_profile else None %}
-                  {% if case and case.int_reference %}
-                    <a href="{{ url_for('int_reference_detail', int_reference=case.int_reference) }}" 
-                       class="badge bg-primary text-decoration-none" 
-                       title="View INT Reference Details">
-                      {{ case.int_reference }}
-                    </a>
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
+                {% if w.int_reference %}
+                  <a href="{{ url_for('int_reference_detail', int_reference=w.int_reference) }}" 
+                     class="badge bg-primary text-decoration-none" 
+                     title="View INT Reference Details">
+                    {{ w.int_reference }}
+                  </a>
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
@@ -2339,17 +2334,12 @@
                 <span class="badge bg-info">PATROL-{{ o.id }}</span>
               </td>
               <td>
-                {% if o.caseprofile_id %}
-                  {% set case = o.case_profile if o.case_profile else None %}
-                  {% if case and case.int_reference %}
-                    <a href="{{ url_for('int_reference_detail', int_reference=case.int_reference) }}" 
-                       class="badge bg-primary text-decoration-none" 
-                       title="View INT Reference Details">
-                      {{ case.int_reference }}
-                    </a>
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
+                {% if o.int_reference %}
+                  <a href="{{ url_for('int_reference_detail', int_reference=o.int_reference) }}" 
+                     class="badge bg-primary text-decoration-none" 
+                     title="View INT Reference Details">
+                    {{ o.int_reference }}
+                  </a>
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
