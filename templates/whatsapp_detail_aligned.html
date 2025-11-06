@@ -71,7 +71,11 @@
             {% for image in images %}
             <div class="col-md-3 mb-3">
               <div class="card">
-                <img src="{{ url_for('get_whatsapp_image', image_id=image.id) }}" class="card-img-top" alt="WhatsApp image" style="max-height: 200px; object-fit: cover;">
+                <img src="{{ url_for('whatsapp_image_download', image_id=image.id) }}" 
+                     class="card-img-top" 
+                     alt="WhatsApp image" 
+                     style="max-height: 200px; object-fit: cover; cursor: pointer;"
+                     onclick="window.open(this.src, '_blank')">
                 <div class="card-body p-2 text-center">
                   <form method="POST" action="{{ url_for('delete_whatsapp_file', file_id=image.id) }}" style="display: inline;">
                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this file?');">
@@ -86,31 +90,6 @@
           {% endif %}
         </div>
       </div>
-      {% if images %}
-      <div class="card border-info mb-4">
-        <div class="card-header bg-info text-white">
-          <h5 class="mb-0"><i class="bi bi-images"></i> Uploaded Images ({{ images|length }})</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            {% for image in images %}
-            <div class="col-md-3 col-sm-6 mb-3">
-              <div class="card">
-                <img src="{{ url_for('view_whatsapp_image', image_id=image.id) }}" 
-                     class="card-img-top" 
-                     alt="{{ image.filename }}"
-                     style="max-height: 200px; object-fit: cover; cursor: pointer;"
-                     onclick="window.open(this.src, '_blank')">
-                <div class="card-body p-2">
-                  <small class="text-muted">{{ image.filename }}</small>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-      {% endif %}
 
       <!-- Assessment Form -->
       <form method="POST" action="{{ url_for('int_source_whatsapp_update_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
