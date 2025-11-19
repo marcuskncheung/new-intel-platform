@@ -7258,7 +7258,76 @@ def online_patrol_detail(entry_id):
                 return redirect(url_for('alleged_subject_list'))
 
     # GET: show detail page
-    return render_template("int_source_online_patrol_aligned.html", entry=entry)
+    images = OnlinePatrolPhoto.query.filter_by(online_patrol_id=entry_id).all()
+    return render_template("int_source_online_patrol_aligned.html", entry=entry, images=images)
+
+@app.route('/update_patrol_details/<int:entry_id>', methods=['POST'])
+@login_required
+def update_patrol_details(entry_id):
+    """Update Online Patrol entry details and handle file uploads"""
+    try:
+        entry = db.session.get(OnlinePatrolEntry, entry_id)
+        if not entry:
+            flash("Online Patrol entry not found.", "error")
+            return redirect(url_for('int_source'))
+        
+        # Update basic fields
+        entry.source = request.form.get('source', '').strip()
+        
+        # Parse and update source time (when posted)
+        source_time_str = request.form.get('source_time')
+        if source_time_str:
+            from datetime import datetime
+            entry.source_time = datetime.strptime(source_time_str, '%Y-%m-%dT%H:%M')
+        
+        # Parse and update discovery time
+        discovery_time_str = request.form.get('discovery_time')
+        if discovery_time_str:
+            from datetime import datetime
+            entry.discovery_time = datetime.strptime(discovery_time_str, '%Y-%m-%dT%H:%M')
+        
+        # Handle file uploads
+        if 'files' in request.files:
+            files = request.files.getlist('files')
+            for file in files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    # Save file to database
+                    file_data = file.read()
+                    new_photo = OnlinePatrolPhoto(
+                        online_patrol_id=entry_id,
+                        image_data=file_data,
+                        filename=filename
+                    )
+                    db.session.add(new_photo)
+        
+        db.session.commit()
+        flash('Online Patrol details updated successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating details: {str(e)}', 'error')
+    
+    return redirect(url_for('online_patrol_detail', entry_id=entry_id))
+
+@app.route('/delete_patrol_file/<int:file_id>', methods=['POST'])
+@login_required
+def delete_patrol_file(file_id):
+    """Delete an Online Patrol uploaded file"""
+    try:
+        photo = db.session.get(OnlinePatrolPhoto, file_id)
+        if not photo:
+            flash("File not found.", "error")
+            return redirect(url_for('int_source'))
+        
+        entry_id = photo.online_patrol_id
+        db.session.delete(photo)
+        db.session.commit()
+        flash('File deleted successfully', 'success')
+        return redirect(url_for('online_patrol_detail', entry_id=entry_id))
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting file: {str(e)}', 'error')
+        return redirect(url_for('int_source'))
 
 @app.route("/online_patrol/photo/<int:photo_id>")
 @login_required
