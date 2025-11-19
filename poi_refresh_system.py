@@ -363,7 +363,20 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             # Commit after each WhatsApp entry            # 🔧 FIX: Commit after processing EACH entry
             db.session.commit()
             
-            print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced: {max_len} POI link(s) created")
+            # Count how many alleged subjects were processed
+            if alleged_subjects:
+                subject_count = len(alleged_subjects)
+                data_source = 'NEW table'
+            elif 'english_names' in locals() or 'chinese_names' in locals():
+                english_count = len(english_names) if 'english_names' in locals() else 0
+                chinese_count = len(chinese_names) if 'chinese_names' in locals() else 0
+                subject_count = max(english_count, chinese_count)
+                data_source = 'LEGACY columns'
+            else:
+                subject_count = 0
+                data_source = 'NONE (empty WhatsApp)'
+            
+            print(f"[POI REFRESH] ✅ WHATSAPP-{entry.id} synced: {subject_count} alleged subject(s) processed from {data_source}")
         
         print(f"  ✅ WhatsApp: {results['whatsapp']['scanned']} scanned, {results['whatsapp']['profiles_created']} created, {results['whatsapp']['profiles_updated']} updated, {results['whatsapp']['links_created']} links")
         
