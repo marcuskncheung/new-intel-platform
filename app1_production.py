@@ -7141,11 +7141,31 @@ def online_patrol_detail(entry_id):
             entry.source = request.form.get("source")
             entry.status = request.form.get("status")
             entry.details = request.form.get("details")
-            alleged_person = request.form.getlist("alleged_person[]")
-            # Filter out empty persons and join with commas
-            filtered_persons = [person.strip() for person in alleged_person if person.strip()]
-            alleged_person_str = ', '.join(filtered_persons) if filtered_persons else None
-            entry.alleged_person = alleged_person_str
+            
+            # 🔧 NEW: Get paired English and Chinese names (same as WhatsApp/Email)
+            alleged_person_english_list = request.form.getlist("alleged_subjects_en[]")
+            alleged_person_chinese_list = request.form.getlist("alleged_subjects_cn[]")
+            
+            # Filter and pair the names
+            english_names = []
+            chinese_names = []
+            all_person_names = []
+            
+            for i, eng_name in enumerate(alleged_person_english_list):
+                eng_clean = eng_name.strip() if eng_name else ""
+                chi_clean = alleged_person_chinese_list[i].strip() if i < len(alleged_person_chinese_list) and alleged_person_chinese_list[i] else ""
+                
+                if eng_clean:
+                    english_names.append(eng_clean)
+                    all_person_names.append(eng_clean)
+                if chi_clean:
+                    chinese_names.append(chi_clean)
+                    if not eng_clean:
+                        all_person_names.append(chi_clean)
+            
+            entry.alleged_person = ', '.join(all_person_names) if all_person_names else None
+            entry.alleged_subject_english = ', '.join(english_names) if english_names else None
+            entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
             
             from secure_logger import secure_log_debug
             secure_log_debug(
@@ -7153,29 +7173,35 @@ def online_patrol_detail(entry_id):
                 sender=entry.sender,
                 source=entry.source, 
                 status=entry.status,
+                alleged_person=entry.alleged_person,
                 record_id=entry.id
             )
             
             try:
                 db.session.commit()
                 
-                # 🤖 AUTO-UPDATE POI PROFILES WHEN PATROL DETAILS CHANGE
-                if ALLEGED_PERSON_AUTOMATION and alleged_person_str:
+                # 🤖 AUTO-UPDATE POI PROFILES WHEN PATROL DETAILS CHANGE (with proper pairing)
+                if ALLEGED_PERSON_AUTOMATION and (english_names or chinese_names):
                     try:
                         print(f"[PATROL AUTOMATION] 🚀 Auto-updating POI profiles for Patrol entry {entry.id}")
                         
-                        # Split alleged persons by comma
-                        alleged_persons = [p.strip() for p in alleged_person_str.split(',') if p.strip()]
+                        # Process each person with paired English/Chinese names
+                        max_persons = max(len(english_names), len(chinese_names))
                         
-                        # Process each alleged person
-                        for person_name in alleged_persons:
-                            # Try to determine if it's English or Chinese name
-                            is_chinese = bool(re.search(r'[\u4e00-\u9fff]', person_name))
+                        for i in range(max_persons):
+                            eng_name = english_names[i] if i < len(english_names) else None
+                            chi_name = chinese_names[i] if i < len(chinese_names) else None
+                            
+                            # Skip if both are empty
+                            if not eng_name and not chi_name:
+                                continue
+                            
+                            print(f"[PATROL AUTOMATION] Processing person #{i+1}: EN='{eng_name}' CN='{chi_name}'")
                             
                             result = create_or_update_alleged_person_profile(
                                 db, AllegedPersonProfile, EmailAllegedPersonLink,
-                                name_english=None if is_chinese else person_name,
-                                name_chinese=person_name if is_chinese else None,
+                                name_english=eng_name,
+                                name_chinese=chi_name,
                                 email_id=None,
                                 source="PATROL",
                                 update_mode="merge"
@@ -7207,7 +7233,7 @@ def online_patrol_detail(entry_id):
                                 except Exception as link_error:
                                     print(f"[PATROL AUTOMATION] ⚠️ Could not create universal link: {link_error}")
                         
-                        flash(f"Online Patrol details updated and {len(alleged_persons)} POI profile(s) processed.", "success")
+                        flash(f"Online Patrol details updated and {max_persons} POI profile(s) processed.", "success")
                         
                     except Exception as automation_error:
                         print(f"[PATROL AUTOMATION] ❌ Error in POI automation: {automation_error}")
