@@ -335,9 +335,29 @@
                                     </td>
                                     <td>{{ intel.get('title') or intel.get('subject') or intel.get('summary') or intel.get('content', '')[:100] or 'No content' }}</td>
                                     <td class="text-center">
-                                        {% if intel.get('source_type') == 'EMAIL' and intel.get('id') %}
+                                        {% if intel.get('view_url') %}
+                                            <a href="{{ intel.get('view_url') }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif intel.get('source_type') == 'EMAIL' and intel.get('id') %}
                                             <a href="{{ url_for('int_source_email_detail', email_id=intel.get('id')) }}" 
                                                class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif intel.get('source_type') == 'WHATSAPP' and intel.get('id') %}
+                                            <a href="{{ url_for('whatsapp_detail', entry_id=intel.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif intel.get('source_type') == 'PATROL' and intel.get('id') %}
+                                            <a href="{{ url_for('online_patrol_detail', entry_id=intel.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif intel.get('source_type') == 'SURVEILLANCE' and intel.get('id') %}
+                                            <a href="{{ url_for('surveillance_detail', entry_id=intel.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-danger">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
                                         {% else %}
@@ -407,14 +427,30 @@
                                     <th width="15%">Date</th>
                                     <th width="18%">Reference</th>
                                     <th>Content</th>
+                                    <th width="12%" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for msg in whatsapp %}
                                 <tr>
                                     <td>{{ msg.get('date').strftime('%Y-%m-%d') if msg.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ msg.get('int_reference_number') }}</code></td>
-                                    <td>{{ (msg.get('content', '')[:100] if msg.get('content') else 'No content') }}</td>
+                                    <td><code>{{ msg.get('reference') or msg.get('int_reference_number') or 'N/A' }}</code></td>
+                                    <td>{{ msg.get('title') or msg.get('summary') or (msg.get('content', '')[:100] if msg.get('content') else 'No content') }}</td>
+                                    <td class="text-center">
+                                        {% if msg.get('view_url') %}
+                                            <a href="{{ msg.get('view_url') }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif msg.get('id') %}
+                                            <a href="{{ url_for('whatsapp_detail', entry_id=msg.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -437,14 +473,30 @@
                                     <th width="15%">Date</th>
                                     <th width="18%">Reference</th>
                                     <th>Content</th>
+                                    <th width="12%" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for entry in patrol %}
                                 <tr>
                                     <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ entry.get('int_reference_number') }}</code></td>
-                                    <td>{{ (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
+                                    <td><code>{{ entry.get('reference') or entry.get('int_reference_number') or 'N/A' }}</code></td>
+                                    <td>{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
+                                    <td class="text-center">
+                                        {% if entry.get('view_url') %}
+                                            <a href="{{ entry.get('view_url') }}" 
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif entry.get('id') %}
+                                            <a href="{{ url_for('online_patrol_detail', entry_id=entry.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -467,14 +519,30 @@
                                     <th width="15%">Date</th>
                                     <th width="18%">Reference</th>
                                     <th>Content</th>
+                                    <th width="12%" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for entry in surveillance %}
                                 <tr>
                                     <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ entry.get('int_reference_number') }}</code></td>
-                                    <td>{{ (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
+                                    <td><code>{{ entry.get('reference') or entry.get('int_reference_number') or 'N/A' }}</code></td>
+                                    <td>{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
+                                    <td class="text-center">
+                                        {% if entry.get('view_url') %}
+                                            <a href="{{ entry.get('view_url') }}" 
+                                               class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif entry.get('id') %}
+                                            <a href="{{ url_for('surveillance_detail', entry_id=entry.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
