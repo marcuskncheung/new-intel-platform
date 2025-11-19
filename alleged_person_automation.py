@@ -290,6 +290,15 @@ def find_matching_profile(db, AllegedPersonProfile,
                     best_match = profile
             
             if best_match:
+                # 🚨 CRITICAL: Verify license number compatibility before confirming match
+                # If new data has a license number that conflicts with existing profile, they are DIFFERENT entities
+                if agent_number and agent_number.strip() and best_match.agent_number:
+                    if agent_number.strip() != best_match.agent_number:
+                        print(f"[PROFILE MATCHING] ⚠️ License number CONFLICT detected!")
+                        print(f"[PROFILE MATCHING] ❌ Cannot match - Existing POI-{best_match.id} has license '{best_match.agent_number}' but new data has '{agent_number}'")
+                        print(f"[PROFILE MATCHING] → These are DIFFERENT companies/persons despite similar names")
+                        return None
+                
                 print(f"[PROFILE MATCHING] ✅ Found similarity match: {best_match.poi_id} (similarity: {best_similarity:.3f})")
                 return best_match.to_dict()
         
