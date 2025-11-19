@@ -37,11 +37,6 @@
             <i class="bi bi-search"></i> Search
           </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link{% if request.endpoint == 'analytics' %} active{% endif %}" href="{{ url_for('analytics') }}">
-            <i class="bi bi-bar-chart"></i> Analytics
-          </a>
-        </li>
         {% if current_user.is_admin() %}
         <li class="nav-item">
           <a class="nav-link{% if request.endpoint == 'admin_dashboard' %} active{% endif %}" href="{{ url_for('admin_dashboard') }}">
