@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-/* Hero Section */
+/* Hero Section with 3D Background */
 .hero-section {
   background: linear-gradient(120deg, #1669d2 0%, #4f8cff 100%);
   color: #fff;
@@ -11,11 +11,56 @@
   margin-bottom: 3rem;
   position: relative;
   overflow: hidden;
-  min-height: 260px;
+  min-height: 400px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
+/* Three.js Canvas Background */
+#hero-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  opacity: 0.3;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
 .hero-section .hero-content {
   width: 100%;
   max-width: 900px;
@@ -86,12 +131,35 @@
   border-radius: 1.2rem;
   box-shadow: 0 2px 18px rgba(22,105,210,0.10);
   margin-bottom: 2.2rem;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: all 0.3s ease;
   background: #fff;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: cardFadeIn 0.6s ease-out forwards;
 }
+
+.feature-card:nth-child(1) {
+  animation-delay: 0.2s;
+}
+
+.feature-card:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.feature-card:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes cardFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .feature-card:hover {
-  box-shadow: 0 8px 32px rgba(22,105,210,0.18);
-  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 40px rgba(22,105,210,0.25);
+  transform: translateY(-8px) scale(1.02);
 }
 .feature-card .card-header {
   background: linear-gradient(90deg, #eaf2ff 0%, #f5f8ff 100%);
@@ -113,19 +181,25 @@
 }
 </style>
 <div class="hero-section position-relative mb-5">
+  <!-- Three.js canvas will be inserted here by JavaScript -->
   <div class="hero-content">
-    <h1>Intelligence Management Platform</h1>
-    <p class="lead">
+    <h1 class="animate-fade-in">Intelligence Management Platform</h1>
+    <p class="lead animate-fade-in" style="animation-delay: 0.2s;">
       The all-in-one solution for secure, efficient, and professional intelligence case management.
     </p>
     <ul class="list-unstyled feature-list">
-      <li><i class="bi bi-shield-lock-fill icon-badge"></i> Secure, role-based access for team</li>
-      <li><i class="bi bi-diagram-3-fill icon-badge"></i> Multi-source intelligence: Email, WhatsApp, Patrol, Surveillance</li>
-      <li><i class="bi bi-search icon-badge"></i> Fast search, smart dashboard, and profile management</li>
-      <li><i class="bi bi-bar-chart-fill icon-badge"></i> Assessment, scoring, and export for reporting</li>
-      <li><i class="bi bi-paperclip icon-badge"></i> Attachments, files, and case documentation</li>
-      <li><i class="bi bi-clock-history icon-badge"></i> <b>24/7 automated monitoring of the intelligence inbox for new emails</li>
+      <li class="animate-slide-in" style="animation-delay: 0.3s;"><i class="bi bi-shield-lock-fill icon-badge"></i> Secure, role-based access for team</li>
+      <li class="animate-slide-in" style="animation-delay: 0.4s;"><i class="bi bi-diagram-3-fill icon-badge"></i> Multi-source intelligence: Email, WhatsApp, Patrol, Surveillance</li>
+      <li class="animate-slide-in" style="animation-delay: 0.5s;"><i class="bi bi-search icon-badge"></i> Fast search, smart dashboard, and profile management</li>
+      <li class="animate-slide-in" style="animation-delay: 0.6s;"><i class="bi bi-bar-chart-fill icon-badge"></i> Assessment, scoring, and export for reporting</li>
+      <li class="animate-slide-in" style="animation-delay: 0.7s;"><i class="bi bi-paperclip icon-badge"></i> Attachments, files, and case documentation</li>
+      <li class="animate-slide-in" style="animation-delay: 0.8s;"><i class="bi bi-clock-history icon-badge"></i> 24/7 automated monitoring of the intelligence inbox</li>
     </ul>
+    <div class="mt-4 animate-fade-in" style="animation-delay: 0.9s;">
+      <a href="{{ url_for('global_search_page') }}" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
+        <i class="bi bi-search"></i> Start Searching Now
+      </a>
+    </div>
   </div>
 </div>
 <div class="row">
@@ -183,6 +257,153 @@
     </div>
   </div>
 </div>
-<!-- Bootstrap Icons CDN (if not already in base.html) -->
+
+<!-- Three.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Three.js Animation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create Three.js scene for hero section
+    const heroSection = document.querySelector('.hero-section');
+    const canvas = document.createElement('canvas');
+    canvas.id = 'hero-canvas';
+    heroSection.insertBefore(canvas, heroSection.firstChild);
+    
+    // Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+    
+    renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+    renderer.setClearColor(0x000000, 0);
+    
+    // Create network visualization (nodes and connections)
+    const geometry = new THREE.SphereGeometry(0.1, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+    
+    const nodes = [];
+    const connections = [];
+    const nodeCount = 30;
+    
+    // Create nodes
+    for (let i = 0; i < nodeCount; i++) {
+        const node = new THREE.Mesh(geometry, material);
+        node.position.x = (Math.random() - 0.5) * 10;
+        node.position.y = (Math.random() - 0.5) * 8;
+        node.position.z = (Math.random() - 0.5) * 8;
+        node.velocity = {
+            x: (Math.random() - 0.5) * 0.02,
+            y: (Math.random() - 0.5) * 0.02,
+            z: (Math.random() - 0.5) * 0.02
+        };
+        scene.add(node);
+        nodes.push(node);
+    }
+    
+    // Create connections between nearby nodes
+    function updateConnections() {
+        // Remove old connections
+        connections.forEach(line => scene.remove(line));
+        connections.length = 0;
+        
+        // Create new connections
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xffffff, 
+            transparent: true, 
+            opacity: 0.2 
+        });
+        
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const distance = nodes[i].position.distanceTo(nodes[j].position);
+                if (distance < 3) {
+                    const points = [];
+                    points.push(nodes[i].position);
+                    points.push(nodes[j].position);
+                    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(lineGeometry, lineMaterial);
+                    scene.add(line);
+                    connections.push(line);
+                }
+            }
+        }
+    }
+    
+    camera.position.z = 8;
+    
+    // Animation loop
+    let frame = 0;
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // Move nodes
+        nodes.forEach(node => {
+            node.position.x += node.velocity.x;
+            node.position.y += node.velocity.y;
+            node.position.z += node.velocity.z;
+            
+            // Bounce off boundaries
+            if (Math.abs(node.position.x) > 5) node.velocity.x *= -1;
+            if (Math.abs(node.position.y) > 4) node.velocity.y *= -1;
+            if (Math.abs(node.position.z) > 4) node.velocity.z *= -1;
+            
+            // Pulse effect
+            const scale = 1 + Math.sin(frame * 0.05 + node.position.x) * 0.2;
+            node.scale.set(scale, scale, scale);
+        });
+        
+        // Update connections every 10 frames (performance optimization)
+        if (frame % 10 === 0) {
+            updateConnections();
+        }
+        
+        // Rotate camera slowly
+        camera.position.x = Math.sin(frame * 0.001) * 8;
+        camera.position.z = Math.cos(frame * 0.001) * 8;
+        camera.lookAt(0, 0, 0);
+        
+        renderer.render(scene, camera);
+        frame++;
+    }
+    
+    animate();
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        const width = canvas.offsetWidth;
+        const height = canvas.offsetHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+    });
+    
+    // Add interactive particles on mouse move
+    let mouseX = 0;
+    let mouseY = 0;
+    
+    heroSection.addEventListener('mousemove', function(event) {
+        const rect = heroSection.getBoundingClientRect();
+        mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        // Attract nearby nodes to mouse
+        nodes.forEach(node => {
+            const screenPos = node.position.clone().project(camera);
+            const distance = Math.sqrt(
+                Math.pow(screenPos.x - mouseX, 2) + 
+                Math.pow(screenPos.y - mouseY, 2)
+            );
+            
+            if (distance < 0.5) {
+                node.velocity.x += (mouseX - screenPos.x) * 0.001;
+                node.velocity.y += (mouseY - screenPos.y) * 0.001;
+            }
+        });
+    });
+});
+</script>
+
+<!-- Bootstrap Icons (if not already in base.html) -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
 {% endblock %}
