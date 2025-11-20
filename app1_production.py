@@ -1743,6 +1743,382 @@ def search_int_references():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route("/api/global-search")
+@login_required
+def global_search():
+    """
+    🔍 GOOGLE-LIKE GLOBAL SEARCH API
+    
+    Search across ALL intelligence sources with smart matching:
+    - POI Profiles (alleged persons)
+    - Email (subject, body, alleged persons, sender)
+    - WhatsApp (messages, alleged persons, phone numbers)
+    - Online Patrol (alleged persons, details, nature)
+    - Surveillance (targets, locations, findings)
+    
+    Features:
+    - Full-text search with highlighting
+    - Source type filtering
+    - Smart snippet extraction
+    - Direct links to original sources
+    - Match reason tracking
+    """
+    try:
+        query = request.args.get('q', '').strip()
+        filters = request.args.get('filters', 'POI,EMAIL,WHATSAPP,PATROL,SURVEILLANCE').split(',')
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Search query required'}), 400
+        
+        query_lower = query.lower()
+        results = {
+            'success': True,
+            'query': query,
+            'total_results': 0,
+            'poi_results': [],
+            'email_results': [],
+            'whatsapp_results': [],
+            'patrol_results': [],
+            'surveillance_results': []
+        }
+        
+        # ===== 1. SEARCH POI PROFILES =====
+        if 'POI' in filters:
+            try:
+                # Import POI models (initialized via factory pattern)
+                import models_poi_enhanced
+                AllegedPersonProfile = models_poi_enhanced.AllegedPersonProfile
+                
+                if AllegedPersonProfile is None:
+                    print("[GLOBAL SEARCH] POI models not initialized yet")
+                else:
+                    poi_profiles = db.session.query(AllegedPersonProfile).filter(
+                        AllegedPersonProfile.status != 'MERGED'
+                    ).all()
+                    
+                    for poi in poi_profiles:
+                        match_found = False
+                        match_reason = []
+                        
+                        # Search in English name
+                        if poi.name_english and query_lower in poi.name_english.lower():
+                            match_found = True
+                            match_reason.append('English Name')
+                        
+                        # Search in Chinese name
+                        if poi.name_chinese and query_lower in poi.name_chinese.lower():
+                            match_found = True
+                            match_reason.append('Chinese Name')
+                        
+                        # Search in agent/license number
+                        if poi.agent_number and query_lower in poi.agent_number.lower():
+                            match_found = True
+                            match_reason.append('License Number')
+                        
+                        # Search in company name
+                        if poi.company and query_lower in poi.company.lower():
+                            match_found = True
+                            match_reason.append('Company')
+                        
+                        # Search in aliases
+                        if poi.aliases:
+                            for alias in poi.aliases:
+                                if query_lower in alias.lower():
+                                    match_found = True
+                                    match_reason.append('Alias')
+                                    break
+                        
+                        if match_found:
+                            results['poi_results'].append({
+                                'poi_id': poi.poi_id,
+                                'name_english': poi.name_english,
+                                'name_chinese': poi.name_chinese,
+                                'agent_number': poi.agent_number,
+                                'company': poi.company,
+                                'total_mentions': poi.total_mentions or 0,
+                                'email_count': poi.email_count or 0,
+                                'whatsapp_count': poi.whatsapp_count or 0,
+                                'patrol_count': poi.patrol_count or 0,
+                                'surveillance_count': poi.surveillance_count or 0,
+                                'match_reason': ', '.join(match_reason)
+                            })
+            except Exception as e:
+                print(f"[GLOBAL SEARCH] Error searching POI: {e}")
+        
+        # ===== 2. SEARCH EMAIL =====
+        if 'EMAIL' in filters:
+            try:
+                emails = Email.query.all()
+                
+                for email in emails:
+                    match_found = False
+                    match_field = []
+                    snippet = ""
+                    
+                    # Search in subject
+                    if email.subject and query_lower in email.subject.lower():
+                        match_found = True
+                        match_field.append('Subject')
+                        snippet = email.subject[:200]
+                    
+                    # Search in sender
+                    if email.sender and query_lower in email.sender.lower():
+                        match_found = True
+                        match_field.append('Sender')
+                    
+                    # Search in alleged persons
+                    alleged_person = ""
+                    if email.alleged_subject_english and query_lower in email.alleged_subject_english.lower():
+                        match_found = True
+                        match_field.append('Alleged Person (EN)')
+                        alleged_person = email.alleged_subject_english
+                    
+                    if email.alleged_subject_chinese and query_lower in email.alleged_subject_chinese.lower():
+                        match_found = True
+                        match_field.append('Alleged Person (CN)')
+                        alleged_person = alleged_person + " " + email.alleged_subject_chinese if alleged_person else email.alleged_subject_chinese
+                    
+                    # Search in alleged nature
+                    if email.alleged_nature and query_lower in email.alleged_nature.lower():
+                        match_found = True
+                        match_field.append('Allegation Nature')
+                        if not snippet:
+                            snippet = email.alleged_nature[:200]
+                    
+                    # Search in body text
+                    if email.body and query_lower in email.body.lower():
+                        match_found = True
+                        match_field.append('Email Body')
+                        # Extract snippet around match
+                        body_lower = email.body.lower()
+                        match_pos = body_lower.find(query_lower)
+                        if match_pos != -1:
+                            start = max(0, match_pos - 100)
+                            end = min(len(email.body), match_pos + 100)
+                            snippet = "..." + email.body[start:end] + "..."
+                    
+                    if match_found:
+                        # Get INT reference
+                        int_ref = None
+                        if hasattr(email, 'caseprofile_id') and email.caseprofile_id:
+                            case = db.session.get(CaseProfile, email.caseprofile_id)
+                            if case:
+                                int_ref = case.int_reference
+                        
+                        results['email_results'].append({
+                            'id': email.id,
+                            'subject': email.subject or 'No Subject',
+                            'sender': email.sender,
+                            'alleged_person': alleged_person,
+                            'snippet': snippet,
+                            'received': format_hk_time(email.received, '%Y-%m-%d %H:%M'),
+                            'int_reference': int_ref,
+                            'match_field': ', '.join(match_field)
+                        })
+            except Exception as e:
+                print(f"[GLOBAL SEARCH] Error searching emails: {e}")
+                traceback.print_exc()
+        
+        # ===== 3. SEARCH WHATSAPP =====
+        if 'WHATSAPP' in filters:
+            try:
+                whatsapp_entries = WhatsAppEntry.query.all()
+                
+                for wa in whatsapp_entries:
+                    match_found = False
+                    match_field = []
+                    snippet = ""
+                    
+                    # Search in complaint name
+                    if wa.complaint_name and query_lower in wa.complaint_name.lower():
+                        match_found = True
+                        match_field.append('Complaint Name')
+                    
+                    # Search in phone number
+                    if wa.phone_number and query_lower in wa.phone_number.lower():
+                        match_found = True
+                        match_field.append('Phone Number')
+                    
+                    # Search in alleged person
+                    if wa.alleged_person and query_lower in wa.alleged_person.lower():
+                        match_found = True
+                        match_field.append('Alleged Person')
+                    
+                    # Search in alleged type
+                    if wa.alleged_type and query_lower in wa.alleged_type.lower():
+                        match_found = True
+                        match_field.append('Allegation Type')
+                    
+                    # Search in details
+                    if wa.details and query_lower in wa.details.lower():
+                        match_found = True
+                        match_field.append('Details')
+                        # Extract snippet
+                        details_lower = wa.details.lower()
+                        match_pos = details_lower.find(query_lower)
+                        if match_pos != -1:
+                            start = max(0, match_pos - 100)
+                            end = min(len(wa.details), match_pos + 100)
+                            snippet = "..." + wa.details[start:end] + "..."
+                    
+                    if match_found:
+                        # Get INT reference
+                        int_ref = None
+                        if hasattr(wa, 'caseprofile_id') and wa.caseprofile_id:
+                            case = db.session.get(CaseProfile, wa.caseprofile_id)
+                            if case:
+                                int_ref = case.int_reference
+                        
+                        results['whatsapp_results'].append({
+                            'id': wa.id,
+                            'complaint_name': wa.complaint_name,
+                            'phone_number': wa.phone_number,
+                            'alleged_person': wa.alleged_person,
+                            'snippet': snippet,
+                            'received': format_hk_time(wa.received_time, '%Y-%m-%d %H:%M') if wa.received_time else 'N/A',
+                            'int_reference': int_ref,
+                            'match_field': ', '.join(match_field)
+                        })
+            except Exception as e:
+                print(f"[GLOBAL SEARCH] Error searching WhatsApp: {e}")
+                traceback.print_exc()
+        
+        # ===== 4. SEARCH ONLINE PATROL =====
+        if 'PATROL' in filters:
+            try:
+                patrol_entries = OnlinePatrolEntry.query.all()
+                
+                for patrol in patrol_entries:
+                    match_found = False
+                    match_field = []
+                    snippet = ""
+                    
+                    # Search in alleged person
+                    if patrol.alleged_person and query_lower in patrol.alleged_person.lower():
+                        match_found = True
+                        match_field.append('Alleged Person')
+                    
+                    # Search in alleged nature
+                    if patrol.alleged_nature and query_lower in patrol.alleged_nature.lower():
+                        match_found = True
+                        match_field.append('Allegation Nature')
+                    
+                    # Search in details
+                    if patrol.details and query_lower in patrol.details.lower():
+                        match_found = True
+                        match_field.append('Details')
+                        # Extract snippet
+                        details_lower = patrol.details.lower()
+                        match_pos = details_lower.find(query_lower)
+                        if match_pos != -1:
+                            start = max(0, match_pos - 100)
+                            end = min(len(patrol.details), match_pos + 100)
+                            snippet = "..." + patrol.details[start:end] + "..."
+                    
+                    # Search in platform/URL
+                    if patrol.platform and query_lower in patrol.platform.lower():
+                        match_found = True
+                        match_field.append('Platform')
+                    
+                    if match_found:
+                        # Get INT reference
+                        int_ref = None
+                        if hasattr(patrol, 'caseprofile_id') and patrol.caseprofile_id:
+                            case = db.session.get(CaseProfile, patrol.caseprofile_id)
+                            if case:
+                                int_ref = case.int_reference
+                        
+                        results['patrol_results'].append({
+                            'id': patrol.id,
+                            'alleged_person': patrol.alleged_person,
+                            'alleged_nature': patrol.alleged_nature,
+                            'snippet': snippet,
+                            'date': format_hk_time(patrol.date, '%Y-%m-%d') if patrol.date else 'N/A',
+                            'int_reference': int_ref,
+                            'match_field': ', '.join(match_field)
+                        })
+            except Exception as e:
+                print(f"[GLOBAL SEARCH] Error searching patrol: {e}")
+                traceback.print_exc()
+        
+        # ===== 5. SEARCH SURVEILLANCE =====
+        if 'SURVEILLANCE' in filters:
+            try:
+                surveillance_entries = SurveillanceEntry.query.all()
+                
+                for surv in surveillance_entries:
+                    match_found = False
+                    match_field = []
+                    snippet = ""
+                    targets_str = ""
+                    
+                    # Search in targets
+                    if hasattr(surv, 'targets'):
+                        targets = Target.query.filter_by(surveillance_entry_id=surv.id).all()
+                        target_names = [t.name for t in targets if t.name]
+                        targets_str = ', '.join(target_names)
+                        
+                        for target in targets:
+                            if target.name and query_lower in target.name.lower():
+                                match_found = True
+                                match_field.append('Target Name')
+                                break
+                    
+                    # Search in location
+                    if surv.location and query_lower in surv.location.lower():
+                        match_found = True
+                        match_field.append('Location')
+                    
+                    # Search in details
+                    if surv.details_of_finding and query_lower in surv.details_of_finding.lower():
+                        match_found = True
+                        match_field.append('Findings')
+                        # Extract snippet
+                        details_lower = surv.details_of_finding.lower()
+                        match_pos = details_lower.find(query_lower)
+                        if match_pos != -1:
+                            start = max(0, match_pos - 100)
+                            end = min(len(surv.details_of_finding), match_pos + 100)
+                            snippet = "..." + surv.details_of_finding[start:end] + "..."
+                    
+                    if match_found:
+                        # Get INT reference
+                        int_ref = None
+                        if hasattr(surv, 'caseprofile_id') and surv.caseprofile_id:
+                            case = db.session.get(CaseProfile, surv.caseprofile_id)
+                            if case:
+                                int_ref = case.int_reference
+                        
+                        results['surveillance_results'].append({
+                            'id': surv.id,
+                            'targets': targets_str,
+                            'location': surv.location,
+                            'snippet': snippet,
+                            'date': format_hk_time(surv.date, '%Y-%m-%d') if surv.date else 'N/A',
+                            'int_reference': int_ref,
+                            'match_field': ', '.join(match_field)
+                        })
+            except Exception as e:
+                print(f"[GLOBAL SEARCH] Error searching surveillance: {e}")
+                traceback.print_exc()
+        
+        # Calculate total results
+        results['total_results'] = (
+            len(results['poi_results']) +
+            len(results['email_results']) +
+            len(results['whatsapp_results']) +
+            len(results['patrol_results']) +
+            len(results['surveillance_results'])
+        )
+        
+        print(f"[GLOBAL SEARCH] Query: '{query}' | Found {results['total_results']} results")
+        return jsonify(results)
+        
+    except Exception as e:
+        print(f"[GLOBAL SEARCH] Error: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # --- INT Reference Number Management Functions ---
 def generate_int_reference_for_new_email(email):
     """
@@ -4052,52 +4428,34 @@ def int_reference_detail(int_reference):
 # Add this route to fix url_for('alleged_subject_list') errors in your templates
 
 
-# Add this route to fix url_for('index') errors in your templates
-@app.route("/index", methods=["GET", "POST"])
+# 🔍 UPGRADED: Global Intelligence Search - Redirect old /index to new search
+@app.route("/index")
+@app.route("/search")
 @login_required
 def index():
-    query = ""
-    agent_num = ""
-    results = []
-    suggestions = []
-    subj_en_col = "alleged_subject_en"
-    subj_cn_col = "alleged_subject_cn"
-    if request.method == "POST":
-        query = request.form.get("query", "").strip()
-        agent_num = request.form.get("agent_num", "").strip()
-        q = CaseProfile.query
-        if query:
-            q = q.filter(
-                (CaseProfile.alleged_subject_en.ilike(f"%{query}%")) |
-                (CaseProfile.alleged_subject_cn.ilike(f"%{query}%"))
-            )
-        if agent_num:
-            q = q.filter(CaseProfile.agent_number.ilike(f"%{agent_num}%"))
-        results = [
-            {
-                "alleged_subject_en": r.alleged_subject_en,
-                "alleged_subject_cn": r.alleged_subject_cn,
-                "Agent Number": r.agent_number,
-                "Case Number": r.case_number,
-                "__idx__": r.id
-            }
-            for r in q.all()
-        ]
-    # Suggestions for datalist
-    suggestions = [
-        s[0] for s in db.session.query(CaseProfile.alleged_subject_en).distinct().all() if s[0]
-    ] + [
-        s[0] for s in db.session.query(CaseProfile.alleged_subject_cn).distinct().all() if s[0]
-    ]
-    return render_template(
-        "index.html",
-        query=query,
-        agent_num=agent_num,
-        results=results,
-        suggestions=suggestions,
-        subj_en_col=subj_en_col,
-        subj_cn_col=subj_cn_col
-    )
+    """Redirect to new global search page"""
+    return redirect(url_for('global_search_page'))
+
+@app.route("/global-search")
+@login_required
+def global_search_page():
+    """
+    🔍 NEW: Google-like Global Search Page
+    
+    Modern search interface that searches across:
+    - POI Profiles (alleged persons)
+    - Email Intelligence
+    - WhatsApp Reports
+    - Online Patrol Entries
+    - Surveillance Operations
+    
+    Features:
+    - Real-time search with AJAX
+    - Source filtering
+    - Smart snippets with highlighting
+    - Direct links to original sources
+    """
+    return render_template('global_search.html')
 
 # --- Intel Source main page stub (for nav bar) ---
 

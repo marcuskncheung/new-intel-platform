@@ -19,14 +19,11 @@ SELECT
     'PATROL-' || new_id as "New Display"
 FROM patrol_id_mapping;
 
--- Update foreign key references in case_profile table first
-UPDATE case_profile 
-SET patrol_id = mapping.new_id
-FROM patrol_id_mapping mapping
-WHERE case_profile.patrol_id = mapping.old_id;
+-- Temporarily drop the foreign key constraint
+ALTER TABLE case_profile DROP CONSTRAINT IF EXISTS fk_case_profile_patrol;
 
--- Create new table with correct IDs
-CREATE TABLE online_patrol_entry_new (LIKE online_patrol_entry INCLUDING ALL);
+-- Create new table with correct IDs (without constraints initially)
+CREATE TABLE online_patrol_entry_new AS SELECT * FROM online_patrol_entry WHERE 1=0;
 
 -- Copy data with new IDs
 INSERT INTO online_patrol_entry_new
@@ -57,6 +54,20 @@ ORDER BY mapping.new_id;
 -- Drop old table and rename new one
 DROP TABLE online_patrol_entry CASCADE;
 ALTER TABLE online_patrol_entry_new RENAME TO online_patrol_entry;
+
+-- Add back the primary key
+ALTER TABLE online_patrol_entry ADD PRIMARY KEY (id);
+
+-- Update foreign key references in case_profile table
+UPDATE case_profile 
+SET patrol_id = mapping.new_id
+FROM patrol_id_mapping mapping
+WHERE case_profile.patrol_id = mapping.old_id;
+
+-- Re-create the foreign key constraint
+ALTER TABLE case_profile 
+ADD CONSTRAINT fk_case_profile_patrol 
+FOREIGN KEY (patrol_id) REFERENCES online_patrol_entry(id) ON DELETE SET NULL;
 
 -- Reset the sequence to start from the highest ID + 1
 SELECT setval('online_patrol_entry_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM online_patrol_entry), false);

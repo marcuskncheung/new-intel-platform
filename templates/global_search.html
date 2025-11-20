@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+{% block title %}Global Intelligence Search{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Search Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body py-4">
+                    <h2 class="mb-3">
+                        <i class="bi bi-search"></i> Global Intelligence Search
+                    </h2>
+                    <p class="text-muted mb-4">
+                        Search across all intelligence sources: Emails, WhatsApp, Patrol, Surveillance, and POI Profiles
+                    </p>
+                    
+                    <!-- Search Bar -->
+                    <div class="input-group input-group-lg mb-3">
+                        <input type="text" 
+                               id="globalSearchInput" 
+                               class="form-control form-control-lg" 
+                               placeholder="Search for person name, email content, case details, license number..." 
+                               autocomplete="off">
+                        <button class="btn btn-primary px-5" type="button" id="searchButton">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                    
+                    <!-- Search Filters -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-secondary" style="font-size: 0.9rem;">Filter by Source:</span>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterPOI" value="POI" checked>
+                            <label class="form-check-label" for="filterPOI">
+                                <span class="badge bg-info">POI Profiles</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterEmail" value="EMAIL" checked>
+                            <label class="form-check-label" for="filterEmail">
+                                <span class="badge bg-primary">Email</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterWhatsApp" value="WHATSAPP" checked>
+                            <label class="form-check-label" for="filterWhatsApp">
+                                <span class="badge bg-success">WhatsApp</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterPatrol" value="PATROL" checked>
+                            <label class="form-check-label" for="filterPatrol">
+                                <span class="badge bg-warning text-dark">Patrol</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterSurveillance" value="SURVEILLANCE" checked>
+                            <label class="form-check-label" for="filterSurveillance">
+                                <span class="badge bg-danger">Surveillance</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Tips -->
+                    <div class="alert alert-light border mb-0" role="alert">
+                        <small>
+                            <i class="bi bi-lightbulb"></i> <strong>Search Tips:</strong>
+                            Search by person name (English/Chinese), license number, company name, email subject, or any keyword in intelligence content.
+                            Results show where the keyword appears with direct links to view the full source.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Searching...</span>
+        </div>
+        <p class="mt-3 text-muted">Searching across all intelligence sources...</p>
+    </div>
+    
+    <!-- Search Results -->
+    <div id="searchResults" style="display: none;">
+        <!-- Results Summary -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-success border-0 shadow-sm">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle"></i> 
+                        Found <strong id="totalResults">0</strong> results for "<span id="searchQuery"></span>"
+                        <span class="text-muted" style="font-size: 0.9rem;">(<span id="searchTime">0</span>ms)</span>
+                    </h5>
+                </div>
+            </div>
+        </div>
+        
+        <!-- POI Profile Results -->
+        <div id="poiResults" class="mb-4" style="display: none;">
+            <h4 class="mb-3">
+                <span class="badge bg-info">POI Profiles</span>
+                <span class="badge bg-secondary" id="poiCount">0</span>
+            </h4>
+            <div id="poiResultsContainer"></div>
+        </div>
+        
+        <!-- Email Results -->
+        <div id="emailResults" class="mb-4" style="display: none;">
+            <h4 class="mb-3">
+                <span class="badge bg-primary">Email Intelligence</span>
+                <span class="badge bg-secondary" id="emailCount">0</span>
+            </h4>
+            <div id="emailResultsContainer"></div>
+        </div>
+        
+        <!-- WhatsApp Results -->
+        <div id="whatsappResults" class="mb-4" style="display: none;">
+            <h4 class="mb-3">
+                <span class="badge bg-success">WhatsApp Intelligence</span>
+                <span class="badge bg-secondary" id="whatsappCount">0</span>
+            </h4>
+            <div id="whatsappResultsContainer"></div>
+        </div>
+        
+        <!-- Patrol Results -->
+        <div id="patrolResults" class="mb-4" style="display: none;">
+            <h4 class="mb-3">
+                <span class="badge bg-warning text-dark">Online Patrol</span>
+                <span class="badge bg-secondary" id="patrolCount">0</span>
+            </h4>
+            <div id="patrolResultsContainer"></div>
+        </div>
+        
+        <!-- Surveillance Results -->
+        <div id="surveillanceResults" class="mb-4" style="display: none;">
+            <h4 class="mb-3">
+                <span class="badge bg-danger">Surveillance Operations</span>
+                <span class="badge bg-secondary" id="surveillanceCount">0</span>
+            </h4>
+            <div id="surveillanceResultsContainer"></div>
+        </div>
+    </div>
+    
+    <!-- No Results -->
+    <div id="noResults" class="text-center py-5" style="display: none;">
+        <i class="bi bi-search" style="font-size: 4rem; color: #ccc;"></i>
+        <h4 class="mt-3 text-muted">No results found</h4>
+        <p class="text-muted">Try different keywords or check your filters</p>
+    </div>
+</div>
+
+<style>
+.search-result-card {
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+.search-result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+.search-result-card.poi-result { border-left-color: #0dcaf0; }
+.search-result-card.email-result { border-left-color: #0d6efd; }
+.search-result-card.whatsapp-result { border-left-color: #198754; }
+.search-result-card.patrol-result { border-left-color: #ffc107; }
+.search-result-card.surveillance-result { border-left-color: #dc3545; }
+
+.match-highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.result-snippet {
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.result-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('globalSearchInput');
+    const searchButton = document.getElementById('searchButton');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const searchResults = document.getElementById('searchResults');
+    const noResults = document.getElementById('noResults');
+    
+    // Search on Enter key
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    // Search on button click
+    searchButton.addEventListener('click', performSearch);
+    
+    function getActiveFilters() {
+        const filters = [];
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+            filters.push(cb.value);
+        });
+        return filters;
+    }
+    
+    function performSearch() {
+        const query = searchInput.value.trim();
+        
+        if (!query) {
+            alert('Please enter a search term');
+            return;
+        }
+        
+        // Show loading, hide results
+        loadingIndicator.style.display = 'block';
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        
+        const filters = getActiveFilters();
+        const startTime = Date.now();
+        
+        // Call search API
+        fetch(`/api/global-search?q=${encodeURIComponent(query)}&filters=${filters.join(',')}`)
+            .then(response => response.json())
+            .then(data => {
+                const searchTime = Date.now() - startTime;
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success && data.total_results > 0) {
+                    displayResults(data, query, searchTime);
+                } else {
+                    noResults.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                loadingIndicator.style.display = 'none';
+                alert('Search failed. Please try again.');
+            });
+    }
+    
+    function highlightMatch(text, query) {
+        if (!text) return '';
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<span class="match-highlight">$1</span>');
+    }
+    
+    function displayResults(data, query, searchTime) {
+        // Update summary
+        document.getElementById('totalResults').textContent = data.total_results;
+        document.getElementById('searchQuery').textContent = query;
+        document.getElementById('searchTime').textContent = searchTime;
+        searchResults.style.display = 'block';
+        
+        // Display POI results
+        if (data.poi_results && data.poi_results.length > 0) {
+            displayPOIResults(data.poi_results, query);
+        }
+        
+        // Display Email results
+        if (data.email_results && data.email_results.length > 0) {
+            displayEmailResults(data.email_results, query);
+        }
+        
+        // Display WhatsApp results
+        if (data.whatsapp_results && data.whatsapp_results.length > 0) {
+            displayWhatsAppResults(data.whatsapp_results, query);
+        }
+        
+        // Display Patrol results
+        if (data.patrol_results && data.patrol_results.length > 0) {
+            displayPatrolResults(data.patrol_results, query);
+        }
+        
+        // Display Surveillance results
+        if (data.surveillance_results && data.surveillance_results.length > 0) {
+            displaySurveillanceResults(data.surveillance_results, query);
+        }
+    }
+    
+    function displayPOIResults(results, query) {
+        document.getElementById('poiResults').style.display = 'block';
+        document.getElementById('poiCount').textContent = results.length;
+        
+        const container = document.getElementById('poiResultsContainer');
+        container.innerHTML = results.map(r => `
+            <div class="card search-result-card poi-result mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-2">
+                                ${highlightMatch(r.name_english || '', query)}
+                                ${r.name_chinese ? `<span class="text-muted">(${highlightMatch(r.name_chinese, query)})</span>` : ''}
+                            </h5>
+                            <p class="result-snippet mb-2">
+                                ${r.company ? `<strong>Company:</strong> ${highlightMatch(r.company, query)}<br>` : ''}
+                                ${r.agent_number ? `<strong>License:</strong> ${highlightMatch(r.agent_number, query)}<br>` : ''}
+                                <strong>Mentioned in:</strong> ${r.total_mentions} intelligence source(s)
+                                (${r.email_count} emails, ${r.whatsapp_count} WhatsApp, ${r.patrol_count} patrol, ${r.surveillance_count} surveillance)
+                            </p>
+                            <div class="result-meta">
+                                <span class="badge bg-info">${r.poi_id}</span>
+                                ${r.match_reason ? `<span class="text-muted">• Matched: ${r.match_reason}</span>` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/poi/${r.poi_id}" class="btn btn-outline-info btn-sm">
+                                <i class="bi bi-eye"></i> View Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function displayEmailResults(results, query) {
+        document.getElementById('emailResults').style.display = 'block';
+        document.getElementById('emailCount').textContent = results.length;
+        
+        const container = document.getElementById('emailResultsContainer');
+        container.innerHTML = results.map(r => `
+            <div class="card search-result-card email-result mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-2">${highlightMatch(r.subject || 'No Subject', query)}</h5>
+                            <p class="result-snippet mb-2">
+                                <strong>From:</strong> ${highlightMatch(r.sender || '', query)}<br>
+                                ${r.alleged_person ? `<strong>Alleged Person:</strong> ${highlightMatch(r.alleged_person, query)}<br>` : ''}
+                                ${r.snippet ? highlightMatch(r.snippet, query) : ''}
+                            </p>
+                            <div class="result-meta">
+                                ${r.int_reference ? `<span class="badge bg-primary">${r.int_reference}</span>` : ''}
+                                <span class="text-muted">• ${r.received || 'N/A'}</span>
+                                ${r.match_field ? `<span class="text-muted">• Matched in: ${r.match_field}</span>` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/email/${r.id}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-envelope"></i> View Email
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function displayWhatsAppResults(results, query) {
+        document.getElementById('whatsappResults').style.display = 'block';
+        document.getElementById('whatsappCount').textContent = results.length;
+        
+        const container = document.getElementById('whatsappResultsContainer');
+        container.innerHTML = results.map(r => `
+            <div class="card search-result-card whatsapp-result mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-2">${highlightMatch(r.complaint_name || 'WhatsApp Report', query)}</h5>
+                            <p class="result-snippet mb-2">
+                                <strong>Phone:</strong> ${highlightMatch(r.phone_number || '', query)}<br>
+                                ${r.alleged_person ? `<strong>Alleged Person:</strong> ${highlightMatch(r.alleged_person, query)}<br>` : ''}
+                                ${r.snippet ? highlightMatch(r.snippet, query) : ''}
+                            </p>
+                            <div class="result-meta">
+                                ${r.int_reference ? `<span class="badge bg-success">${r.int_reference}</span>` : ''}
+                                <span class="text-muted">• ${r.received || 'N/A'}</span>
+                                ${r.match_field ? `<span class="text-muted">• Matched in: ${r.match_field}</span>` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/whatsapp_detail/${r.id}" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-whatsapp"></i> View WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function displayPatrolResults(results, query) {
+        document.getElementById('patrolResults').style.display = 'block';
+        document.getElementById('patrolCount').textContent = results.length;
+        
+        const container = document.getElementById('patrolResultsContainer');
+        container.innerHTML = results.map(r => `
+            <div class="card search-result-card patrol-result mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-2">Online Patrol Entry</h5>
+                            <p class="result-snippet mb-2">
+                                ${r.alleged_person ? `<strong>Alleged Person:</strong> ${highlightMatch(r.alleged_person, query)}<br>` : ''}
+                                ${r.alleged_nature ? `<strong>Nature:</strong> ${highlightMatch(r.alleged_nature, query)}<br>` : ''}
+                                ${r.snippet ? highlightMatch(r.snippet, query) : ''}
+                            </p>
+                            <div class="result-meta">
+                                ${r.int_reference ? `<span class="badge bg-warning text-dark">${r.int_reference}</span>` : ''}
+                                <span class="text-muted">• ${r.date || 'N/A'}</span>
+                                ${r.match_field ? `<span class="text-muted">• Matched in: ${r.match_field}</span>` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/online_patrol_detail/${r.id}" class="btn btn-outline-warning btn-sm">
+                                <i class="bi bi-binoculars"></i> View Patrol
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function displaySurveillanceResults(results, query) {
+        document.getElementById('surveillanceResults').style.display = 'block';
+        document.getElementById('surveillanceCount').textContent = results.length;
+        
+        const container = document.getElementById('surveillanceResultsContainer');
+        container.innerHTML = results.map(r => `
+            <div class="card search-result-card surveillance-result mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-2">Surveillance Operation</h5>
+                            <p class="result-snippet mb-2">
+                                ${r.targets ? `<strong>Targets:</strong> ${highlightMatch(r.targets, query)}<br>` : ''}
+                                ${r.location ? `<strong>Location:</strong> ${highlightMatch(r.location, query)}<br>` : ''}
+                                ${r.snippet ? highlightMatch(r.snippet, query) : ''}
+                            </p>
+                            <div class="result-meta">
+                                ${r.int_reference ? `<span class="badge bg-danger">${r.int_reference}</span>` : ''}
+                                <span class="text-muted">• ${r.date || 'N/A'}</span>
+                                ${r.match_field ? `<span class="text-muted">• Matched in: ${r.match_field}</span>` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/surveillance_detail/${r.id}" class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-camera-video"></i> View Operation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+});
+</script>
+{% endblock %}

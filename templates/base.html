@@ -47,8 +47,8 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link{% if request.endpoint == 'index' %} active{% endif %}" href="{{ url_for('index') }}">
-            <i class="bi bi-search"></i> Search
+          <a class="nav-link{% if request.endpoint in ['index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
+            <i class="bi bi-search"></i> Global Search
           </a>
         </li>
         <li class="nav-item">
