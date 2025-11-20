@@ -1589,8 +1589,11 @@ def list_int_references():
             if cp.patrol_id:
                 source_count += 1
                 source_types.append('PATROL')
-            if cp.surveillance_id:
-                source_count += 1
+            # Note: Surveillance links TO CaseProfile via caseprofile_id, not FROM it
+            # So we check if any surveillance entries link to this CaseProfile
+            surveillance_count = SurveillanceEntry.query.filter_by(caseprofile_id=cp.id).count()
+            if surveillance_count > 0:
+                source_count += surveillance_count
                 source_types.append('SURVEILLANCE')
             
             int_references.append({
