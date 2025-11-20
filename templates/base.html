@@ -37,6 +37,11 @@
       {% if current_user.is_authenticated %}
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
+          <a class="nav-link{% if request.endpoint in ['home', 'index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
+            <i class="bi bi-search"></i> Global Search
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link{% if request.endpoint == 'int_source' %} active{% endif %}" href="{{ url_for('int_source') }}">
             <i class="bi bi-database-fill-gear"></i> Intel Source
           </a>
@@ -44,11 +49,6 @@
         <li class="nav-item">
           <a class="nav-link{% if request.endpoint == 'alleged_subject_list' %} active{% endif %}" href="{{ url_for('alleged_subject_list') }}">
             <i class="bi bi-people-fill"></i> Alleged Subject List
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link{% if request.endpoint in ['home', 'index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
-            <i class="bi bi-search"></i> Global Search
           </a>
         </li>
         <li class="nav-item">
