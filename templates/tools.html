@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Intelligence Tools{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>
+                <i class="bi bi-tools"></i> Intelligence Tools
+            </h2>
+            <p class="text-muted">Utility tools for intelligence gathering and evidence collection</p>
+        </div>
+    </div>
+    
+    <!-- Tools Grid -->
+    <div class="row">
+        <!-- Video Downloader Tool -->
+        <div class="col-md-12 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-download"></i> Video Downloader
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle"></i> <strong>Supported Platforms:</strong>
+                        YouTube, Facebook, Instagram, TikTok, Twitter/X, LinkedIn, and 1000+ other sites
+                    </div>
+                    
+                    <!-- Video URL Input Form -->
+                    <div class="mb-4">
+                        <label for="videoUrl" class="form-label"><strong>Video URL:</strong></label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                            <input type="url" 
+                                   class="form-control" 
+                                   id="videoUrl" 
+                                   placeholder="Paste video URL here (e.g., https://www.youtube.com/watch?v=...)"
+                                   autocomplete="off">
+                            <button class="btn btn-primary px-4" type="button" id="fetchInfoBtn">
+                                <i class="bi bi-search"></i> Get Info
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            Paste the full URL of the video you want to download for evidence collection.
+                        </div>
+                    </div>
+                    
+                    <!-- Loading Indicator -->
+                    <div id="loadingIndicator" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Fetching video information...</p>
+                    </div>
+                    
+                    <!-- Video Info Display -->
+                    <div id="videoInfo" class="card border-success mb-3" style="display: none;">
+                        <div class="card-header bg-success text-white">
+                            <i class="bi bi-check-circle"></i> Video Information
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Title:</strong> <span id="infoTitle">-</span></p>
+                                    <p><strong>Duration:</strong> <span id="infoDuration">-</span></p>
+                                    <p><strong>Views:</strong> <span id="infoViews">-</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Uploader:</strong> <span id="infoUploader">-</span></p>
+                                    <p><strong>Upload Date:</strong> <span id="infoDate">-</span></p>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3 mb-0">
+                                <i class="bi bi-exclamation-triangle"></i> <strong>Evidence Collection Notice:</strong>
+                                This download is for official investigation purposes only. Video will be downloaded directly to your computer and will NOT be saved to the database.
+                            </div>
+                            <div class="mt-3 text-center">
+                                <button class="btn btn-success btn-lg px-5" id="downloadBtn">
+                                    <i class="bi bi-download"></i> Download Video
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Download Progress -->
+                    <div id="downloadProgress" class="card border-primary mb-3" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-cloud-download"></i> Downloading...
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Downloading...</span>
+                            </div>
+                            <p class="text-muted">
+                                <strong>Please wait...</strong> Downloading video from source.<br>
+                                This may take a few minutes depending on video size and network speed.
+                            </p>
+                            <div class="alert alert-info mt-3 mb-0">
+                                <i class="bi bi-info-circle"></i> Do not close this page until download completes.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Display -->
+                    <div id="errorAlert" class="alert alert-danger" role="alert" style="display: none;">
+                        <i class="bi bi-exclamation-circle"></i> <strong>Error:</strong> <span id="errorMessage"></span>
+                    </div>
+                    
+                    <!-- Usage Instructions -->
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-book"></i> How to Use:</h5>
+                            <ol class="mb-0">
+                                <li>Copy the video URL from YouTube, Facebook, Instagram, or other supported platforms</li>
+                                <li>Paste the URL in the input field above</li>
+                                <li>Click "Get Info" to fetch video details</li>
+                                <li>Review the video information to confirm it's the correct video</li>
+                                <li>Click "Download Video" to save the video to your computer</li>
+                                <li>The video will download directly to your browser's default download folder</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Future Tools Placeholder -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-plus-circle" style="font-size: 3rem; color: #ccc;"></i>
+                    <h5 class="card-title mt-3 text-muted">More Tools Coming Soon</h5>
+                    <p class="card-text text-muted">Additional utility tools will be added here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const videoUrlInput = document.getElementById('videoUrl');
+    const fetchInfoBtn = document.getElementById('fetchInfoBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const videoInfo = document.getElementById('videoInfo');
+    const downloadProgress = document.getElementById('downloadProgress');
+    const errorAlert = document.getElementById('errorAlert');
+    
+    let currentVideoUrl = '';
+    
+    // Fetch video info
+    fetchInfoBtn.addEventListener('click', async function() {
+        const url = videoUrlInput.value.trim();
+        
+        if (!url) {
+            showError('Please enter a video URL');
+            return;
+        }
+        
+        // Basic URL validation
+        try {
+            new URL(url);
+        } catch (e) {
+            showError('Invalid URL format. Please enter a valid video URL.');
+            return;
+        }
+        
+        // Hide previous results
+        videoInfo.style.display = 'none';
+        errorAlert.style.display = 'none';
+        downloadProgress.style.display = 'none';
+        
+        // Show loading
+        loadingIndicator.style.display = 'block';
+        fetchInfoBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/download-video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: url })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Display video info
+                currentVideoUrl = url;
+                document.getElementById('infoTitle').textContent = data.video_info.title;
+                document.getElementById('infoDuration').textContent = data.video_info.duration;
+                document.getElementById('infoViews').textContent = data.video_info.views;
+                document.getElementById('infoUploader').textContent = data.video_info.uploader;
+                document.getElementById('infoDate').textContent = data.video_info.upload_date || 'N/A';
+                
+                videoInfo.style.display = 'block';
+            } else {
+                showError(data.error || 'Failed to fetch video information');
+            }
+        } catch (error) {
+            showError('Network error: ' + error.message);
+        } finally {
+            loadingIndicator.style.display = 'none';
+            fetchInfoBtn.disabled = false;
+        }
+    });
+    
+    // Download video
+    downloadBtn.addEventListener('click', async function() {
+        if (!currentVideoUrl) {
+            showError('No video selected');
+            return;
+        }
+        
+        // Hide previous messages
+        errorAlert.style.display = 'none';
+        videoInfo.style.display = 'none';
+        
+        // Show download progress
+        downloadProgress.style.display = 'block';
+        downloadBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/download-video-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: currentVideoUrl })
+            });
+            
+            if (response.ok) {
+                // Get filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'video.mp4';
+                if (contentDisposition) {
+                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                // Download the file
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                a.remove();
+                
+                // Show success message
+                downloadProgress.style.display = 'none';
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success';
+                successAlert.innerHTML = '<i class="bi bi-check-circle"></i> <strong>Success!</strong> Video downloaded successfully. Check your Downloads folder.';
+                downloadProgress.parentNode.insertBefore(successAlert, downloadProgress);
+                
+                // Reset form
+                setTimeout(() => {
+                    successAlert.remove();
+                    videoUrlInput.value = '';
+                    currentVideoUrl = '';
+                }, 5000);
+                
+            } else {
+                const data = await response.json();
+                showError(data.error || 'Download failed');
+                downloadProgress.style.display = 'none';
+            }
+        } catch (error) {
+            showError('Download error: ' + error.message);
+            downloadProgress.style.display = 'none';
+        } finally {
+            downloadBtn.disabled = false;
+        }
+    });
+    
+    // Enter key support
+    videoUrlInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            fetchInfoBtn.click();
+        }
+    });
+    
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        errorAlert.style.display = 'block';
+        setTimeout(() => {
+            errorAlert.style.display = 'none';
+        }, 10000);
+    }
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.input-group-lg .form-control {
+    font-size: 1rem;
+}
+
+#videoInfo {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}

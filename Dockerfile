@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies including PostgreSQL client
+# Install system dependencies including PostgreSQL client and ffmpeg for video processing
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     poppler-utils \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

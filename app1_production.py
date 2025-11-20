@@ -4478,6 +4478,204 @@ def global_search_page():
     """
     return render_template('global_search.html')
 
+
+# ============================================================
+# 🛠️ TOOLS - Video Downloader and Utility Tools
+# ============================================================
+
+@app.route('/tools')
+@login_required
+def tools():
+    """
+    🛠️ Utility Tools Page
+    
+    Provides various tools for investigators:
+    - Video downloader (YouTube, Facebook, Instagram, etc.)
+    - Future tools can be added here
+    """
+    return render_template('tools.html')
+
+
+@app.route('/api/download-video', methods=['POST'])
+@login_required
+def download_video():
+    """
+    📥 Video Download API
+    
+    Downloads video from URL (YouTube, Facebook, Instagram, TikTok, etc.)
+    Streams directly to user's browser - does NOT save to database
+    One-time download for evidence collection
+    """
+    try:
+        import yt_dlp
+        import tempfile
+        import shutil
+        from werkzeug.utils import secure_filename
+        
+        data = request.get_json()
+        video_url = data.get('url', '').strip()
+        
+        if not video_url:
+            return jsonify({'success': False, 'error': 'No URL provided'}), 400
+        
+        # Create temporary directory for this download
+        temp_dir = tempfile.mkdtemp(prefix='video_download_')
+        
+        try:
+            # Configure yt-dlp options
+            ydl_opts = {
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
+                'merge_output_format': 'mp4',
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': False,
+            }
+            
+            # Get video info first
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                print(f"[VIDEO DOWNLOAD] Fetching info for: {video_url}")
+                info = ydl.extract_info(video_url, download=False)
+                
+                video_title = info.get('title', 'video')
+                duration = info.get('duration', 0)
+                view_count = info.get('view_count', 'N/A')
+                uploader = info.get('uploader', 'Unknown')
+                upload_date = info.get('upload_date', '')
+                
+                # Format duration
+                duration_str = f"{duration // 60}:{duration % 60:02d}" if duration else 'N/A'
+                
+                # Return video info for user confirmation
+                return jsonify({
+                    'success': True,
+                    'video_info': {
+                        'title': video_title,
+                        'duration': duration_str,
+                        'views': view_count,
+                        'uploader': uploader,
+                        'upload_date': upload_date,
+                        'url': video_url
+                    },
+                    'message': 'Video info fetched successfully'
+                })
+                
+        except Exception as e:
+            print(f"[VIDEO DOWNLOAD] Error: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Failed to fetch video info: {str(e)}'
+            }), 400
+            
+        finally:
+            # Clean up temp directory
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+                
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'yt-dlp library not installed. Please contact administrator.'
+        }), 500
+    except Exception as e:
+        print(f"[VIDEO DOWNLOAD] Unexpected error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/download-video-file', methods=['POST'])
+@login_required
+def download_video_file():
+    """
+    📥 Actually download and stream video file to user
+    Called after user confirms they want to download
+    """
+    try:
+        import yt_dlp
+        import tempfile
+        import shutil
+        from werkzeug.utils import secure_filename
+        
+        data = request.get_json()
+        video_url = data.get('url', '').strip()
+        
+        if not video_url:
+            return jsonify({'success': False, 'error': 'No URL provided'}), 400
+        
+        # Create temporary directory for this download
+        temp_dir = tempfile.mkdtemp(prefix='video_download_')
+        
+        try:
+            # Configure yt-dlp options for actual download
+            ydl_opts = {
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'outtmpl': os.path.join(temp_dir, '%(title)s.%(ext)s'),
+                'merge_output_format': 'mp4',
+                'quiet': False,
+                'no_warnings': False,
+            }
+            
+            # Download the video
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                print(f"[VIDEO DOWNLOAD] Downloading: {video_url}")
+                info = ydl.extract_info(video_url, download=True)
+                
+                video_title = info.get('title', 'video')
+                safe_filename = secure_filename(video_title[:100]) + '.mp4'
+                
+                # Find the downloaded file
+                downloaded_files = [f for f in os.listdir(temp_dir) if f.endswith('.mp4')]
+                
+                if not downloaded_files:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Video downloaded but file not found'
+                    }), 500
+                
+                downloaded_path = os.path.join(temp_dir, downloaded_files[0])
+                
+                # Stream file to user
+                @after_this_request
+                def cleanup(response):
+                    """Clean up temp directory after response is sent"""
+                    try:
+                        shutil.rmtree(temp_dir)
+                        print(f"[VIDEO DOWNLOAD] Cleaned up temp directory: {temp_dir}")
+                    except Exception as e:
+                        print(f"[VIDEO DOWNLOAD] Cleanup error: {e}")
+                    return response
+                
+                print(f"[VIDEO DOWNLOAD] Streaming file: {safe_filename}")
+                return send_file(
+                    downloaded_path,
+                    as_attachment=True,
+                    download_name=safe_filename,
+                    mimetype='video/mp4'
+                )
+                
+        except Exception as e:
+            print(f"[VIDEO DOWNLOAD] Download error: {e}")
+            # Clean up on error
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+            return jsonify({
+                'success': False,
+                'error': f'Failed to download video: {str(e)}'
+            }), 400
+            
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'yt-dlp library not installed. Please contact administrator.'
+        }), 500
+    except Exception as e:
+        print(f"[VIDEO DOWNLOAD] Unexpected error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # --- Intel Source main page stub (for nav bar) ---
 
 @app.route('/evaluation_cases')

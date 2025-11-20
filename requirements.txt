@@ -61,3 +61,7 @@ pytz==2025.2
 # Optional: Web scraping and HTML processing
 # beautifulsoup4==4.12.2
 # lxml==4.9.3
+
+# Video Downloader Tool
+yt-dlp>=2024.11.18  # YouTube and social media video downloader
+
