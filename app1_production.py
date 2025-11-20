@@ -57,7 +57,7 @@ try:
 except ImportError:
     AI_AVAILABLE = False
     print("WARNING: AI Intelligence module not available")
-from flask import Flask, render_template, request, redirect, url_for, flash, abort, send_file, jsonify, make_response, session
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, send_file, jsonify, make_response, session, after_this_request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -4543,8 +4543,15 @@ def download_video():
                 uploader = info.get('uploader', 'Unknown')
                 upload_date = info.get('upload_date', '')
                 
-                # Format duration
-                duration_str = f"{duration // 60}:{duration % 60:02d}" if duration else 'N/A'
+                # Format duration - handle both int and float
+                if duration:
+                    try:
+                        duration = int(float(duration))  # Convert to int, handle float
+                        duration_str = f"{duration // 60}:{duration % 60:02d}"
+                    except (ValueError, TypeError):
+                        duration_str = 'N/A'
+                else:
+                    duration_str = 'N/A'
                 
                 # Return video info for user confirmation
                 return jsonify({
