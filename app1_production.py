@@ -2015,8 +2015,8 @@ def global_search():
                             end = min(len(patrol.details), match_pos + 100)
                             snippet = "..." + patrol.details[start:end] + "..."
                     
-                    # Search in platform/URL
-                    if patrol.platform and query_lower in patrol.platform.lower():
+                    # Search in platform/source (OnlinePatrolEntry uses 'source' not 'platform')
+                    if patrol.source and query_lower in patrol.source.lower():
                         match_found = True
                         match_field.append('Platform')
                     
@@ -2064,10 +2064,10 @@ def global_search():
                                 match_field.append('Target Name')
                                 break
                     
-                    # Search in location
-                    if surv.location and query_lower in surv.location.lower():
+                    # Search in venue (SurveillanceEntry uses 'venue' not 'location')
+                    if surv.venue and query_lower in surv.venue.lower():
                         match_found = True
-                        match_field.append('Location')
+                        match_field.append('Venue')
                     
                     # Search in details
                     if surv.details_of_finding and query_lower in surv.details_of_finding.lower():
