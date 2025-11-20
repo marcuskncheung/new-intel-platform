@@ -3886,9 +3886,27 @@ def signup():
     return render_template("signup.html")
 
 @app.route('/')
+@login_required
+def root():
+    """
+    🏠 ROOT URL: Redirect to Global Search
+    
+    The Global Search is now the main landing page - it's the most useful feature
+    for users to quickly find any intelligence across all sources.
+    """
+    return redirect(url_for('global_search_page'))
+
 @app.route('/home')
+@app.route('/welcome')
+@app.route('/about')
 @login_required
 def home():
+    """
+    📖 WELCOME/ABOUT PAGE: Platform introduction and help
+    
+    Shows platform features, usage guide, and support information.
+    Accessible via navbar dropdown or direct URL.
+    """
     return render_template('home.html')
 
 # Debug API route to check database status

@@ -1,7 +1,20 @@
 <!doctype html>
 <html lang="en" class="h-100">
-<head>
-  <meta charset="utf-8">
+<        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint in ['index', 'global_search_page', 'root'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
+            <i class="bi bi-search"></i> Global Search
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'int_analytics' %} active{% endif %}" href="{{ url_for('int_analytics') }}">
+            <i class="bi bi-folder2-open"></i> INT Analytics
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">
+            <i class="bi bi-info-circle"></i> Help
+          </a>
+        </li>eta charset="utf-8">
   <title>Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- LOCAL Bootstrap 5 - NO EXTERNAL CDN -->
@@ -47,7 +60,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link{% if request.endpoint in ['index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
+          <a class="nav-link{% if request.endpoint in ['home', 'index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
             <i class="bi bi-search"></i> Global Search
           </a>
         </li>

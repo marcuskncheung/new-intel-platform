@@ -1,5 +1,15 @@
 <!doctype html>
-<html lang="en" class="h-100">
+<html lang="en" c        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint in ['index', 'global_search_page', 'root'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
+            <i class="bi bi-search"></i> Global Search
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">
+            <i class="bi bi-info-circle"></i> Help
+          </a>
+        </li>
+        {% if current_user.is_admin() %}h-100">
 <head>
   <meta charset="utf-8">
   <title>Platform</title>
@@ -33,7 +43,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link{% if request.endpoint in ['index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
+          <a class="nav-link{% if request.endpoint in ['home', 'index', 'global_search_page'] %} active{% endif %}" href="{{ url_for('global_search_page') }}">
             <i class="bi bi-search"></i> Global Search
           </a>
         </li>
