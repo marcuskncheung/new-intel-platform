@@ -1,5 +1,5 @@
-# Intelligence Platform - .gitignore
-# Comprehensive file exclusions for security and performance
+# Intelligence Platform - Production .gitignore
+# Excludes test files, migration scripts, and documentation
 
 # Python
 __pycache__/
@@ -33,11 +33,10 @@ env.bak/
 venv.bak/
 .venv/
 
-# Environment Variables & Secrets (keep .env.production for deployment)
+# Environment Variables & Secrets
 .env
 .env.local
 .env.*.local
-# *.env - commented out to allow .env.production
 
 # IDE
 .vscode/
@@ -61,33 +60,14 @@ Thumbs.db
 # Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+log
 
-# Database files - INCLUDED in repo for complete deployment
-# Note: Remove these lines if you want to exclude database files for security
-# instance/users.db
-# instance/users.db-wal  
-# instance/users.db-shm
-# *.db
-# *.sqlite
-# *.sqlite3
-
-# Security Sensitive Files - ALLOW PRODUCTION FILES for complete deployment
-# db_encryption.key  # Allow if needed
-db_encryption.salt # Exclude sensitive encryption salt
-*.key
+# Security Sensitive Files
+db_encryption.salt
+db_encryption.key
 *.pem
 *.p12
 *.pfx
-.env
-# Allow production environment and Docker SSL certificates  
-!.env.production
-!docker/.env
-!docker/ssl-certs/*.key
-!docker/ssl-certs/*.pem
-config/secrets.py
 
 # Email Attachments and Data
 email_attachments/
@@ -96,70 +76,83 @@ uploads/
 temp/
 tmp/
 
-# Docker volumes and data
-docker/instance/
-docker-compose.override.yml
+# Test Files
+test_*.py
+*_test.py
+tests/
+test/
 
-# SSL Certificates (include docker/ssl-certs for complete deployment)
-ssl-certs/
-certs/
-*.cert
-*.crt
-# Allow SSL certificates in docker directory
-!docker/ssl-certs/
-!docker/ssl-certs/*.pem
+# Migration Scripts (exclude one-time migration files)
+migrate_*.py
+fix_*.py
+fix_*.sql
+fix_*.sh
+backfill_*.py
+rearrange_*.py
+rename_*.py
+reorder_*.py
+resequence_*.py
+create_alleged_subject_tables.py
+email_alleged_subject_model.py
+force_poi_rebuild.py
+run_migration.sh
+run_surveillance_migration.py
 
-# Backup files
-*.bak
-*.backup
-*.old
-*.orig
+# Documentation (keep only essential docs)
+*_FIX.md
+*_FIXED.md
+*_GUIDE.md
+*_SUMMARY.md
+*_PLAN.md
+*_PROPOSAL.md
+*_ISSUE.md
+*_CHECKLIST.md
+*_STATUS.md
+*_COMPLETED.md
+*_INSTRUCTIONS.md
+*_TROUBLESHOOTING.md
+*_ACTION_PLAN.md
+*_EXPLANATION.md
+*_FEATURES.md
+*_UPDATE.md
+*_CLEANUP*.md
+*_RESTORE*.md
+*_MIGRATION*.md
+ALLEGED_*.md
+ALL_*.md
+ANALYTICS_*.md
+CODE_*.md
+CORRECTED_*.md
+CRITICAL_*.md
+DEPLOYMENT_*.md
+DEPLOY_*.md
+FIXES_*.md
+FIX_*.md
+GLOBAL_*.md
+IMPLEMENTATION_*.md
+INT_*.md
+ONLINE_*.md
+POI_*.md
+QUICK_*.md
+READY_*.md
+REAL_*.md
+RUN_*.md
+SMART_*.md
+SURVEILLANCE_*.md
+UNIFIED_*.md
+URGENT_*.md
+WHATSAPP_*.md
+AI_*.md
 
-# Compressed files (large deployment packages)
-*.zip
-*.tar.gz
-*.rar
-*.7z
-Intelligence-Platform-Complete-*.zip
+# Temporary files
+intelligence-app.txt
+*.txt.bak
+*.sql.bak
 
-# Node modules (if using frontend build tools)
-node_modules/
-
-# Coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Distribution packages (keep source only)
-Intelligence-Platform-Complete/
-
-# Local development overrides
-docker-for-IT/
-docker-for-IT-HTTPS/
-local_config.py
-dev_settings.py
-
-# Runtime files
-*.pid
-*.seed
-*.pid.lock
-
-# Security scan results (regenerated on each run)
-bandit-report.*
-safety-report.*
-semgrep-report.*
-trivy-*.sarif
-
-# Test files with sensitive data
-security_test_cases.py
+# Keep these important files
+!README.md
+!DEPLOYMENT_GUIDE.md
+!DATABASE_ARCHITECTURE.md
+!requirements.txt
+!requirements_production.txt
+!.env.production
