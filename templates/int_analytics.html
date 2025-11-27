@@ -3,7 +3,7 @@
 <style>
   body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
   .analytics-container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 2rem auto;
     padding: 0 1rem;
   }
@@ -26,9 +26,58 @@
     color: #6c757d;
     font-size: 1.1rem;
   }
+  
+  /* Tab Navigation Styles */
+  .tab-navigation {
+    background: white;
+    border-radius: 16px;
+    padding: 0.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 1rem 1.5rem;
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+  .tab-btn:hover {
+    background: #f8f9fa;
+    color: #667eea;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
   }
@@ -38,10 +87,112 @@
     padding: 1.5rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
   .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  }
+  
+  /* Source Classification Styles */
+  .source-breakdown-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .breakdown-section {
+    margin-bottom: 2.5rem;
+  }
+  .breakdown-section:last-child {
+    margin-bottom: 0;
+  }
+  .breakdown-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .breakdown-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+  .breakdown-item:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
+  }
+  .breakdown-label {
+    flex: 0 0 250px;
+    font-weight: 600;
+    color: #495057;
+  }
+  .breakdown-bar-container {
+    flex: 1;
+    height: 30px;
+    background: #e9ecef;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    margin: 0 1rem;
+  }
+  .breakdown-bar {
+    height: 100%;
+    border-radius: 15px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.75rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .breakdown-bar.internal { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); }
+  .breakdown-bar.external { background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%); }
+  .breakdown-bar.regulator { background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); }
+  .breakdown-bar.law-enforcement { background: linear-gradient(90deg, #fa709a 0%, #fee140 100%); }
+  .breakdown-bar.industry { background: linear-gradient(90deg, #30cfd0 0%, #330867 100%); }
+  .breakdown-value {
+    flex: 0 0 120px;
+    text-align: right;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  
+  /* Subsection styles for nested breakdowns */
+  .breakdown-subsection {
+    margin-left: 2rem;
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    border-left: 3px solid #e9ecef;
+  }
+  .breakdown-subsection .breakdown-item {
+    margin-bottom: 0.5rem;
+  }
+  .breakdown-subsection .breakdown-label {
+    flex: 0 0 180px;
+    font-size: 0.9rem;
+  }
+  .breakdown-subsection .breakdown-bar-container {
+    height: 24px;
   }
   .stat-icon {
     width: 50px;
@@ -217,8 +368,29 @@
     </button>
   </div>
 
-  <!-- Summary Statistics -->
-  <div class="stats-row">
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button class="tab-btn active" onclick="switchTab('overview')">
+      <i class="bi bi-speedometer2"></i> Overview
+    </button>
+    <button class="tab-btn" onclick="switchTab('sources')">
+      <i class="bi bi-diagram-3"></i> Source Classification
+    </button>
+    <button class="tab-btn" onclick="switchTab('allegations')">
+      <i class="bi bi-exclamation-triangle"></i> Allegations
+    </button>
+    <button class="tab-btn" onclick="switchTab('distribution')">
+      <i class="bi bi-pie-chart"></i> Distribution
+    </button>
+    <button class="tab-btn" onclick="switchTab('intlist')">
+      <i class="bi bi-list-ul"></i> INT List
+    </button>
+  </div>
+
+  <!-- TAB 1: Overview -->
+  <div id="tab-overview" class="tab-content active">
+    <!-- Summary Statistics -->
+    <div class="stats-row">
     <div class="stat-card">
       <div class="stat-icon blue">
         <i class="bi bi-folder2-open"></i>
@@ -284,12 +456,300 @@
     </div>
   </div>
 
-  <!-- Top INTs by Volume -->
-  <div class="chart-card">
-    <h3 class="chart-title">Top 10 INT References by Volume</h3>
-    <canvas id="topIntChart" height="200"></canvas>
+    <!-- Top INTs by Volume -->
+    <div class="chart-card">
+      <h3 class="chart-title">Top 10 INT References by Volume</h3>
+      <canvas id="topIntChart" height="200"></canvas>
+    </div>
   </div>
+  <!-- End of Overview Tab -->
 
+  <!-- TAB 2: Source Classification -->
+  <div id="tab-sources" class="tab-content">
+    <!-- Executive Summary Cards -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <i class="bi bi-inbox"></i>
+        </div>
+        <div class="stat-value">{{ source_classification_stats.internal.total + source_classification_stats.external.total + source_classification_stats.unclassified }}</div>
+        <div class="stat-label">Total Intelligence Items</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <i class="bi bi-building"></i>
+        </div>
+        <div class="stat-value">{{ source_classification_stats.internal.total }}</div>
+        <div class="stat-label">Internal Sources ({{ "%.1f"|format((source_classification_stats.internal.total / (source_classification_stats.internal.total + source_classification_stats.external.total + 1) * 100)) }}%)</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon orange">
+          <i class="bi bi-globe"></i>
+        </div>
+        <div class="stat-value">{{ source_classification_stats.external.total }}</div>
+        <div class="stat-label">External Sources ({{ "%.1f"|format((source_classification_stats.external.total / (source_classification_stats.internal.total + source_classification_stats.external.total + 1) * 100)) }}%)</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <i class="bi bi-question-circle"></i>
+        </div>
+        <div class="stat-value">{{ source_classification_stats.unclassified }}</div>
+        <div class="stat-label">Unclassified</div>
+      </div>
+    </div>
+
+    <!-- Internal Sources Breakdown -->
+    <div class="source-breakdown-card">
+      <div class="breakdown-section">
+        <h3 class="breakdown-title">
+          <i class="bi bi-building"></i> Internal Sources Breakdown
+        </h3>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-label">Market Conduct Supervision</div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar internal" style="width: {{ (source_classification_stats.internal.MARKET_CONDUCT_SUPERVISION / (source_classification_stats.internal.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.internal.MARKET_CONDUCT_SUPERVISION / (source_classification_stats.internal.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.internal.MARKET_CONDUCT_SUPERVISION }} items</div>
+        </div>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-label">Complaint Team</div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar internal" style="width: {{ (source_classification_stats.internal.COMPLAINT_TEAM / (source_classification_stats.internal.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.internal.COMPLAINT_TEAM / (source_classification_stats.internal.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.internal.COMPLAINT_TEAM }} items</div>
+        </div>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-label">Other Internal</div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar internal" style="width: {{ (source_classification_stats.internal.OTHER_INTERNAL / (source_classification_stats.internal.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.internal.OTHER_INTERNAL / (source_classification_stats.internal.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.internal.OTHER_INTERNAL }} items</div>
+        </div>
+      </div>
+
+      <!-- External Sources Breakdown -->
+      <div class="breakdown-section">
+        <h3 class="breakdown-title">
+          <i class="bi bi-globe"></i> External Sources Breakdown
+        </h3>
+        
+        <!-- Regulators -->
+        <div class="breakdown-item">
+          <div class="breakdown-label"><strong>Regulators</strong></div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar regulator" style="width: {{ (source_classification_stats.external.REGULATOR.total / (source_classification_stats.external.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.external.REGULATOR.total / (source_classification_stats.external.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.external.REGULATOR.total }} items</div>
+        </div>
+        
+        <div class="breakdown-subsection">
+          <div class="breakdown-item">
+            <div class="breakdown-label">SFC</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar regulator" style="width: {{ (source_classification_stats.external.REGULATOR.SFC / (source_classification_stats.external.REGULATOR.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.REGULATOR.SFC / (source_classification_stats.external.REGULATOR.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.REGULATOR.SFC }} items</div>
+          </div>
+          
+          <div class="breakdown-item">
+            <div class="breakdown-label">HKMA</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar regulator" style="width: {{ (source_classification_stats.external.REGULATOR.HKMA / (source_classification_stats.external.REGULATOR.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.REGULATOR.HKMA / (source_classification_stats.external.REGULATOR.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.REGULATOR.HKMA }} items</div>
+          </div>
+          
+          <div class="breakdown-item">
+            <div class="breakdown-label">MPFA</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar regulator" style="width: {{ (source_classification_stats.external.REGULATOR.MPFA / (source_classification_stats.external.REGULATOR.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.REGULATOR.MPFA / (source_classification_stats.external.REGULATOR.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.REGULATOR.MPFA }} items</div>
+          </div>
+          
+          <div class="breakdown-item">
+            <div class="breakdown-label">Other Regulators</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar regulator" style="width: {{ (source_classification_stats.external.REGULATOR.OTHER / (source_classification_stats.external.REGULATOR.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.REGULATOR.OTHER / (source_classification_stats.external.REGULATOR.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.REGULATOR.OTHER }} items</div>
+          </div>
+        </div>
+        
+        <!-- Law Enforcement -->
+        <div class="breakdown-item">
+          <div class="breakdown-label"><strong>Law Enforcement</strong></div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar law-enforcement" style="width: {{ (source_classification_stats.external.LAW_ENFORCEMENT.total / (source_classification_stats.external.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.external.LAW_ENFORCEMENT.total / (source_classification_stats.external.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.external.LAW_ENFORCEMENT.total }} items</div>
+        </div>
+        
+        <div class="breakdown-subsection">
+          <div class="breakdown-item">
+            <div class="breakdown-label">Police</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar law-enforcement" style="width: {{ (source_classification_stats.external.LAW_ENFORCEMENT.POLICE / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.LAW_ENFORCEMENT.POLICE / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.LAW_ENFORCEMENT.POLICE }} items</div>
+          </div>
+          
+          <div class="breakdown-item">
+            <div class="breakdown-label">ICAC</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar law-enforcement" style="width: {{ (source_classification_stats.external.LAW_ENFORCEMENT.ICAC / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.LAW_ENFORCEMENT.ICAC / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.LAW_ENFORCEMENT.ICAC }} items</div>
+          </div>
+          
+          <div class="breakdown-item">
+            <div class="breakdown-label">Customs</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar law-enforcement" style="width: {{ (source_classification_stats.external.LAW_ENFORCEMENT.CUSTOMS / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.LAW_ENFORCEMENT.CUSTOMS / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.LAW_ENFORCEMENT.CUSTOMS }} items</div>
+          </div>
+          
+          <div class="breakdown-item">
+            <div class="breakdown-label">Other Law Enforcement</div>
+            <div class="breakdown-bar-container">
+              <div class="breakdown-bar law-enforcement" style="width: {{ (source_classification_stats.external.LAW_ENFORCEMENT.OTHER / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100)|round(1) }}%">
+                {{ "%.1f"|format(source_classification_stats.external.LAW_ENFORCEMENT.OTHER / (source_classification_stats.external.LAW_ENFORCEMENT.total + 1) * 100) }}%
+              </div>
+            </div>
+            <div class="breakdown-value">{{ source_classification_stats.external.LAW_ENFORCEMENT.OTHER }} items</div>
+          </div>
+        </div>
+        
+        <!-- Insurance Industry -->
+        <div class="breakdown-item">
+          <div class="breakdown-label">Insurance Industry</div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar industry" style="width: {{ (source_classification_stats.external.INSURANCE_INDUSTRY / (source_classification_stats.external.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.external.INSURANCE_INDUSTRY / (source_classification_stats.external.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.external.INSURANCE_INDUSTRY }} items</div>
+        </div>
+        
+        <!-- Other External -->
+        <div class="breakdown-item">
+          <div class="breakdown-label">Other External</div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar external" style="width: {{ (source_classification_stats.external.OTHER_EXTERNAL / (source_classification_stats.external.total + 1) * 100)|round(1) }}%">
+              {{ "%.1f"|format(source_classification_stats.external.OTHER_EXTERNAL / (source_classification_stats.external.total + 1) * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ source_classification_stats.external.OTHER_EXTERNAL }} items</div>
+        </div>
+      </div>
+
+      <!-- Pie Chart -->
+      <div class="breakdown-section">
+        <h3 class="breakdown-title">
+          <i class="bi bi-pie-chart"></i> Internal vs External Visualization
+        </h3>
+        <div style="max-width: 500px; margin: 0 auto;">
+          <canvas id="sourceClassificationChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End of Source Classification Tab -->
+
+  <!-- TAB 3: Allegations -->
+  <div id="tab-allegations" class="tab-content">
+    <div class="source-breakdown-card">
+      <h3 class="breakdown-title">
+        <i class="bi bi-exclamation-triangle"></i> Top Allegation Categories by INT
+      </h3>
+      <p style="color: #6c757d; margin-bottom: 2rem;">
+        Analysis of alleged natures across all INT references. Shows which types of allegations are most common.
+      </p>
+      
+      {% if top_allegations %}
+        {% for allegation in top_allegations %}
+        <div class="breakdown-item">
+          <div class="breakdown-label">{{ allegation[0] }}</div>
+          <div class="breakdown-bar-container">
+            <div class="breakdown-bar external" style="width: {{ (allegation[1] / top_allegations[0][1] * 100)|round(1) }}%">
+              {{ "%.1f"|format(allegation[1] / top_allegations[0][1] * 100) }}%
+            </div>
+          </div>
+          <div class="breakdown-value">{{ allegation[1] }} INTs</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <i class="bi bi-inbox"></i>
+          <h4>No Allegation Data Available</h4>
+          <p>Allegations will appear here once intelligence items with alleged_nature are processed.</p>
+        </div>
+      {% endif %}
+      
+      <!-- Bar Chart -->
+      <div class="breakdown-section" style="margin-top: 3rem;">
+        <h3 class="breakdown-title">
+          <i class="bi bi-bar-chart"></i> Allegation Distribution Chart
+        </h3>
+        <canvas id="allegationChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- End of Allegations Tab -->
+
+  <!-- TAB 4: Distribution -->
+  <div id="tab-distribution" class="tab-content">
+    <!-- Charts Row -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="chart-card">
+          <h3 class="chart-title">Intelligence by Source Type</h3>
+          <canvas id="sourceChartTab" height="300"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="chart-card">
+          <h3 class="chart-title">INT Reference Distribution</h3>
+          <canvas id="distributionChartTab" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End of Distribution Tab -->
+
+  <!-- TAB 5: INT List -->
+  <div id="tab-intlist" class="tab-content">
   <!-- INT Reference Details -->
   <div class="chart-card">
     <h3 class="chart-title">All INT References (Click to View Details)</h3>
@@ -337,10 +797,42 @@
       </div>
     {% endif %}
   </div>
+  </div>
+  <!-- End of INT List Tab -->
+
 </div>
+<!-- End of analytics-container -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+// Tab Switching Function
+function switchTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Remove active class from all buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Show selected tab
+  document.getElementById('tab-' + tabName).classList.add('active');
+  
+  // Highlight selected button
+  event.target.classList.add('active');
+  
+  // Initialize charts if needed
+  if (tabName === 'sources') {
+    initSourceClassificationChart();
+  } else if (tabName === 'allegations') {
+    initAllegationChart();
+  } else if (tabName === 'distribution') {
+    initDistributionTabCharts();
+  }
+}
+
 // Set current timestamp
 document.addEventListener('DOMContentLoaded', function() {
   const now = new Date();
@@ -356,29 +848,36 @@ document.addEventListener('DOMContentLoaded', function() {
   if (timeElement) {
     timeElement.textContent = timeString;
   }
+  
+  // Initialize overview charts on page load
+  initOverviewCharts();
 });
 
 // Chart.js configuration
 Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
 Chart.defaults.font.size = 13;
 
-// Source Type Pie Chart
-const sourceCtx = document.getElementById('sourceChart');
-new Chart(sourceCtx, {
-  type: 'doughnut',
-  data: {
-    labels: ['Email', 'WhatsApp', 'Online Patrol', 'Surveillance'],
-    datasets: [{
-      data: [{{ stats.total_emails }}, {{ stats.total_whatsapp }}, {{ stats.total_patrol }}, {{ stats.total_surveillance }}],
-      backgroundColor: [
-        '#1976d2',
-        '#388e3c',
-        '#f57c00',
-        '#c2185b'
-      ],
-      borderWidth: 0
-    }]
-  },
+// Initialize Overview Tab Charts
+function initOverviewCharts() {
+  // Source Type Pie Chart
+  const sourceCtx = document.getElementById('sourceChart');
+  if (!sourceCtx) return;
+  
+  new Chart(sourceCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Email', 'WhatsApp', 'Online Patrol', 'Surveillance'],
+      datasets: [{
+        data: [{{ stats.total_emails }}, {{ stats.total_whatsapp }}, {{ stats.total_patrol }}, {{ stats.total_surveillance }}],
+        backgroundColor: [
+          '#1976d2',
+          '#388e3c',
+          '#f57c00',
+          '#c2185b'
+        ],
+        borderWidth: 0
+      }]
+    },
   options: {
     responsive: true,
     maintainAspectRatio: true,
@@ -495,7 +994,207 @@ new Chart(topIntCtx, {
       }
     }
   }
-});
+  });
+}
+// End of initOverviewCharts
+
+// Initialize Source Classification Chart
+let sourceClassificationChart = null;
+function initSourceClassificationChart() {
+  if (sourceClassificationChart) return; // Already initialized
+  
+  const ctx = document.getElementById('sourceClassificationChart');
+  if (!ctx) return;
+  
+  sourceClassificationChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Internal Sources', 'External Sources', 'Unclassified'],
+      datasets: [{
+        data: [
+          {{ source_classification_stats.internal.total }},
+          {{ source_classification_stats.external.total }},
+          {{ source_classification_stats.unclassified }}
+        ],
+        backgroundColor: [
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(240, 147, 251, 0.8)',
+          'rgba(189, 189, 189, 0.8)'
+        ],
+        borderColor: [
+          'rgba(102, 126, 234, 1)',
+          'rgba(240, 147, 251, 1)',
+          'rgba(189, 189, 189, 1)'
+        ],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 15,
+            usePointStyle: true,
+            font: {
+              size: 14
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return context.label + ': ' + context.parsed + ' items (' + percentage + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Initialize Allegation Chart
+let allegationChart = null;
+function initAllegationChart() {
+  if (allegationChart) return; // Already initialized
+  
+  const ctx = document.getElementById('allegationChart');
+  if (!ctx) return;
+  
+  const allegations = {{ top_allegations|tojson }};
+  if (!allegations || allegations.length === 0) return;
+  
+  allegationChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: allegations.map(a => a[0]),
+      datasets: [{
+        label: 'Number of INTs',
+        data: allegations.map(a => a[1]),
+        backgroundColor: 'rgba(240, 147, 251, 0.8)',
+        borderColor: 'rgba(240, 147, 251, 1)',
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.parsed.x + ' INT references';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        }
+      }
+    }
+  });
+}
+
+// Initialize Distribution Tab Charts
+let sourceChartTab = null;
+let distributionChartTab = null;
+
+function initDistributionTabCharts() {
+  if (sourceChartTab && distributionChartTab) return; // Already initialized
+  
+  // Source Chart Tab
+  const sourceCtxTab = document.getElementById('sourceChartTab');
+  if (sourceCtxTab && !sourceChartTab) {
+    sourceChartTab = new Chart(sourceCtxTab, {
+      type: 'doughnut',
+      data: {
+        labels: ['Email', 'WhatsApp', 'Online Patrol', 'Surveillance'],
+        datasets: [{
+          data: [{{ stats.total_emails }}, {{ stats.total_whatsapp }}, {{ stats.total_patrol }}, {{ stats.total_surveillance }}],
+          backgroundColor: [
+            '#1976d2',
+            '#388e3c',
+            '#f57c00',
+            '#c2185b'
+          ],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Distribution Chart Tab
+  const distributionCtxTab = document.getElementById('distributionChartTab');
+  const distributionData = {{ distribution_data|tojson }};
+  if (distributionCtxTab && !distributionChartTab) {
+    distributionChartTab = new Chart(distributionCtxTab, {
+      type: 'bar',
+      data: {
+        labels: ['1 item', '2-5 items', '6-10 items', '11-20 items', '20+ items'],
+        datasets: [{
+          label: 'Number of INTs',
+          data: distributionData,
+          backgroundColor: 'rgba(102, 126, 234, 0.8)',
+          borderColor: 'rgba(102, 126, 234, 1)',
+          borderWidth: 2,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  }
+}
 
 // Export to Excel function
 function exportToExcel() {

@@ -4232,8 +4232,14 @@ def int_source():
 @login_required
 def int_analytics():
     """
-    INT Analytics Dashboard - Shows statistics and overview of all INT references
-    Boss can review all INT numbers and click to view details of each source
+    📊 ENHANCED INT ANALYTICS DASHBOARD
+    
+    Provides comprehensive intelligence analytics for management:
+    1. Total INT references received
+    2. Source breakdown (Internal vs External)
+    3. Detailed source classification analysis
+    4. Allegation type distribution
+    5. Intelligence source type breakdown
     """
     try:
         # Get all INT references with their associated intelligence counts
@@ -4244,13 +4250,81 @@ def int_analytics():
             CaseProfile.int_reference.isnot(None)
         ).order_by(CaseProfile.int_reference.desc()).all()
         
+        # Initialize counters for source classification
+        source_classification_stats = {
+            'internal': {
+                'total': 0,
+                'MARKET_CONDUCT_SUPERVISION': 0,
+                'COMPLAINT_TEAM': 0,
+                'OTHER_INTERNAL': 0
+            },
+            'external': {
+                'total': 0,
+                'REGULATOR': {
+                    'total': 0,
+                    'SFC': 0,
+                    'HKMA': 0,
+                    'MPFA': 0,
+                    'OTHER': 0
+                },
+                'LAW_ENFORCEMENT': {
+                    'total': 0,
+                    'POLICE': 0,
+                    'ICAC': 0,
+                    'CUSTOMS': 0,
+                    'OTHER': 0
+                },
+                'INSURANCE_INDUSTRY': 0,
+                'OTHER_EXTERNAL': 0
+            },
+            'unclassified': 0
+        }
+        
+        # Initialize allegation type counters
+        allegation_stats = {}
+        
         # Build INT statistics
         int_stats = []
         for int_ref, case_id in int_references:
             # Count emails linked to this INT
-            email_count = db.session.query(Email).filter(
+            emails = db.session.query(Email).filter(
                 Email.caseprofile_id == case_id
-            ).count()
+            ).all()
+            email_count = len(emails)
+            
+            # Analyze source classification for emails
+            for email in emails:
+                if email.source_category == 'INTERNAL':
+                    source_classification_stats['internal']['total'] += 1
+                    if email.internal_source_type:
+                        source_classification_stats['internal'][email.internal_source_type] = source_classification_stats['internal'].get(email.internal_source_type, 0) + 1
+                elif email.source_category == 'EXTERNAL':
+                    source_classification_stats['external']['total'] += 1
+                    if email.external_source_type == 'REGULATOR':
+                        source_classification_stats['external']['REGULATOR']['total'] += 1
+                        if email.external_regulator:
+                            reg_key = email.external_regulator
+                            source_classification_stats['external']['REGULATOR'][reg_key] = source_classification_stats['external']['REGULATOR'].get(reg_key, 0) + 1
+                    elif email.external_source_type == 'LAW_ENFORCEMENT':
+                        source_classification_stats['external']['LAW_ENFORCEMENT']['total'] += 1
+                        if email.external_law_enforcement:
+                            law_key = email.external_law_enforcement
+                            source_classification_stats['external']['LAW_ENFORCEMENT'][law_key] = source_classification_stats['external']['LAW_ENFORCEMENT'].get(law_key, 0) + 1
+                    elif email.external_source_type:
+                        source_classification_stats['external'][email.external_source_type] = source_classification_stats['external'].get(email.external_source_type, 0) + 1
+                else:
+                    source_classification_stats['unclassified'] += 1
+                
+                # Count allegation types
+                if email.alleged_nature:
+                    try:
+                        import json
+                        natures = json.loads(email.alleged_nature) if isinstance(email.alleged_nature, str) else email.alleged_nature
+                        if isinstance(natures, list):
+                            for nature in natures:
+                                allegation_stats[nature] = allegation_stats.get(nature, 0) + 1
+                    except:
+                        pass
             
             # Count WhatsApp entries
             whatsapp_count = db.session.query(WhatsAppEntry).filter(
@@ -4305,6 +4379,7 @@ def int_analytics():
             'total_patrol': total_online,
             'total_surveillance': total_surveillance,
             'total_received_by_hand': total_received_by_hand,
+            'total_intelligence_items': total_sources,
             'avg_items_per_int': avg_items_per_int
         }
         
@@ -4333,6 +4408,9 @@ def int_analytics():
             'surveillance': [stat['surveillance_count'] for stat in top_ints]
         }
         
+        # Sort allegation stats by count for chart
+        top_allegations = sorted(allegation_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+        
         # Prepare int_details for template (used in the INT list)
         int_details = []
         for stat in int_stats:
@@ -4351,7 +4429,10 @@ def int_analytics():
             stats=stats,
             distribution_data=distribution_data,
             top_int_data=top_int_data,
-            int_details=int_details
+            int_details=int_details,
+            source_classification_stats=source_classification_stats,
+            allegation_stats=allegation_stats,
+            top_allegations=top_allegations
         )
         
     except Exception as e:
