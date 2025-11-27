@@ -4731,7 +4731,7 @@ def evaluation_cases():
             and (w.source_reliability or 0) + (w.content_validity or 0) >= 8
             and (getattr(w, 'reviewer_name', '') or '').strip()
             and (getattr(w, 'reviewer_comment', '') or '').strip()
-            and (getattr(w, 'status', '').strip().lower() == 'case opened')
+            and ((getattr(w, 'status', '') or '').strip().lower() == 'case opened')
         )
     ]
 
@@ -4754,7 +4754,7 @@ def evaluation_cases():
             (o.source_reliability or 0) + (o.content_validity or 0) >= 8
             and (getattr(o, 'reviewer_name', '') or '').strip()
             and (getattr(o, 'reviewer_comment', '') or '').strip()
-            and (getattr(o, 'status', '').strip().lower() == 'case opened')
+            and ((getattr(o, 'status', '') or '').strip().lower() == 'case opened')
         )
     ]
 
