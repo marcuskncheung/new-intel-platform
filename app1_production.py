@@ -1,9 +1,7 @@
 import os
 import sys
 import base64
-import os
-import sys
-import base64
+import json
 import mimetypes
 import time
 import threading
@@ -73,6 +71,17 @@ import io
 import re
 import html
 import tempfile
+
+# ========================================
+# 📋 APPLICATION CONSTANTS
+# ========================================
+PAGINATION_SIZE = 50                    # Items per page for list views
+IMAGE_CELL_WIDTH = 100                  # Image thumbnail width (pixels)
+IMAGE_CELL_HEIGHT = 100                 # Image thumbnail height (pixels)
+MAX_EMBED_SIZE_MB = 50                  # Max file size for base64 embedding
+MAX_EMBED_SIZE_BYTES = MAX_EMBED_SIZE_MB * 1024 * 1024
+MAX_EMAIL_LENGTH = 10000                # Max email length for LLM processing
+THREAD_POOL_WORKERS = 50                # Thread pool size for async operations
 
 # 🇭🇰 HONG KONG TIMEZONE CONFIGURATION
 HK_TZ = pytz.timezone('Asia/Hong_Kong')
@@ -232,7 +241,7 @@ try:
 except ImportError:
     CACHING_AVAILABLE = False
     print("⚠️ Flask-Caching not available. Install with: pip install Flask-Caching")
-import json
+
 from sqlalchemy.exc import OperationalError
 
 # Security and encryption imports
@@ -617,7 +626,6 @@ def regex_replace(s, find, replace):
 @app.template_filter('fromjson')
 def fromjson_filter(value):
     """Parse JSON string to Python object for Jinja2 templates"""
-    import json
     if not value:
         return []
     if isinstance(value, str):
@@ -690,9 +698,8 @@ def b64decode_filter(data):
 def from_json_filter(data):
     """Template filter to parse JSON data"""
     try:
-        import json
         return json.loads(data) if data else []
-    except:
+    except Exception:
         return []
 
 @app.template_filter('date_format')
@@ -4318,12 +4325,11 @@ def int_analytics():
                 # Count allegation types
                 if email.alleged_nature:
                     try:
-                        import json
                         natures = json.loads(email.alleged_nature) if isinstance(email.alleged_nature, str) else email.alleged_nature
                         if isinstance(natures, list):
                             for nature in natures:
                                 allegation_stats[nature] = allegation_stats.get(nature, 0) + 1
-                    except:
+                    except Exception:
                         pass
             
             # Count WhatsApp entries
@@ -5429,7 +5435,6 @@ def profile_detail(profile_id):
         AllegedSubjectProfile, Allegation, ProfileMatchingLog = init_profile_models(db)
         from sqlalchemy import desc
         from collections import defaultdict
-        import json
         from datetime import datetime, timedelta
         
         profile = AllegedSubjectProfile.query.get_or_404(profile_id)
@@ -5483,7 +5488,6 @@ def profile_detail(profile_id):
 def edit_profile(profile_id):
     """Edit profile information"""
     from models_profiles import AllegedSubjectProfile
-    import json
     
     profile = AllegedSubjectProfile.query.get_or_404(profile_id)
     
@@ -5539,7 +5543,6 @@ def edit_profile(profile_id):
 def create_manual_profile():
     """Create a manual profile"""
     from models_profiles import AllegedSubjectProfile
-    import json
     
     name_english = request.form.get('name_english', '').strip()
     if not name_english:
@@ -9470,7 +9473,6 @@ def int_source_whatsapp_update_assessment(entry_id):
     alleged_nature_input = request.form.get("alleged_nature")
     if alleged_nature_input:
         try:
-            import json
             alleged_nature_list = json.loads(alleged_nature_input)
             if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
                 entry.alleged_nature = json.dumps(alleged_nature_list)
@@ -9564,7 +9566,6 @@ def int_source_whatsapp_update_assessment(entry_id):
         entry.alleged_person = None
     
     # Store license information
-    import json
     if license_info and any(license_info):
         entry.license_numbers_json = json.dumps(license_info)
         entry.intermediary_types_json = json.dumps(intermediary_info)
@@ -9697,7 +9698,6 @@ def int_source_patrol_update_assessment(entry_id):
     alleged_nature_input = request.form.get("alleged_nature")
     if alleged_nature_input:
         try:
-            import json
             alleged_nature_list = json.loads(alleged_nature_input)
             if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
                 entry.alleged_nature = json.dumps(alleged_nature_list)
@@ -9793,7 +9793,6 @@ def int_source_patrol_update_assessment(entry_id):
         entry.alleged_person = None
     
     # Store license information
-    import json
     if license_info and any(license_info):
         entry.license_numbers_json = json.dumps(license_info)
         entry.intermediary_types_json = json.dumps(intermediary_info)
@@ -10201,7 +10200,6 @@ def int_source_update_assessment(email_id):
     if alleged_nature_input:
         try:
             # Try to parse as JSON array (new multi-select format)
-            import json
             alleged_nature_list = json.loads(alleged_nature_input)
             if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
                 email.alleged_nature = json.dumps(alleged_nature_list)
@@ -10305,7 +10303,6 @@ def int_source_update_assessment(email_id):
         email.alleged_subject = None
     
     # Store license information using JSON for multiple licenses
-    import json
     if license_info and any(license_info):  # Check if any license exists
         # Filter out empty strings but keep index positions
         email.license_numbers_json = json.dumps(license_info)
@@ -12553,7 +12550,6 @@ def bulk_export():
         else:
             # Handle form data (for file download)
             email_ids_str = request.form.get('email_ids', '[]')
-            import json
             email_ids = json.loads(email_ids_str)
         
         if not email_ids:
