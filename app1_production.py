@@ -110,7 +110,7 @@ def format_hk_time(dt, format='%Y-%m-%d %H:%M:%S'):
     try:
         hk_time = utc_to_hk(dt)
         return hk_time.strftime(format)
-    except:
+    except Exception:
         return str(dt)
 
 # ========================================
@@ -691,7 +691,7 @@ def b64decode_filter(data):
     """Template filter to decode base64 data"""
     try:
         return base64.b64decode(data).decode('utf-8')
-    except:
+    except Exception:
         return data
 
 @app.template_filter('from_json')
@@ -711,7 +711,7 @@ def date_format_filter(value, format='%Y-%m-%d %H:%M:%S'):
     if isinstance(value, str):
         try:
             value = datetime.fromisoformat(value)
-        except:
+        except Exception:
             return value
     if isinstance(value, datetime):
         return value.strftime(format)
@@ -805,7 +805,7 @@ class AuditLog(db.Model):
             print(f"⚠️ Audit log error: {e}")
             try:
                 db.session.rollback()
-            except:
+            except Exception:
                 pass  # If rollback fails, just continue
     
     def get_decrypted_details(self):
@@ -1226,7 +1226,7 @@ class WhatsAppEntry(db.Model):
                         continue
                 # If parsing fails, return the string as-is
                 return str(self.received_time)
-            except:
+            except Exception:
                 return str(self.received_time)
         
         # Fallback
@@ -2348,7 +2348,7 @@ def create_unified_intelligence_entry(source_record, source_type, created_by="SY
                 try:
                     from datetime import datetime
                     date_of_receipt = datetime.strptime(source_record.received[:19], '%Y-%m-%d %H:%M:%S')
-                except:
+                except Exception:
                     date_of_receipt = get_hk_time()
             else:
                 date_of_receipt = source_record.received or get_hk_time()
@@ -2450,7 +2450,7 @@ def check_duplicate_intelligence(source_record, source_type, similarity_threshol
                 try:
                     from datetime import datetime
                     search_date = datetime.strptime(search_date[:19], '%Y-%m-%d %H:%M:%S')
-                except:
+                except Exception:
                     search_date = None
             
             if search_date:
@@ -2994,7 +2994,7 @@ def view_alleged_person_profile_old(profile_id):
                         try:
                             from datetime import datetime
                             received_dt = datetime.strptime(str(email.received)[:16], "%Y-%m-%d %H:%M")
-                        except:
+                        except Exception:
                             received_dt = None
                 
                 if received_dt:
@@ -3148,7 +3148,7 @@ def renumber_all_poi_ids():
         def get_poi_number(profile):
             try:
                 return int(profile.poi_id.split('-')[1])
-            except:
+            except Exception:
                 return 999999  # Put invalid IDs at the end
         
         all_profiles.sort(key=get_poi_number)
@@ -4130,7 +4130,7 @@ def int_source():
                     if isinstance(email.received, str):
                         return datetime.strptime(email.received, '%Y-%m-%d %H:%M:%S')
                     return email.received
-                except:
+                except Exception:
                     return datetime.min  # Put unparseable dates at the end
             return datetime.min
         
@@ -4665,7 +4665,7 @@ def download_video():
             # Clean up temp directory
             try:
                 shutil.rmtree(temp_dir)
-            except:
+            except Exception:
                 pass
                 
     except ImportError:
@@ -4753,7 +4753,7 @@ def download_video_file():
             # Clean up on error
             try:
                 shutil.rmtree(temp_dir)
-            except:
+            except Exception:
                 pass
             return jsonify({
                 'success': False,
@@ -5072,7 +5072,7 @@ def alleged_subject_profiles():
                 profiles_count = db.session.execute(text("SELECT COUNT(*) FROM alleged_subject_profile")).scalar()
                 demo_stats['total_profiles'] = profiles_count or 3
                 # TODO: Replace demo_profiles with real data when database has records
-            except:
+            except Exception:
                 pass
         
         flash('Automated Profile System is operational! Demo data shown below.', 'success')
@@ -5524,13 +5524,13 @@ def edit_profile(profile_id):
     if profile.phone_numbers:
         try:
             phone_numbers = json.loads(profile.phone_numbers)
-        except:
+        except Exception:
             pass
     
     if profile.email_addresses:
         try:
             email_addresses = json.loads(profile.email_addresses)
-        except:
+        except Exception:
             pass
     
     return render_template('edit_profile.html', 
@@ -5648,7 +5648,7 @@ def admin_dashboard():
                 'memory_percent': psutil.virtual_memory().percent,
                 'disk_percent': psutil.disk_usage('/').percent if platform.system() != 'Windows' else psutil.disk_usage('C:\\').percent
             })
-        except:
+        except Exception:
             system_info.update({
                 'cpu_percent': 'N/A',
                 'memory_percent': 'N/A', 
@@ -6357,7 +6357,7 @@ def int_source_inbox_export(fmt):
             monthly_trends.columns = ['Month', 'Emails Received', 'Cases Opened', 'Avg Source Reliability', 'Avg Content Validity']
             # Convert Period objects to strings for Excel compatibility
             monthly_trends['Month'] = monthly_trends['Month'].astype(str)
-        except:
+        except Exception:
             monthly_trends = pd.DataFrame([['No date data available', '', '', '', '']], 
                                         columns=['Month', 'Emails Received', 'Cases Opened', 'Avg Source Reliability', 'Avg Content Validity'])
         
@@ -7026,7 +7026,7 @@ def int_source_ai_thread_summary_export():
                     latest_date = max(valid_dates)
                     try:
                         duration_days = (latest_date - earliest_date).days if earliest_date and latest_date else 0
-                    except:
+                    except Exception:
                         duration_days = 0
                 else:
                     earliest_date = None
@@ -11817,7 +11817,7 @@ def ai_comprehensive_analyze_email(email_id):
                 complete_email_content += f"\n=== EMAIL SECTION {i+1} ===\n"
                 complete_email_content += block.get('content', '') or ''
                 complete_email_content += f"\n=== END SECTION {i+1} ===\n\n"
-        except:
+        except Exception:
             # Fallback to original body if thread parsing fails
             complete_email_content = email.body or ''
         
@@ -12687,11 +12687,8 @@ def get_sender_stats():
         "senders": sender_stats
     })
 
-def setup_database(app):
-    """Initialize database tables"""
-    with app.app_context():
-        db.create_all()
-        print("Database tables created successfully")
+# NOTE: setup_database is defined earlier in the file (around line 12294)
+# Removed duplicate definition here to avoid override bug
 
 # --- ADVANCED FLASK SCALING ENHANCEMENTS ---
 
