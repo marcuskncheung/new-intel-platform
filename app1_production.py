@@ -4239,7 +4239,7 @@ def int_source():
 @login_required
 def int_analytics():
     """
-    📊 ENHANCED INT ANALYTICS DASHBOARD
+    📊 ENHANCED INT ANALYTICS DASHBOARD (OPTIMIZED - Phase 3)
     
     Provides comprehensive intelligence analytics for management:
     1. Total INT references received
@@ -4247,15 +4247,77 @@ def int_analytics():
     3. Detailed source classification analysis
     4. Allegation type distribution
     5. Intelligence source type breakdown
+    
+    PERFORMANCE: Uses aggregate queries instead of N+1 pattern
     """
     try:
-        # Get all INT references with their associated intelligence counts
+        from sqlalchemy import func
+        
+        # ============================================================
+        # PHASE 3 FIX: Use aggregate queries instead of N+1 pattern
+        # OLD: 500 INTs = 2500+ queries | NEW: ~10 queries total
+        # ============================================================
+        
+        # Get all INT references (single query)
         int_references = db.session.query(
             CaseProfile.int_reference,
             CaseProfile.id.label('case_id')
         ).filter(
             CaseProfile.int_reference.isnot(None)
         ).order_by(CaseProfile.int_reference.desc()).all()
+        
+        # Create lookup dict for case_ids
+        case_ids = [case_id for _, case_id in int_references]
+        
+        # OPTIMIZED: Get all email counts per case in ONE query
+        email_counts = dict(
+            db.session.query(Email.caseprofile_id, func.count(Email.id))
+            .filter(Email.caseprofile_id.in_(case_ids))
+            .group_by(Email.caseprofile_id)
+            .all()
+        )
+        
+        # OPTIMIZED: Get all WhatsApp counts per case in ONE query
+        whatsapp_counts = dict(
+            db.session.query(WhatsAppEntry.caseprofile_id, func.count(WhatsAppEntry.id))
+            .filter(WhatsAppEntry.caseprofile_id.in_(case_ids))
+            .group_by(WhatsAppEntry.caseprofile_id)
+            .all()
+        )
+        
+        # OPTIMIZED: Get all Online Patrol counts per case in ONE query
+        online_counts = dict(
+            db.session.query(OnlinePatrolEntry.caseprofile_id, func.count(OnlinePatrolEntry.id))
+            .filter(OnlinePatrolEntry.caseprofile_id.in_(case_ids))
+            .group_by(OnlinePatrolEntry.caseprofile_id)
+            .all()
+        )
+        
+        # OPTIMIZED: Get all Surveillance counts per case in ONE query
+        surveillance_counts = dict(
+            db.session.query(SurveillanceEntry.caseprofile_id, func.count(SurveillanceEntry.id))
+            .filter(SurveillanceEntry.caseprofile_id.in_(case_ids))
+            .group_by(SurveillanceEntry.caseprofile_id)
+            .all()
+        )
+        
+        # OPTIMIZED: Get all Received by Hand counts per case in ONE query
+        received_counts = dict(
+            db.session.query(ReceivedByHandEntry.caseprofile_id, func.count(ReceivedByHandEntry.id))
+            .filter(ReceivedByHandEntry.caseprofile_id.in_(case_ids))
+            .group_by(ReceivedByHandEntry.caseprofile_id)
+            .all()
+        )
+        
+        # OPTIMIZED: Get all emails with source classification in ONE query
+        all_emails = db.session.query(
+            Email.source_category,
+            Email.internal_source_type,
+            Email.external_source_type,
+            Email.external_regulator,
+            Email.external_law_enforcement,
+            Email.alleged_nature
+        ).filter(Email.caseprofile_id.in_(case_ids)).all()
         
         # Initialize counters for source classification
         source_classification_stats = {
@@ -4290,67 +4352,47 @@ def int_analytics():
         # Initialize allegation type counters
         allegation_stats = {}
         
-        # Build INT statistics
+        # Process all emails in memory (no more N+1 queries!)
+        for email in all_emails:
+            if email.source_category == 'INTERNAL':
+                source_classification_stats['internal']['total'] += 1
+                if email.internal_source_type:
+                    source_classification_stats['internal'][email.internal_source_type] = source_classification_stats['internal'].get(email.internal_source_type, 0) + 1
+            elif email.source_category == 'EXTERNAL':
+                source_classification_stats['external']['total'] += 1
+                if email.external_source_type == 'REGULATOR':
+                    source_classification_stats['external']['REGULATOR']['total'] += 1
+                    if email.external_regulator:
+                        reg_key = email.external_regulator
+                        source_classification_stats['external']['REGULATOR'][reg_key] = source_classification_stats['external']['REGULATOR'].get(reg_key, 0) + 1
+                elif email.external_source_type == 'LAW_ENFORCEMENT':
+                    source_classification_stats['external']['LAW_ENFORCEMENT']['total'] += 1
+                    if email.external_law_enforcement:
+                        law_key = email.external_law_enforcement
+                        source_classification_stats['external']['LAW_ENFORCEMENT'][law_key] = source_classification_stats['external']['LAW_ENFORCEMENT'].get(law_key, 0) + 1
+                elif email.external_source_type:
+                    source_classification_stats['external'][email.external_source_type] = source_classification_stats['external'].get(email.external_source_type, 0) + 1
+            else:
+                source_classification_stats['unclassified'] += 1
+            
+            # Count allegation types
+            if email.alleged_nature:
+                try:
+                    natures = json.loads(email.alleged_nature) if isinstance(email.alleged_nature, str) else email.alleged_nature
+                    if isinstance(natures, list):
+                        for nature in natures:
+                            allegation_stats[nature] = allegation_stats.get(nature, 0) + 1
+                except Exception:
+                    pass
+        
+        # Build INT statistics using pre-fetched counts (no queries in loop!)
         int_stats = []
         for int_ref, case_id in int_references:
-            # Count emails linked to this INT
-            emails = db.session.query(Email).filter(
-                Email.caseprofile_id == case_id
-            ).all()
-            email_count = len(emails)
-            
-            # Analyze source classification for emails
-            for email in emails:
-                if email.source_category == 'INTERNAL':
-                    source_classification_stats['internal']['total'] += 1
-                    if email.internal_source_type:
-                        source_classification_stats['internal'][email.internal_source_type] = source_classification_stats['internal'].get(email.internal_source_type, 0) + 1
-                elif email.source_category == 'EXTERNAL':
-                    source_classification_stats['external']['total'] += 1
-                    if email.external_source_type == 'REGULATOR':
-                        source_classification_stats['external']['REGULATOR']['total'] += 1
-                        if email.external_regulator:
-                            reg_key = email.external_regulator
-                            source_classification_stats['external']['REGULATOR'][reg_key] = source_classification_stats['external']['REGULATOR'].get(reg_key, 0) + 1
-                    elif email.external_source_type == 'LAW_ENFORCEMENT':
-                        source_classification_stats['external']['LAW_ENFORCEMENT']['total'] += 1
-                        if email.external_law_enforcement:
-                            law_key = email.external_law_enforcement
-                            source_classification_stats['external']['LAW_ENFORCEMENT'][law_key] = source_classification_stats['external']['LAW_ENFORCEMENT'].get(law_key, 0) + 1
-                    elif email.external_source_type:
-                        source_classification_stats['external'][email.external_source_type] = source_classification_stats['external'].get(email.external_source_type, 0) + 1
-                else:
-                    source_classification_stats['unclassified'] += 1
-                
-                # Count allegation types
-                if email.alleged_nature:
-                    try:
-                        natures = json.loads(email.alleged_nature) if isinstance(email.alleged_nature, str) else email.alleged_nature
-                        if isinstance(natures, list):
-                            for nature in natures:
-                                allegation_stats[nature] = allegation_stats.get(nature, 0) + 1
-                    except Exception:
-                        pass
-            
-            # Count WhatsApp entries
-            whatsapp_count = db.session.query(WhatsAppEntry).filter(
-                WhatsAppEntry.caseprofile_id == case_id
-            ).count()
-            
-            # Count Online Patrol entries
-            online_count = db.session.query(OnlinePatrolEntry).filter(
-                OnlinePatrolEntry.caseprofile_id == case_id
-            ).count()
-            
-            # Count Surveillance entries
-            surveillance_count = db.session.query(SurveillanceEntry).filter(
-                SurveillanceEntry.caseprofile_id == case_id
-            ).count()
-            
-            # Count Received by Hand entries
-            received_by_hand_count = db.session.query(ReceivedByHandEntry).filter(
-                ReceivedByHandEntry.caseprofile_id == case_id
-            ).count()
+            email_count = email_counts.get(case_id, 0)
+            whatsapp_count = whatsapp_counts.get(case_id, 0)
+            online_count = online_counts.get(case_id, 0)
+            surveillance_count = surveillance_counts.get(case_id, 0)
+            received_by_hand_count = received_counts.get(case_id, 0)
             
             total_sources = email_count + whatsapp_count + online_count + surveillance_count + received_by_hand_count
             
@@ -6096,13 +6138,30 @@ def int_source_master_export():
     online_output.seek(0)
     excel_files.append(("online_patrol.xlsx", online_output.read()))
 
-    # Surveillance Export
+    # Surveillance Export - PHASE 3 FIX: Pre-fetch related data
     surveillance_output = io.BytesIO()
-    def get_document_names(surv_id):
-        return ", ".join([doc.filename for doc in SurveillanceDocument.query.filter_by(surveillance_id=surv_id).all()])
+    surveillance_entries = SurveillanceEntry.query.all()
+    surv_ids = [s.id for s in surveillance_entries]
     
-    def get_target_names(surv_id):
-        return ", ".join([target.name for target in Target.query.filter_by(surveillance_entry_id=surv_id).all()])
+    # Pre-fetch all documents in ONE query
+    all_documents = SurveillanceDocument.query.filter(
+        SurveillanceDocument.surveillance_id.in_(surv_ids)
+    ).all() if surv_ids else []
+    docs_by_surv = {}
+    for doc in all_documents:
+        if doc.surveillance_id not in docs_by_surv:
+            docs_by_surv[doc.surveillance_id] = []
+        docs_by_surv[doc.surveillance_id].append(doc.filename)
+    
+    # Pre-fetch all targets in ONE query
+    all_targets = Target.query.filter(
+        Target.surveillance_entry_id.in_(surv_ids)
+    ).all() if surv_ids else []
+    targets_by_surv = {}
+    for target in all_targets:
+        if target.surveillance_entry_id not in targets_by_surv:
+            targets_by_surv[target.surveillance_entry_id] = []
+        targets_by_surv[target.surveillance_entry_id].append(target.name)
     
     df = pd.DataFrame([{
         "Operation Number": s.operation_number,
@@ -6112,9 +6171,9 @@ def int_source_master_export():
         "Details of Finding": s.details_of_finding,
         "Conducted By": s.conducted_by,
         "Source Reliability": s.source_reliability,
-        "Targets": get_target_names(s.id),
-        "Documents": get_document_names(s.id)
-    } for s in SurveillanceEntry.query.all()])
+        "Targets": ", ".join(targets_by_surv.get(s.id, [])),
+        "Documents": ", ".join(docs_by_surv.get(s.id, []))
+    } for s in surveillance_entries])
     with pd.ExcelWriter(surveillance_output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False)
     surveillance_output.seek(0)
@@ -8121,12 +8180,32 @@ def surveillance_export(fmt):
         import pandas as pd
         import io
         output = io.BytesIO()
-        def get_document_names(surv_id):
-            return ", ".join([doc.filename for doc in SurveillanceDocument.query.filter_by(surveillance_id=surv_id).all()])
         
-        def get_target_names(surv_id):
-            return ", ".join([target.name for target in Target.query.filter_by(surveillance_entry_id=surv_id).all()])
+        # PHASE 3 FIX: Fetch all surveillance entries with their related data in ONE query
+        surveillance_entries = SurveillanceEntry.query.all()
+        surv_ids = [s.id for s in surveillance_entries]
         
+        # Pre-fetch all documents in ONE query
+        all_documents = SurveillanceDocument.query.filter(
+            SurveillanceDocument.surveillance_id.in_(surv_ids)
+        ).all()
+        docs_by_surv = {}
+        for doc in all_documents:
+            if doc.surveillance_id not in docs_by_surv:
+                docs_by_surv[doc.surveillance_id] = []
+            docs_by_surv[doc.surveillance_id].append(doc.filename)
+        
+        # Pre-fetch all targets in ONE query
+        all_targets = Target.query.filter(
+            Target.surveillance_entry_id.in_(surv_ids)
+        ).all()
+        targets_by_surv = {}
+        for target in all_targets:
+            if target.surveillance_entry_id not in targets_by_surv:
+                targets_by_surv[target.surveillance_entry_id] = []
+            targets_by_surv[target.surveillance_entry_id].append(target.name)
+        
+        # Build DataFrame using pre-fetched data (no N+1 queries!)
         df = pd.DataFrame([{
             "Operation Number": s.operation_number,
             "Operation Type": s.operation_type,
@@ -8135,9 +8214,9 @@ def surveillance_export(fmt):
             "Details of Finding": s.details_of_finding,
             "Conducted By": s.conducted_by,
             "Source Reliability": s.source_reliability,
-            "Targets": get_target_names(s.id),
-            "Documents": get_document_names(s.id)
-        } for s in SurveillanceEntry.query.all()])
+            "Targets": ", ".join(targets_by_surv.get(s.id, [])),
+            "Documents": ", ".join(docs_by_surv.get(s.id, []))
+        } for s in surveillance_entries])
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             df.to_excel(writer, index=False)
         output.seek(0)
