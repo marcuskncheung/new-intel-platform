@@ -1194,7 +1194,7 @@ class WhatsAppEntry(db.Model):
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
-    images = db.relationship('WhatsAppImage', backref='entry', lazy=True, cascade="all, delete-orphan")
+    images = db.relationship('WhatsAppImage', backref='whatsapp_entry', lazy=True, cascade="all, delete-orphan")
     
     @property
     def int_reference(self):
@@ -1423,7 +1423,7 @@ class ReceivedByHandEntry(db.Model):
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # Relationships
-    documents = db.relationship('ReceivedByHandDocument', backref='entry', lazy=True, cascade="all, delete-orphan")
+    documents = db.relationship('ReceivedByHandDocument', backref='received_by_hand_entry', lazy=True, cascade="all, delete-orphan")
     
     @property
     def int_reference(self):
@@ -1506,6 +1506,45 @@ class CaseProfile(db.Model):
                                  foreign_keys=[duplicate_of_id],
                                  remote_side=[id],
                                  backref='master_case')
+    
+    def set_duplicate_of(self, master_case_id):
+        """
+        Safely set this case as a duplicate of another case.
+        Prevents circular references (A→B→A) that would cause infinite loops.
+        
+        Args:
+            master_case_id: The ID of the master case this is a duplicate of
+            
+        Returns:
+            bool: True if set successfully, False if would create a cycle
+        """
+        if master_case_id is None:
+            self.duplicate_of_id = None
+            return True
+        
+        # Can't be a duplicate of itself
+        if master_case_id == self.id:
+            return False
+        
+        # Check for circular reference: follow the chain to see if it loops back
+        visited = {self.id}
+        current_id = master_case_id
+        
+        while current_id is not None:
+            if current_id in visited:
+                # Would create a cycle!
+                return False
+            visited.add(current_id)
+            
+            # Get the next case in the chain
+            next_case = db.session.get(CaseProfile, current_id)
+            if next_case is None:
+                break
+            current_id = next_case.duplicate_of_id
+        
+        # Safe to set
+        self.duplicate_of_id = master_case_id
+        return True
     
     def __repr__(self):
         return f'<CaseProfile {self.int_reference} ({self.source_type})>'
@@ -11756,7 +11795,7 @@ def whatsapp_image_download(image_id):
 @login_required
 def delete_whatsapp_image(image_id):
     image = WhatsAppImage.query.get_or_404(image_id)
-    entry_id = image.entry.id
+    entry_id = image.whatsapp_entry.id
     
     # If the image is stored as a file, try to delete it
     if image.filepath:

@@ -1053,8 +1053,8 @@ documents = db.relationship('ReceivedByHandDocument', backref='received_by_hand_
 | 12.3 | Three duplicate POI linking systems | 🟡 High | 1-2 days | ⏸️ Deferred (needs migration) |
 | 12.4 | to_dict() references deleted columns | 🟡 High | 30 min | ✅ FIXED |
 | 12.5 | Missing indexes on foreign keys | 🟡 Medium | 1 hour | ✅ FIXED |
-| 12.6 | No cycle protection on duplicate_of_id | 🟡 Medium | 30 min | ⬜ |
-| 12.7 | Inconsistent naming conventions | 🟢 Low | 2-3 hours | ⬜ |
+| 12.6 | No cycle protection on duplicate_of_id | 🟡 Medium | 30 min | ✅ FIXED |
+| 12.7 | Inconsistent naming conventions | 🟢 Low | 2-3 hours | ✅ FIXED (backrefs) |
 
 ---
 
