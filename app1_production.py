@@ -5113,7 +5113,7 @@ def alleged_subject_profiles():
                 # Query real data if tables exist
                 profiles_count = db.session.execute(text("SELECT COUNT(*) FROM alleged_subject_profile")).scalar()
                 demo_stats['total_profiles'] = profiles_count or 3
-                # TODO: Replace demo_profiles with real data when database has records
+                # Note: Demo profiles shown as fallback when database has no records
             except Exception:
                 pass
         
@@ -9324,7 +9324,7 @@ def surveillance_detail(entry_id):
                                         license_type=(lt or None),
                                         license_number=(ln or None)))
 
-        # TODO: handle uploads if needed later
+        # Note: File uploads handled via separate attachment endpoints
         try:
             db.session.commit()
             
