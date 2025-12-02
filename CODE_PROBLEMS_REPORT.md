@@ -1,8 +1,9 @@
 # 🔴 Code Problems Report for `app1_production.py`
 
 > **Generated:** December 1, 2025  
-> **File Size:** ~13,300 lines  
-> **Status:** ✅ Phase 1, 2, 3 COMPLETED
+> **Updated:** December 2, 2025  
+> **File Size:** ~13,350 lines  
+> **Status:** ✅ Phase 1-4a, DB-1 to DB-3 COMPLETED
 
 ## 🎯 Fix Status
 
@@ -12,13 +13,16 @@
 | 2 | Duplicate `setup_database` function, bare `except:` | ✅ FIXED | f15e8d4 |
 | 3 | N+1 query problems in `int_analytics()` and exports | ✅ FIXED | 3a57fdc |
 | 4a | Magic numbers replaced with constants | ✅ FIXED | b3e1fa4 |
-| 4b | TODO comments cleaned up | ✅ FIXED | (pending) |
-| 4c | Print statements → logging (500+ prints) | ⏸️ Deferred | - |
+| 4b | TODO comments cleaned up | ✅ FIXED | 6013ec7 |
+| 4c | Print statements → logging (500+ prints) | ⏸️ Deferred (risky) | - |
 | 5 | File split into Flask Blueprints | ⏸️ Future | - |
-| **DB-1** | **Fix to_dict() AttributeError (12.4)** | ✅ FIXED | (pending) |
-| **DB-2** | **Add ondelete='CASCADE' (12.2)** | ✅ FIXED | (pending) |
-| **DB-3** | **Add missing indexes (12.5)** | ✅ FIXED | (pending) |
-| **DB** | **Database architecture problems (12.1-12.7)** | ⬜ NOT FIXED | - |
+| **DB-1** | **Fix to_dict() AttributeError (12.4)** | ✅ FIXED | 95be7fc |
+| **DB-2** | **Add ondelete='CASCADE' (12.2)** | ✅ FIXED | 95be7fc |
+| **DB-3** | **Add missing indexes (12.5)** | ✅ FIXED | 95be7fc |
+| **DB-4** | **Cycle protection for duplicate_of_id (12.6)** | ✅ FIXED | 7eebe78 |
+| **DB-5** | **Fix duplicate backref names (12.7)** | ✅ FIXED | 7eebe78 |
+| **DB-6** | **Circular Email ↔ CaseProfile (12.1)** | ⏸️ Deferred (needs migration) | - |
+| **DB-7** | **Three duplicate POI linking systems (12.3)** | ⏸️ Deferred (needs migration) | - |
 
 ---
 
