@@ -1,0 +1,158 @@
+# Intelligence Platform - Production .gitignore
+# Excludes test files, migration scripts, and documentation
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Logs
+logs/
+*.log
+log
+
+# Security Sensitive Files
+db_encryption.salt
+db_encryption.key
+*.pem
+*.p12
+*.pfx
+
+# Email Attachments and Data
+email_attachments/
+data/
+uploads/
+temp/
+tmp/
+
+# Test Files
+test_*.py
+*_test.py
+tests/
+test/
+
+# Migration Scripts (exclude one-time migration files)
+migrate_*.py
+fix_*.py
+fix_*.sql
+fix_*.sh
+backfill_*.py
+rearrange_*.py
+rename_*.py
+reorder_*.py
+resequence_*.py
+create_alleged_subject_tables.py
+email_alleged_subject_model.py
+force_poi_rebuild.py
+run_migration.sh
+run_surveillance_migration.py
+
+# Documentation (keep only essential docs)
+*_FIX.md
+*_FIXED.md
+*_GUIDE.md
+*_SUMMARY.md
+*_PLAN.md
+*_PROPOSAL.md
+*_ISSUE.md
+*_CHECKLIST.md
+*_STATUS.md
+*_COMPLETED.md
+*_INSTRUCTIONS.md
+*_TROUBLESHOOTING.md
+*_ACTION_PLAN.md
+*_EXPLANATION.md
+*_FEATURES.md
+*_UPDATE.md
+*_CLEANUP*.md
+*_RESTORE*.md
+*_MIGRATION*.md
+ALLEGED_*.md
+ALL_*.md
+ANALYTICS_*.md
+CODE_*.md
+CORRECTED_*.md
+CRITICAL_*.md
+DEPLOYMENT_*.md
+DEPLOY_*.md
+FIXES_*.md
+FIX_*.md
+GLOBAL_*.md
+IMPLEMENTATION_*.md
+INT_*.md
+ONLINE_*.md
+POI_*.md
+QUICK_*.md
+READY_*.md
+REAL_*.md
+RUN_*.md
+SMART_*.md
+SURVEILLANCE_*.md
+UNIFIED_*.md
+URGENT_*.md
+WHATSAPP_*.md
+AI_*.md
+
+# Temporary files
+intelligence-app.txt
+*.txt.bak
+*.sql.bak
+
+# Keep these important files
+!README.md
+!DEPLOYMENT_GUIDE.md
+!DATABASE_ARCHITECTURE.md
+!requirements.txt
+!requirements_production.txt
+!.env.production

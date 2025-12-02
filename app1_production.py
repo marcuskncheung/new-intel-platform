@@ -5810,10 +5810,9 @@ def admin_delete_user(user_id):
 @admin_required
 def admin_logs():
     page = request.args.get('page', 1, type=int)
-    per_page = 50
     
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).paginate(
-        page=page, per_page=per_page, error_out=False)
+        page=page, per_page=PAGINATION_SIZE, error_out=False)
     
     AuditLog.log_action('Admin logs accessed', f'Viewed page {page}', current_user)
     return render_template('admin_logs.html', logs=logs)
@@ -6013,7 +6012,7 @@ def int_source_master_export():
                                 pil_img.verify()
                                 pil_img = PILImage.open(tmp_att.name)
                                 img_w, img_h = pil_img.size
-                                cell_w, cell_h = 100, 100
+                                cell_w, cell_h = IMAGE_CELL_WIDTH, IMAGE_CELL_HEIGHT
                                 x_scale = min(1.0, cell_w / img_w) if img_w > 0 else 1.0
                                 y_scale = min(1.0, cell_h / img_h) if img_h > 0 else 1.0
                                 worksheet.insert_image(row_idx, len(info_fields) + att_idx, tmp_att.name, {
@@ -6100,7 +6099,7 @@ def int_source_master_export():
                         # Get image size
                         pil_img = PILImage.open(tmp_img.name)
                         img_w, img_h = pil_img.size
-                        cell_w, cell_h = 100, 100
+                        cell_w, cell_h = IMAGE_CELL_WIDTH, IMAGE_CELL_HEIGHT
                         x_scale = min(1.0, cell_w / img_w) if img_w > 0 else 1.0
                         y_scale = min(1.0, cell_h / img_h) if img_h > 0 else 1.0
                         worksheet.insert_image(row_idx, len(info_fields) + img_idx, tmp_img.name, {
@@ -6561,7 +6560,7 @@ def int_source_inbox_export(fmt):
                                         pil_img.verify()
                                         pil_img = PILImage.open(tmp_att.name)
                                         img_w, img_h = pil_img.size
-                                        cell_w, cell_h = 100, 100
+                                        cell_w, cell_h = IMAGE_CELL_WIDTH, IMAGE_CELL_HEIGHT
                                         x_scale = min(1.0, cell_w / img_w) if img_w > 0 else 1.0
                                         y_scale = min(1.0, cell_h / img_h) if img_h > 0 else 1.0
                                         worksheet.insert_image(row_idx, len(info_fields) + att_idx, tmp_att.name, {
@@ -7404,7 +7403,7 @@ def whatsapp_export(fmt):
                                 tmp_img.flush()
                                 pil_img = PILImage.open(tmp_img.name)
                                 img_w, img_h = pil_img.size
-                                cell_w, cell_h = 100, 100
+                                cell_w, cell_h = IMAGE_CELL_WIDTH, IMAGE_CELL_HEIGHT
                                 x_scale = min(1.0, cell_w / img_w) if img_w > 0 else 1.0
                                 y_scale = min(1.0, cell_h / img_h) if img_h > 0 else 1.0
                                 worksheet.insert_image(row_idx, len(info_fields) + img_idx, tmp_img.name, {
@@ -11551,9 +11550,8 @@ def int_source_embedded_attachment_viewer(att_id):
         
         # Convert file content to base64 for embedding (with size limits)
         file_base64 = None
-        max_embed_size = 50 * 1024 * 1024  # 50MB limit for base64 embedding
         
-        if file_content and len(file_content) <= max_embed_size:
+        if file_content and len(file_content) <= MAX_EMBED_SIZE_BYTES:
             try:
                 file_base64 = base64.b64encode(file_content).decode('utf-8')
                 print(f"[DEBUG] Base64 encoding successful, length: {len(file_base64)}")
@@ -11901,7 +11899,6 @@ def ai_comprehensive_analyze_email(email_id):
             complete_email_content = email.body or ''
         
         # ✅ CRITICAL FIX #4: Limit email body size (prevent token limit issues)
-        MAX_EMAIL_LENGTH = 10000  # ~2500 tokens for LLM
         original_length = len(complete_email_content)
         
         if len(complete_email_content) > MAX_EMAIL_LENGTH:
@@ -12777,7 +12774,7 @@ import time
 from functools import wraps
 
 # Enhanced thread pool for heavy operations
-request_pool = ThreadPoolExecutor(max_workers=50, thread_name_prefix="IntelApp")
+request_pool = ThreadPoolExecutor(max_workers=THREAD_POOL_WORKERS, thread_name_prefix="IntelApp")
 
 def async_route(f):
     """Decorator for non-blocking route processing"""
@@ -12998,7 +12995,6 @@ def security_admin():
     
     # Get audit logs with pagination  
     page = request.args.get('page', 1, type=int)
-    per_page = 50
     
     # Filter options
     action_filter = request.args.get('action', '')
@@ -13037,7 +13033,7 @@ def security_admin():
     query = query.order_by(AuditLog.timestamp.desc())
     
     # Paginate
-    audit_logs = query.paginate(page=page, per_page=per_page, error_out=False)
+    audit_logs = query.paginate(page=page, per_page=PAGINATION_SIZE, error_out=False)
     
     # Get security statistics
     from datetime import timedelta
