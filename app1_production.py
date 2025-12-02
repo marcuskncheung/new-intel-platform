@@ -219,7 +219,8 @@ try:
     from alleged_person_automation import (
         normalize_name_for_matching, calculate_name_similarity, generate_next_poi_id,
         find_matching_profile, create_or_update_alleged_person_profile,
-        process_ai_analysis_results, process_manual_input, link_email_to_profile
+        process_ai_analysis_results, process_manual_input, link_email_to_profile,
+        auto_resequence_poi_ids
     )
     ALLEGED_PERSON_AUTOMATION = True
     print("✅ Alleged Person Automation System loaded")
@@ -734,15 +735,15 @@ class AuditLog(db.Model):
     __tablename__ = 'audit_log'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Auto-increment integer
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
-    username = db.Column(db.String(80), index=True)
-    action = db.Column(db.String(100), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    username = db.Column(db.String(80))
+    action = db.Column(db.String(100), nullable=False)
     resource_type = db.Column(db.String(200))  # email, attachment, user, etc. - Increased from 50 to 200
     resource_id = db.Column(db.String(100))    # ID of affected resource - Increased from 36 to 100
     details = db.Column(db.Text)              # Encrypted sensitive details - must be TEXT not VARCHAR
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))    # Browser/client info
-    timestamp = db.Column(db.DateTime, default=get_hk_time, index=True)
+    timestamp = db.Column(db.DateTime, default=get_hk_time)
     session_id = db.Column(db.String(200))    # Track user sessions - Increased from 100 to 200
     severity = db.Column(db.String(20), default='info')  # info, warning, critical
     
@@ -918,9 +919,6 @@ class Email(db.Model):
     int_reference_updated_by = db.Column(db.String(100), nullable=True)  # Who updated the INT number
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
-    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.email_id
-    # Use CaseProfile.email_id instead. This column kept for backward compatibility.
-    # Will be removed in future version after migration verification.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # Encryption flags (new fields)
@@ -1086,7 +1084,7 @@ class Email(db.Model):
 
 class Attachment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email_id = db.Column(db.Integer, db.ForeignKey('email.id', ondelete='CASCADE'), nullable=False, index=True)
+    email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(512), nullable=True)  # For migration
     file_data = db.Column(db.LargeBinary, nullable=True)
@@ -1195,11 +1193,9 @@ class WhatsAppEntry(db.Model):
     license_number = db.Column(db.String(64))
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
-    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.whatsapp_id
-    # Use CaseProfile.whatsapp_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
-    images = db.relationship('WhatsAppImage', backref='whatsapp_entry', lazy=True, cascade="all, delete-orphan")
+    images = db.relationship('WhatsAppImage', backref='entry', lazy=True, cascade="all, delete-orphan")
     
     @property
     def int_reference(self):
@@ -1284,8 +1280,6 @@ class OnlinePatrolEntry(db.Model):
     intelligence_case_opened = db.Column(db.Boolean, default=False)
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
-    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.patrol_id
-    # Use CaseProfile.patrol_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # 📸 PHOTO RELATIONSHIP
@@ -1332,8 +1326,6 @@ class SurveillanceEntry(db.Model):
     targets = db.relationship('Target', backref='surveillance_entry', cascade='all, delete-orphan')
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
-    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.surveillance_id
-    # Use CaseProfile.surveillance_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     @property
@@ -1353,7 +1345,7 @@ class OnlinePatrolPhoto(db.Model):
     __tablename__ = 'online_patrol_photo'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    online_patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id', ondelete='CASCADE'), nullable=False, index=True)
+    online_patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     image_data = db.Column(db.LargeBinary, nullable=False)  # Store image as binary in database
     uploaded_at = db.Column(db.DateTime, default=get_hk_time)
@@ -1363,7 +1355,7 @@ class OnlinePatrolPhoto(db.Model):
 class Target(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    surveillance_entry_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id', ondelete='CASCADE'), nullable=False, index=True)
+    surveillance_entry_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
 
     # New licensing fields
     license_type = db.Column(db.String(16))  # 'Agent', 'Broker', 'N/A'
@@ -1374,21 +1366,21 @@ class Target(db.Model):
 
 class WhatsAppImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    whatsapp_id = db.Column(db.Integer, db.ForeignKey('whats_app_entry.id', ondelete='CASCADE'), nullable=False, index=True)
+    whatsapp_id = db.Column(db.Integer, db.ForeignKey('whats_app_entry.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(512), nullable=True)  # For migration
     image_data = db.Column(db.LargeBinary, nullable=True)
 
 class SurveillancePhoto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id', ondelete='CASCADE'), nullable=False, index=True)
+    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
     filename = db.Column(db.String(255))
     image_data = db.Column(db.LargeBinary)
     uploaded_at = db.Column(db.DateTime, default=get_hk_time)
 
 class SurveillanceDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id', ondelete='CASCADE'), nullable=False, index=True)
+    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
     filename = db.Column(db.String(255))
     filepath = db.Column(db.String(512))
 
@@ -1429,12 +1421,10 @@ class ReceivedByHandEntry(db.Model):
     license_number = db.Column(db.String(64))
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
-    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.received_by_hand_id
-    # Use CaseProfile.received_by_hand_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # Relationships
-    documents = db.relationship('ReceivedByHandDocument', backref='received_by_hand_entry', lazy=True, cascade="all, delete-orphan")
+    documents = db.relationship('ReceivedByHandDocument', backref='entry', lazy=True, cascade="all, delete-orphan")
     
     @property
     def int_reference(self):
@@ -1457,7 +1447,7 @@ class ReceivedByHandDocument(db.Model):
     __tablename__ = 'received_by_hand_document'
     
     id = db.Column(db.Integer, primary_key=True)
-    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id', ondelete='CASCADE'), nullable=False, index=True)
+    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     file_data = db.Column(db.LargeBinary, nullable=False)  # Store file in database
     file_type = db.Column(db.String(50))  # pdf, image, doc, etc.
@@ -1517,45 +1507,6 @@ class CaseProfile(db.Model):
                                  foreign_keys=[duplicate_of_id],
                                  remote_side=[id],
                                  backref='master_case')
-    
-    def set_duplicate_of(self, master_case_id):
-        """
-        Safely set this case as a duplicate of another case.
-        Prevents circular references (A→B→A) that would cause infinite loops.
-        
-        Args:
-            master_case_id: The ID of the master case this is a duplicate of
-            
-        Returns:
-            bool: True if set successfully, False if would create a cycle
-        """
-        if master_case_id is None:
-            self.duplicate_of_id = None
-            return True
-        
-        # Can't be a duplicate of itself
-        if master_case_id == self.id:
-            return False
-        
-        # Check for circular reference: follow the chain to see if it loops back
-        visited = {self.id}
-        current_id = master_case_id
-        
-        while current_id is not None:
-            if current_id in visited:
-                # Would create a cycle!
-                return False
-            visited.add(current_id)
-            
-            # Get the next case in the chain
-            next_case = db.session.get(CaseProfile, current_id)
-            if next_case is None:
-                break
-            current_id = next_case.duplicate_of_id
-        
-        # Safe to set
-        self.duplicate_of_id = master_case_id
-        return True
     
     def __repr__(self):
         return f'<CaseProfile {self.int_reference} ({self.source_type})>'
@@ -5321,6 +5272,35 @@ def recalculate_poi_counts():
         traceback.print_exc()
         flash(f"❌ Error recalculating counts: {str(e)}", "danger")
 
+    return redirect(url_for("alleged_subject_list"))
+
+@app.route("/alleged_subject_profiles/resequence_ids", methods=["POST"])
+@login_required
+def resequence_poi_ids_route():
+    """
+    🔢 RESEQUENCE POI IDs
+    
+    Fills gaps in POI IDs (e.g., POI-001, POI-002, POI-004 → POI-001, POI-002, POI-003)
+    Called when a POI is deleted and you want to renumber remaining POIs.
+    """
+    try:
+        if ALLEGED_PERSON_AUTOMATION:
+            result = auto_resequence_poi_ids(db, AllegedPersonProfile, force=True)
+            
+            if result['changed'] > 0:
+                flash(f"✅ Resequenced {result['changed']} POI IDs (filled {result['gaps_found']} gaps)", "success")
+            else:
+                flash("✅ POI IDs are already sequential - no changes needed", "info")
+        else:
+            flash("❌ POI automation system not available", "danger")
+            
+    except Exception as e:
+        db.session.rollback()
+        print(f"[POI RESEQUENCE] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Error resequencing POI IDs: {str(e)}", "danger")
+    
     return redirect(url_for("alleged_subject_list"))
 
 @app.route("/alleged_subject_profiles/find_duplicates", methods=["GET", "POST"])
@@ -11806,7 +11786,7 @@ def whatsapp_image_download(image_id):
 @login_required
 def delete_whatsapp_image(image_id):
     image = WhatsAppImage.query.get_or_404(image_id)
-    entry_id = image.whatsapp_entry.id
+    entry_id = image.entry.id
     
     # If the image is stored as a file, try to delete it
     if image.filepath:

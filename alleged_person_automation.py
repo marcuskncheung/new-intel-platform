@@ -150,43 +150,19 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     
     return similarity
 
-def generate_next_poi_id(db, AllegedPersonProfile, reuse_gaps: bool = True) -> str:
+def generate_next_poi_id(db, AllegedPersonProfile) -> str:
     """
     Generate next sequential POI ID (POI-001, POI-002, etc.)
     
     Args:
         db: SQLAlchemy database instance from Flask app
         AllegedPersonProfile: AllegedPersonProfile model class
-        reuse_gaps: If True, find and reuse gaps in POI IDs (e.g., if POI-005 is deleted,
-                    the next new POI will be POI-005 instead of POI-201)
         
-    Queries existing profiles to find the next available number.
+    Queries existing profiles to find the highest number and increment.
     Uses db and models passed from Flask route handlers with active app context.
     """
     try:
-        if reuse_gaps:
-            # Get all existing POI numbers to find gaps
-            existing_pois = db.session.query(AllegedPersonProfile.poi_id).filter(
-                AllegedPersonProfile.poi_id.like('POI-%')
-            ).all()
-            
-            existing_numbers = set()
-            for (poi_id,) in existing_pois:
-                try:
-                    num = int(poi_id.split('-')[1])
-                    existing_numbers.add(num)
-                except (IndexError, ValueError):
-                    pass
-            
-            # Find first gap
-            if existing_numbers:
-                for i in range(1, max(existing_numbers) + 2):
-                    if i not in existing_numbers:
-                        return f"POI-{i:03d}"
-            else:
-                return "POI-001"
-        
-        # Original logic: just increment the highest number
+        # Query database using passed db instance - already has active Flask app context
         highest_poi = db.session.query(AllegedPersonProfile.poi_id).filter(
             AllegedPersonProfile.poi_id.like('POI-%')
         ).order_by(AllegedPersonProfile.poi_id.desc()).first()
@@ -910,3 +886,123 @@ if __name__ == "__main__":
     )
     
     print(f"   Result: {result}")
+
+
+def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Dict:
+    """
+    Automatically resequence POI IDs to remove gaps.
+    Called on app startup or via button click.
+    
+    Args:
+        db: SQLAlchemy database instance
+        AllegedPersonProfile: AllegedPersonProfile model class
+        force: If True, always resequence. If False, only if gaps exist.
+        
+    Returns:
+        Dict with 'changed': int, 'gaps_found': int, 'message': str
+    """
+    try:
+        from sqlalchemy import text
+        
+        # Get all POI IDs ordered by creation date
+        existing_pois = db.session.query(
+            AllegedPersonProfile.id,
+            AllegedPersonProfile.poi_id,
+            AllegedPersonProfile.created_at
+        ).filter(
+            AllegedPersonProfile.poi_id.like('POI-%'),
+            AllegedPersonProfile.status == 'ACTIVE'
+        ).order_by(AllegedPersonProfile.created_at.asc()).all()
+        
+        if not existing_pois:
+            return {'changed': 0, 'gaps_found': 0, 'message': 'No POIs found'}
+        
+        # Extract numbers and find gaps
+        poi_data = []
+        for poi in existing_pois:
+            try:
+                num = int(poi.poi_id.split('-')[1])
+                poi_data.append({'id': poi.id, 'poi_id': poi.poi_id, 'num': num})
+            except (IndexError, ValueError):
+                pass
+        
+        if not poi_data:
+            return {'changed': 0, 'gaps_found': 0, 'message': 'No valid POI IDs found'}
+        
+        # Sort by current number
+        poi_data.sort(key=lambda x: x['num'])
+        
+        # Find gaps
+        gaps = []
+        expected = 1
+        for p in poi_data:
+            while expected < p['num']:
+                gaps.append(expected)
+                expected += 1
+            expected = p['num'] + 1
+        
+        if not gaps and not force:
+            return {'changed': 0, 'gaps_found': 0, 'message': 'No gaps found, POI IDs are sequential'}
+        
+        if not gaps:
+            return {'changed': 0, 'gaps_found': 0, 'message': 'No gaps to fix'}
+        
+        print(f"🔧 Auto-resequencing POI IDs: Found {len(gaps)} gaps")
+        
+        # Build changes list - assign new sequential IDs
+        changes = []
+        new_num = 1
+        for poi in existing_pois:
+            new_poi_id = f"POI-{new_num:03d}"
+            if poi.poi_id != new_poi_id:
+                changes.append({
+                    'id': poi.id,
+                    'old_poi_id': poi.poi_id,
+                    'new_poi_id': new_poi_id
+                })
+            new_num += 1
+        
+        if not changes:
+            return {'changed': 0, 'gaps_found': len(gaps), 'message': f'Found {len(gaps)} gaps but no changes needed'}
+        
+        # Apply changes in two steps to avoid unique constraint issues
+        # Step 1: Rename to temporary IDs
+        for change in changes:
+            temp_id = f"TEMP-{change['id']}"
+            db.session.execute(
+                text("UPDATE alleged_person_profile SET poi_id = :temp WHERE id = :id"),
+                {'temp': temp_id, 'id': change['id']}
+            )
+            # Update references in poi_intelligence_link
+            db.session.execute(
+                text("UPDATE poi_intelligence_link SET poi_id = :temp WHERE poi_id = :old"),
+                {'temp': temp_id, 'old': change['old_poi_id']}
+            )
+        
+        db.session.flush()
+        
+        # Step 2: Apply final IDs
+        for change in changes:
+            temp_id = f"TEMP-{change['id']}"
+            db.session.execute(
+                text("UPDATE alleged_person_profile SET poi_id = :new WHERE id = :id"),
+                {'new': change['new_poi_id'], 'id': change['id']}
+            )
+            db.session.execute(
+                text("UPDATE poi_intelligence_link SET poi_id = :new WHERE poi_id = :temp"),
+                {'new': change['new_poi_id'], 'temp': temp_id}
+            )
+        
+        db.session.commit()
+        
+        print(f"✅ Resequenced {len(changes)} POI IDs (filled {len(gaps)} gaps)")
+        return {
+            'changed': len(changes),
+            'gaps_found': len(gaps),
+            'message': f'Resequenced {len(changes)} POI IDs, filled {len(gaps)} gaps'
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Auto-resequence failed: {e}")
+        return {'changed': 0, 'gaps_found': 0, 'message': f'Error: {e}'}
