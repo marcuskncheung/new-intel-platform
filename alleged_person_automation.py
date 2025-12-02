@@ -150,19 +150,43 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     
     return similarity
 
-def generate_next_poi_id(db, AllegedPersonProfile) -> str:
+def generate_next_poi_id(db, AllegedPersonProfile, reuse_gaps: bool = True) -> str:
     """
     Generate next sequential POI ID (POI-001, POI-002, etc.)
     
     Args:
         db: SQLAlchemy database instance from Flask app
         AllegedPersonProfile: AllegedPersonProfile model class
+        reuse_gaps: If True, find and reuse gaps in POI IDs (e.g., if POI-005 is deleted,
+                    the next new POI will be POI-005 instead of POI-201)
         
-    Queries existing profiles to find the highest number and increment.
+    Queries existing profiles to find the next available number.
     Uses db and models passed from Flask route handlers with active app context.
     """
     try:
-        # Query database using passed db instance - already has active Flask app context
+        if reuse_gaps:
+            # Get all existing POI numbers to find gaps
+            existing_pois = db.session.query(AllegedPersonProfile.poi_id).filter(
+                AllegedPersonProfile.poi_id.like('POI-%')
+            ).all()
+            
+            existing_numbers = set()
+            for (poi_id,) in existing_pois:
+                try:
+                    num = int(poi_id.split('-')[1])
+                    existing_numbers.add(num)
+                except (IndexError, ValueError):
+                    pass
+            
+            # Find first gap
+            if existing_numbers:
+                for i in range(1, max(existing_numbers) + 2):
+                    if i not in existing_numbers:
+                        return f"POI-{i:03d}"
+            else:
+                return "POI-001"
+        
+        # Original logic: just increment the highest number
         highest_poi = db.session.query(AllegedPersonProfile.poi_id).filter(
             AllegedPersonProfile.poi_id.like('POI-%')
         ).order_by(AllegedPersonProfile.poi_id.desc()).first()
