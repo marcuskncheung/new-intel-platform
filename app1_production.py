@@ -918,6 +918,9 @@ class Email(db.Model):
     int_reference_updated_by = db.Column(db.String(100), nullable=True)  # Who updated the INT number
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.email_id
+    # Use CaseProfile.email_id instead. This column kept for backward compatibility.
+    # Will be removed in future version after migration verification.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # Encryption flags (new fields)
@@ -1192,6 +1195,8 @@ class WhatsAppEntry(db.Model):
     license_number = db.Column(db.String(64))
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.whatsapp_id
+    # Use CaseProfile.whatsapp_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     images = db.relationship('WhatsAppImage', backref='whatsapp_entry', lazy=True, cascade="all, delete-orphan")
@@ -1279,6 +1284,8 @@ class OnlinePatrolEntry(db.Model):
     intelligence_case_opened = db.Column(db.Boolean, default=False)
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.patrol_id
+    # Use CaseProfile.patrol_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # 📸 PHOTO RELATIONSHIP
@@ -1325,6 +1332,8 @@ class SurveillanceEntry(db.Model):
     targets = db.relationship('Target', backref='surveillance_entry', cascade='all, delete-orphan')
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.surveillance_id
+    # Use CaseProfile.surveillance_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     @property
@@ -1420,6 +1429,8 @@ class ReceivedByHandEntry(db.Model):
     license_number = db.Column(db.String(64))
     
     # ✅ UNIFIED INT REFERENCE SYSTEM: Link to CaseProfile
+    # ⚠️ DEPRECATED: This column creates circular reference with CaseProfile.received_by_hand_id
+    # Use CaseProfile.received_by_hand_id instead. Kept for backward compatibility.
     caseprofile_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True, index=True)
     
     # Relationships

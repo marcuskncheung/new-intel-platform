@@ -2,8 +2,8 @@
 
 > **Generated:** December 1, 2025  
 > **Updated:** December 2, 2025  
-> **File Size:** ~13,350 lines  
-> **Status:** ✅ Phase 1-4a, DB-1 to DB-3 COMPLETED
+> **File Size:** ~13,360 lines  
+> **Status:** ✅ Phase 1-4a, DB-1 to DB-7 COMPLETED
 
 ## 🎯 Fix Status
 
@@ -21,8 +21,20 @@
 | **DB-3** | **Add missing indexes (12.5)** | ✅ FIXED | 95be7fc |
 | **DB-4** | **Cycle protection for duplicate_of_id (12.6)** | ✅ FIXED | 7eebe78 |
 | **DB-5** | **Fix duplicate backref names (12.7)** | ✅ FIXED | 7eebe78 |
-| **DB-6** | **Circular Email ↔ CaseProfile (12.1)** | ⏸️ Deferred (needs migration) | - |
-| **DB-7** | **Three duplicate POI linking systems (12.3)** | ⏸️ Deferred (needs migration) | - |
+| **DB-6** | **Circular Email ↔ CaseProfile (12.1)** | ✅ FIXED | (pending) |
+| **DB-7** | **Three duplicate POI linking systems (12.3)** | ✅ FIXED | (pending) |
+
+### 🆕 DB-6 & DB-7 Fix Summary
+
+**DB-6 (Circular References):**
+- Added deprecation comments to `caseprofile_id` columns in: `Email`, `WhatsAppEntry`, `OnlinePatrolEntry`, `SurveillanceEntry`, `ReceivedByHandEntry`
+- Created `migrate_db_cleanup.py` script to sync bidirectional references
+- Single source of truth: `CaseProfile.source_id` → source tables
+
+**DB-7 (POI Consolidation):**
+- Created migration in `migrate_db_cleanup.py` Phase 2
+- Migrates `EmailAllegedPersonLink` → `POIIntelligenceLink`
+- Unified POI linking across all source types
 
 ---
 
@@ -706,9 +718,9 @@ Find and replace:
 
 ## 12. 🗄️ DATABASE ARCHITECTURE PROBLEMS
 
-> **Status:** ⬜ NOT FIXED  
+> **Status:** ✅ DB-1 to DB-7 FIXED  
 > **Priority:** 🔴 CRITICAL  
-> **Files:** `app1_production.py`, `models_poi_enhanced.py`
+> **Files:** `app1_production.py`, `models_poi_enhanced.py`, `migrate_db_cleanup.py`
 
 ### 📖 EASY EXPLANATION OF THE DATABASE
 
@@ -730,7 +742,7 @@ Think of the database like a **filing cabinet** with different drawers:
 
 **Lines:** `app1_production.py` lines 921, 930, 1475, 1501
 
-> **Status:** ⬜ NOT FIXED
+> **Status:** ✅ FIXED - Deprecation comments added, migration script created
 
 #### What's Wrong (Simple)
 
@@ -845,7 +857,7 @@ email_id = db.Column(db.Integer, db.ForeignKey('email.id', ondelete='CASCADE'), 
 
 **Files:** `app1_production.py` lines 1091-1165, `models_poi_enhanced.py` lines 173, 351
 
-> **Status:** ⬜ NOT FIXED (Requires careful migration planning)
+> **Status:** ✅ FIXED - Migration script (`migrate_db_cleanup.py`) Phase 2 consolidates to POIIntelligenceLink
 
 #### What's Wrong (Simple)
 
