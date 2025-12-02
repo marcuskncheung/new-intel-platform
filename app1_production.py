@@ -734,15 +734,15 @@ class AuditLog(db.Model):
     __tablename__ = 'audit_log'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Auto-increment integer
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    username = db.Column(db.String(80))
-    action = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    username = db.Column(db.String(80), index=True)
+    action = db.Column(db.String(100), nullable=False, index=True)
     resource_type = db.Column(db.String(200))  # email, attachment, user, etc. - Increased from 50 to 200
     resource_id = db.Column(db.String(100))    # ID of affected resource - Increased from 36 to 100
     details = db.Column(db.Text)              # Encrypted sensitive details - must be TEXT not VARCHAR
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))    # Browser/client info
-    timestamp = db.Column(db.DateTime, default=get_hk_time)
+    timestamp = db.Column(db.DateTime, default=get_hk_time, index=True)
     session_id = db.Column(db.String(200))    # Track user sessions - Increased from 100 to 200
     severity = db.Column(db.String(20), default='info')  # info, warning, critical
     
@@ -1083,7 +1083,7 @@ class Email(db.Model):
 
 class Attachment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
+    email_id = db.Column(db.Integer, db.ForeignKey('email.id', ondelete='CASCADE'), nullable=False, index=True)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(512), nullable=True)  # For migration
     file_data = db.Column(db.LargeBinary, nullable=True)
@@ -1344,7 +1344,7 @@ class OnlinePatrolPhoto(db.Model):
     __tablename__ = 'online_patrol_photo'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    online_patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id'), nullable=False)
+    online_patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id', ondelete='CASCADE'), nullable=False, index=True)
     filename = db.Column(db.String(255), nullable=False)
     image_data = db.Column(db.LargeBinary, nullable=False)  # Store image as binary in database
     uploaded_at = db.Column(db.DateTime, default=get_hk_time)
@@ -1354,7 +1354,7 @@ class OnlinePatrolPhoto(db.Model):
 class Target(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
-    surveillance_entry_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
+    surveillance_entry_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id', ondelete='CASCADE'), nullable=False, index=True)
 
     # New licensing fields
     license_type = db.Column(db.String(16))  # 'Agent', 'Broker', 'N/A'
@@ -1365,21 +1365,21 @@ class Target(db.Model):
 
 class WhatsAppImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    whatsapp_id = db.Column(db.Integer, db.ForeignKey('whats_app_entry.id'), nullable=False)
+    whatsapp_id = db.Column(db.Integer, db.ForeignKey('whats_app_entry.id', ondelete='CASCADE'), nullable=False, index=True)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(512), nullable=True)  # For migration
     image_data = db.Column(db.LargeBinary, nullable=True)
 
 class SurveillancePhoto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
+    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id', ondelete='CASCADE'), nullable=False, index=True)
     filename = db.Column(db.String(255))
     image_data = db.Column(db.LargeBinary)
     uploaded_at = db.Column(db.DateTime, default=get_hk_time)
 
 class SurveillanceDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
+    surveillance_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id', ondelete='CASCADE'), nullable=False, index=True)
     filename = db.Column(db.String(255))
     filepath = db.Column(db.String(512))
 
@@ -1446,7 +1446,7 @@ class ReceivedByHandDocument(db.Model):
     __tablename__ = 'received_by_hand_document'
     
     id = db.Column(db.Integer, primary_key=True)
-    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id'), nullable=False)
+    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id', ondelete='CASCADE'), nullable=False, index=True)
     filename = db.Column(db.String(255), nullable=False)
     file_data = db.Column(db.LargeBinary, nullable=False)  # Store file in database
     file_type = db.Column(db.String(50))  # pdf, image, doc, etc.
