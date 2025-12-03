@@ -917,61 +917,53 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         if not existing_pois:
             return {'changed': 0, 'gaps_found': 0, 'message': 'No POIs found'}
         
-        # Extract numbers and find gaps
-        poi_data = []
+        # Build mapping of what each record SHOULD have
+        # Sort by creation date to maintain chronological order
+        poi_list = []
         for poi in existing_pois:
             try:
-                num = int(poi.poi_id.split('-')[1])
-                poi_data.append({'id': poi.id, 'poi_id': poi.poi_id, 'num': num})
+                current_num = int(poi.poi_id.split('-')[1])
+                poi_list.append({'id': poi.id, 'poi_id': poi.poi_id, 'current_num': current_num})
             except (IndexError, ValueError):
                 pass
         
-        if not poi_data:
+        if not poi_list:
             return {'changed': 0, 'gaps_found': 0, 'message': 'No valid POI IDs found'}
         
-        # Sort by current number
-        poi_data.sort(key=lambda x: x['num'])
+        # Count gaps by looking at the highest number vs count
+        max_num = max(p['current_num'] for p in poi_list)
+        expected_max = len(poi_list)
+        gaps_count = max_num - expected_max
         
-        # Find gaps
-        gaps = []
-        expected = 1
-        for p in poi_data:
-            while expected < p['num']:
-                gaps.append(expected)
-                expected += 1
-            expected = p['num'] + 1
-        
-        if not gaps and not force:
+        if gaps_count <= 0 and not force:
             return {'changed': 0, 'gaps_found': 0, 'message': 'No gaps found, POI IDs are sequential'}
         
-        if not gaps:
-            return {'changed': 0, 'gaps_found': 0, 'message': 'No gaps to fix'}
+        print(f"🔧 Auto-resequencing POI IDs: Found ~{gaps_count} gaps (max={max_num}, count={expected_max})")
         
-        print(f"🔧 Auto-resequencing POI IDs: Found {len(gaps)} gaps")
-        
-        # Build changes list - assign new sequential IDs
+        # Build changes list - each record gets sequential ID based on creation order
         changes = []
-        new_num = 1
-        for poi in existing_pois:
+        for idx, poi in enumerate(poi_list):
+            new_num = idx + 1
             new_poi_id = f"POI-{new_num:03d}"
-            if poi.poi_id != new_poi_id:
+            if poi['poi_id'] != new_poi_id:
                 changes.append({
-                    'id': poi.id,
-                    'old_poi_id': poi.poi_id,
+                    'id': poi['id'],
+                    'old_poi_id': poi['poi_id'],
                     'new_poi_id': new_poi_id
                 })
-            new_num += 1
         
         if not changes:
-            return {'changed': 0, 'gaps_found': len(gaps), 'message': f'Found {len(gaps)} gaps but no changes needed'}
+            return {'changed': 0, 'gaps_found': gaps_count, 'message': f'Found {gaps_count} gaps but no changes needed'}
         
-        # TEMPORARILY DISABLE FK CONSTRAINT to allow resequencing
-        # This is safe because we update both tables in the same transaction
-        print(f"   Disabling FK constraint for resequencing...")
+        print(f"   Need to update {len(changes)} POI IDs")
+        
+        # TEMPORARILY DISABLE UNIQUE INDEX to allow resequencing
+        print(f"   Disabling constraints for resequencing...")
+        db.session.execute(text("DROP INDEX IF EXISTS ix_alleged_person_profile_poi_id"))
         db.session.execute(text("ALTER TABLE poi_intelligence_link DROP CONSTRAINT IF EXISTS poi_intelligence_link_poi_id_fkey"))
         db.session.flush()
         
-        # Step 1: Update alleged_person_profile to temp IDs
+        # Step 1: Update ALL affected alleged_person_profile to temp IDs first
         print(f"   Step 1: Updating {len(changes)} alleged_person_profile to temp IDs...")
         for change in changes:
             temp_id = f"TEMP-{change['id']}"
@@ -1014,8 +1006,9 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         
         db.session.flush()
         
-        # RE-ENABLE FK CONSTRAINT
-        print(f"   Re-enabling FK constraint...")
+        # RE-ENABLE CONSTRAINTS
+        print(f"   Re-enabling constraints...")
+        db.session.execute(text("CREATE UNIQUE INDEX ix_alleged_person_profile_poi_id ON alleged_person_profile(poi_id)"))
         db.session.execute(text("""
             ALTER TABLE poi_intelligence_link 
             ADD CONSTRAINT poi_intelligence_link_poi_id_fkey 
@@ -1024,11 +1017,11 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         
         db.session.commit()
         
-        print(f"✅ Resequenced {len(changes)} POI IDs (filled {len(gaps)} gaps)")
+        print(f"✅ Resequenced {len(changes)} POI IDs (filled {gaps_count} gaps)")
         return {
             'changed': len(changes),
-            'gaps_found': len(gaps),
-            'message': f'Resequenced {len(changes)} POI IDs, filled {len(gaps)} gaps'
+            'gaps_found': gaps_count,
+            'message': f'Resequenced {len(changes)} POI IDs, filled {gaps_count} gaps'
         }
         
     except Exception as e:
