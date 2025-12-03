@@ -1635,62 +1635,14 @@ def search_int_references():
         query_lower = query.lower()
         
         # Debug: Log the search query
-        print(f"[INT SEARCH] Searching for: '{query}' (lowercase: '{query_lower}')")
+        print(f"[INT SEARCH] Searching for: '{query}'")
         
         # Search in CaseProfiles and their linked sources
         results = []
         
         # Get all case profiles
         case_profiles = CaseProfile.query.all()
-        print(f"[INT SEARCH] Total CaseProfiles to search: {len(case_profiles)}")
-        
-        # Debug: Show ALL INT references sorted
-        all_int_refs = sorted([cp.int_reference for cp in case_profiles])
-        print(f"[INT SEARCH DEBUG] All INT references: {all_int_refs[:20]}... (showing first 20)")
-        
-        # Debug: Check if INT-1115 exists
-        int_1115 = [cp for cp in case_profiles if '1115' in (cp.int_reference or '')]
-        if int_1115:
-            for cp in int_1115:
-                print(f"[INT SEARCH DEBUG] Found INT-1115: {cp.int_reference} en='{cp.alleged_subject_en}' cn='{cp.alleged_subject_cn}' email_id={cp.email_id} whatsapp_id={cp.whatsapp_id} patrol_id={cp.patrol_id}")
-        else:
-            print(f"[INT SEARCH DEBUG] INT-1115 NOT FOUND in CaseProfiles!")
-        
-        # Debug: Count how many have email_id vs None
-        with_email = len([cp for cp in case_profiles if cp.email_id])
-        without_email = len([cp for cp in case_profiles if not cp.email_id])
-        print(f"[INT SEARCH DEBUG] CaseProfiles with email_id: {with_email}, without: {without_email}")
-        
-        # 🆕 ALSO search ALL emails directly (not just those linked to CaseProfiles)
-        # This finds emails that have alleged person data but no CaseProfile link
-        print(f"[INT SEARCH DEBUG] Also searching all emails directly...")
-        all_emails = Email.query.all()
-        emails_with_match = []
-        for email in all_emails:
-            if email.alleged_subject_english and query_lower in email.alleged_subject_english.lower():
-                emails_with_match.append(f"Email {email.id}: '{email.alleged_subject_english}' (INT: {email.int_reference_number or 'None'})")
-            if email.alleged_subject_chinese and query_lower in email.alleged_subject_chinese.lower():
-                emails_with_match.append(f"Email {email.id}: '{email.alleged_subject_chinese}' (INT: {email.int_reference_number or 'None'})")
-        if emails_with_match:
-            print(f"[INT SEARCH DEBUG] ✅ Found '{query}' in these EMAILS: {emails_with_match}")
-        else:
-            print(f"[INT SEARCH DEBUG] ❌ '{query}' NOT FOUND in any Email alleged_subject fields")
-        
-        # Debug: Show sample of CaseProfile data
-        for cp in case_profiles[:5]:  # First 5 for debugging
-            print(f"[INT SEARCH DEBUG] {cp.int_reference}: en='{cp.alleged_subject_en}' cn='{cp.alleged_subject_cn}' email_id={cp.email_id}")
-            # Also check linked email data
-            if cp.email_id:
-                email = db.session.get(Email, cp.email_id)
-                if email:
-                    print(f"[INT SEARCH DEBUG]   -> Email alleged_subject_english='{email.alleged_subject_english}' chinese='{email.alleged_subject_chinese}'")
-                    # Check EmailAllegedSubject table
-                    try:
-                        subjects = EmailAllegedSubject.query.filter_by(email_id=email.id).all()
-                        for s in subjects:
-                            print(f"[INT SEARCH DEBUG]   -> EmailAllegedSubject: en='{s.english_name}' cn='{s.chinese_name}'")
-                    except:
-                        pass
+        print(f"[INT SEARCH] Total CaseProfiles: {len(case_profiles)}")
         
         for cp in case_profiles:
             match_found = False
@@ -1703,11 +1655,9 @@ def search_int_references():
             if cp.alleged_subject_en and query_lower in cp.alleged_subject_en.lower():
                 match_found = True
                 match_reason.append(f"INT Person: {cp.alleged_subject_en}")
-                print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: alleged_subject_en = '{cp.alleged_subject_en}'")
             if cp.alleged_subject_cn and query_lower in cp.alleged_subject_cn.lower():
                 match_found = True
                 match_reason.append(f"INT Person (CN): {cp.alleged_subject_cn}")
-                print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: alleged_subject_cn = '{cp.alleged_subject_cn}'")
             if cp.alleged_misconduct_type and query_lower in cp.alleged_misconduct_type.lower():
                 match_found = True
                 match_reason.append(f"INT Nature: {cp.alleged_misconduct_type}")
@@ -1722,142 +1672,162 @@ def search_int_references():
                 match_reason.append(f"INT Company: {cp.agent_company_broker}")
             
             # 1. Search in linked EMAILS
+            # 🔧 CRITICAL FIX: Check BOTH directions of the relationship:
+            #    - CaseProfile.email_id → Email (old way)
+            #    - Email.caseprofile_id → CaseProfile (new way - many emails linked this way)
+            email = None
             if cp.email_id:
                 email = db.session.get(Email, cp.email_id)
-                if email:
-                    total_sources += 1
-                    source_types.add('EMAIL')
-                    
-                    # Debug: Print what we're searching in this email
-                    print(f"[INT SEARCH] Checking {cp.int_reference} Email {email.id}: en='{email.alleged_subject_english}' cn='{email.alleged_subject_chinese}'")
-                    
-                    # Search in alleged person names (legacy fields)
-                    if email.alleged_subject_english and query_lower in email.alleged_subject_english.lower():
-                        match_found = True
-                        match_reason.append(f"Email Person: {email.alleged_subject_english.split(',')[0].strip()}")
-                        print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: Email alleged_subject_english = '{email.alleged_subject_english}'")
-                    if email.alleged_subject_chinese and query_lower in email.alleged_subject_chinese.lower():
-                        match_found = True
-                        match_reason.append(f"Email Person (CN): {email.alleged_subject_chinese.split(',')[0].strip()}")
-                        print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: Email alleged_subject_chinese = '{email.alleged_subject_chinese}'")
-                    
-                    # Search in alleged nature
-                    if email.alleged_nature and query_lower in email.alleged_nature.lower():
-                        match_found = True
-                        match_reason.append(f"Email Nature: {email.alleged_nature}")
-                    
-                    # Search in subject line
-                    if email.subject and query_lower in email.subject.lower():
-                        match_found = True
-                        match_reason.append(f"Email Subject: {email.subject[:50]}...")
-                    
-                    # 🔧 FIX: Also search in EmailAllegedSubject table
-                    try:
-                        email_subjects = EmailAllegedSubject.query.filter_by(email_id=email.id).all()
-                        for subj in email_subjects:
-                            if subj.english_name and query_lower in subj.english_name.lower():
-                                match_found = True
-                                match_reason.append(f"Email Person: {subj.english_name}")
-                                break
-                            if subj.chinese_name and query_lower in subj.chinese_name.lower():
-                                match_found = True
-                                match_reason.append(f"Email Person (CN): {subj.chinese_name}")
-                                break
-                    except Exception:
-                        pass  # Table may not exist in some deployments
+            
+            # 🆕 Also check if any Email points TO this CaseProfile via caseprofile_id
+            if not email:
+                linked_emails = Email.query.filter_by(caseprofile_id=cp.id).all()
+                if linked_emails:
+                    email = linked_emails[0]  # Use first linked email
+            
+            if email:
+                total_sources += 1
+                source_types.add('EMAIL')
+                
+                # Search in alleged person names (legacy fields)
+                if email.alleged_subject_english and query_lower in email.alleged_subject_english.lower():
+                    match_found = True
+                    match_reason.append(f"Email Person: {email.alleged_subject_english.split(',')[0].strip()}")
+                if email.alleged_subject_chinese and query_lower in email.alleged_subject_chinese.lower():
+                    match_found = True
+                    match_reason.append(f"Email Person (CN): {email.alleged_subject_chinese.split(',')[0].strip()}")
+                
+                # Search in alleged nature
+                if email.alleged_nature and query_lower in email.alleged_nature.lower():
+                    match_found = True
+                    match_reason.append(f"Email Nature: {email.alleged_nature}")
+                
+                # Search in subject line
+                if email.subject and query_lower in email.subject.lower():
+                    match_found = True
+                    match_reason.append(f"Email Subject: {email.subject[:50]}...")
+                
+                # 🔧 FIX: Also search in EmailAllegedSubject table
+                try:
+                    email_subjects = EmailAllegedSubject.query.filter_by(email_id=email.id).all()
+                    for subj in email_subjects:
+                        if subj.english_name and query_lower in subj.english_name.lower():
+                            match_found = True
+                            match_reason.append(f"Email Person: {subj.english_name}")
+                            break
+                        if subj.chinese_name and query_lower in subj.chinese_name.lower():
+                            match_found = True
+                            match_reason.append(f"Email Person (CN): {subj.chinese_name}")
+                            break
+                except Exception:
+                    pass  # Table may not exist in some deployments
             
             # 2. Search in linked WHATSAPP entries
+            # 🔧 CRITICAL FIX: Check BOTH directions of the relationship
+            whatsapp = None
             if cp.whatsapp_id:
                 whatsapp = db.session.get(WhatsAppEntry, cp.whatsapp_id)
-                if whatsapp:
-                    total_sources += 1
-                    source_types.add('WHATSAPP')
+            if not whatsapp:
+                linked_wa = WhatsAppEntry.query.filter_by(caseprofile_id=cp.id).first()
+                if linked_wa:
+                    whatsapp = linked_wa
                     
-                    # Search in alleged person (legacy field)
-                    if whatsapp.alleged_person and query_lower in whatsapp.alleged_person.lower():
-                        match_found = True
-                        match_reason.append(f"WhatsApp Person: {whatsapp.alleged_person.split(',')[0].strip()}")
-                    
-                    # 🔧 FIX: Also search in new standardized fields
-                    if whatsapp.alleged_subject_english and query_lower in whatsapp.alleged_subject_english.lower():
-                        match_found = True
-                        match_reason.append(f"WhatsApp Person: {whatsapp.alleged_subject_english.split(',')[0].strip()}")
-                    if whatsapp.alleged_subject_chinese and query_lower in whatsapp.alleged_subject_chinese.lower():
-                        match_found = True
-                        match_reason.append(f"WhatsApp Person (CN): {whatsapp.alleged_subject_chinese.split(',')[0].strip()}")
-                    
-                    # 🔧 FIX: Search in WhatsAppAllegedSubject table
-                    try:
-                        wa_subjects = WhatsAppAllegedSubject.query.filter_by(whatsapp_id=whatsapp.id).all()
-                        for subj in wa_subjects:
-                            if subj.english_name and query_lower in subj.english_name.lower():
-                                match_found = True
-                                match_reason.append(f"WhatsApp Person: {subj.english_name}")
-                                break
-                            if subj.chinese_name and query_lower in subj.chinese_name.lower():
-                                match_found = True
-                                match_reason.append(f"WhatsApp Person (CN): {subj.chinese_name}")
-                                break
-                    except Exception:
-                        pass
-                    
-                    # Search in alleged type (nature)
-                    if whatsapp.alleged_type and query_lower in whatsapp.alleged_type.lower():
-                        match_found = True
-                        match_reason.append(f"WhatsApp Type: {whatsapp.alleged_type}")
-                    if whatsapp.alleged_nature and query_lower in whatsapp.alleged_nature.lower():
-                        match_found = True
-                        match_reason.append(f"WhatsApp Nature: {whatsapp.alleged_nature}")
-                    
-                    # Search in details
-                    if whatsapp.details and query_lower in whatsapp.details.lower():
-                        match_found = True
-                        match_reason.append(f"WhatsApp Details: {whatsapp.details[:50]}...")
+            if whatsapp:
+                total_sources += 1
+                source_types.add('WHATSAPP')
+                
+                # Search in alleged person (legacy field)
+                if whatsapp.alleged_person and query_lower in whatsapp.alleged_person.lower():
+                    match_found = True
+                    match_reason.append(f"WhatsApp Person: {whatsapp.alleged_person.split(',')[0].strip()}")
+                
+                # 🔧 FIX: Also search in new standardized fields
+                if whatsapp.alleged_subject_english and query_lower in whatsapp.alleged_subject_english.lower():
+                    match_found = True
+                    match_reason.append(f"WhatsApp Person: {whatsapp.alleged_subject_english.split(',')[0].strip()}")
+                if whatsapp.alleged_subject_chinese and query_lower in whatsapp.alleged_subject_chinese.lower():
+                    match_found = True
+                    match_reason.append(f"WhatsApp Person (CN): {whatsapp.alleged_subject_chinese.split(',')[0].strip()}")
+                
+                # 🔧 FIX: Search in WhatsAppAllegedSubject table
+                try:
+                    wa_subjects = WhatsAppAllegedSubject.query.filter_by(whatsapp_id=whatsapp.id).all()
+                    for subj in wa_subjects:
+                        if subj.english_name and query_lower in subj.english_name.lower():
+                            match_found = True
+                            match_reason.append(f"WhatsApp Person: {subj.english_name}")
+                            break
+                        if subj.chinese_name and query_lower in subj.chinese_name.lower():
+                            match_found = True
+                            match_reason.append(f"WhatsApp Person (CN): {subj.chinese_name}")
+                            break
+                except Exception:
+                    pass
+                
+                # Search in alleged type (nature)
+                if whatsapp.alleged_type and query_lower in whatsapp.alleged_type.lower():
+                    match_found = True
+                    match_reason.append(f"WhatsApp Type: {whatsapp.alleged_type}")
+                if whatsapp.alleged_nature and query_lower in whatsapp.alleged_nature.lower():
+                    match_found = True
+                    match_reason.append(f"WhatsApp Nature: {whatsapp.alleged_nature}")
+                
+                # Search in details
+                if whatsapp.details and query_lower in whatsapp.details.lower():
+                    match_found = True
+                    match_reason.append(f"WhatsApp Details: {whatsapp.details[:50]}...")
             
             # 3. Search in linked ONLINE PATROL entries
+            # 🔧 CRITICAL FIX: Check BOTH directions of the relationship
+            patrol = None
             if cp.patrol_id:
                 patrol = db.session.get(OnlinePatrolEntry, cp.patrol_id)
-                if patrol:
-                    total_sources += 1
-                    source_types.add('PATROL')
+            if not patrol:
+                linked_patrol = OnlinePatrolEntry.query.filter_by(caseprofile_id=cp.id).first()
+                if linked_patrol:
+                    patrol = linked_patrol
                     
-                    # Search in alleged person (legacy)
-                    if patrol.alleged_person and query_lower in patrol.alleged_person.lower():
-                        match_found = True
-                        match_reason.append(f"Patrol Person: {patrol.alleged_person.split(',')[0].strip()}")
-                    
-                    # 🔧 FIX: Also search in new standardized fields
-                    if patrol.alleged_subject_english and query_lower in patrol.alleged_subject_english.lower():
-                        match_found = True
-                        match_reason.append(f"Patrol Person: {patrol.alleged_subject_english.split(',')[0].strip()}")
-                    if patrol.alleged_subject_chinese and query_lower in patrol.alleged_subject_chinese.lower():
-                        match_found = True
-                        match_reason.append(f"Patrol Person (CN): {patrol.alleged_subject_chinese.split(',')[0].strip()}")
-                    
-                    # 🔧 FIX: Search in OnlinePatrolAllegedSubject table
-                    try:
-                        patrol_subjects = OnlinePatrolAllegedSubject.query.filter_by(patrol_id=patrol.id).all()
-                        for subj in patrol_subjects:
-                            if subj.english_name and query_lower in subj.english_name.lower():
-                                match_found = True
-                                match_reason.append(f"Patrol Person: {subj.english_name}")
-                                break
-                            if subj.chinese_name and query_lower in subj.chinese_name.lower():
-                                match_found = True
-                                match_reason.append(f"Patrol Person (CN): {subj.chinese_name}")
-                                break
-                    except Exception:
-                        pass
-                    
-                    # Search in alleged nature
-                    if patrol.alleged_nature and query_lower in patrol.alleged_nature.lower():
-                        match_found = True
-                        match_reason.append(f"Patrol Nature: {patrol.alleged_nature}")
-                    
-                    # Search in details
-                    if patrol.details and query_lower in patrol.details.lower():
-                        match_found = True
-                        match_reason.append(f"Patrol Details: {patrol.details[:50]}...")
+            if patrol:
+                total_sources += 1
+                source_types.add('PATROL')
+                
+                # Search in alleged person (legacy)
+                if patrol.alleged_person and query_lower in patrol.alleged_person.lower():
+                    match_found = True
+                    match_reason.append(f"Patrol Person: {patrol.alleged_person.split(',')[0].strip()}")
+                
+                # 🔧 FIX: Also search in new standardized fields
+                if patrol.alleged_subject_english and query_lower in patrol.alleged_subject_english.lower():
+                    match_found = True
+                    match_reason.append(f"Patrol Person: {patrol.alleged_subject_english.split(',')[0].strip()}")
+                if patrol.alleged_subject_chinese and query_lower in patrol.alleged_subject_chinese.lower():
+                    match_found = True
+                    match_reason.append(f"Patrol Person (CN): {patrol.alleged_subject_chinese.split(',')[0].strip()}")
+                
+                # 🔧 FIX: Search in OnlinePatrolAllegedSubject table
+                try:
+                    patrol_subjects = OnlinePatrolAllegedSubject.query.filter_by(patrol_id=patrol.id).all()
+                    for subj in patrol_subjects:
+                        if subj.english_name and query_lower in subj.english_name.lower():
+                            match_found = True
+                            match_reason.append(f"Patrol Person: {subj.english_name}")
+                            break
+                        if subj.chinese_name and query_lower in subj.chinese_name.lower():
+                            match_found = True
+                            match_reason.append(f"Patrol Person (CN): {subj.chinese_name}")
+                            break
+                except Exception:
+                    pass
+                
+                # Search in alleged nature
+                if patrol.alleged_nature and query_lower in patrol.alleged_nature.lower():
+                    match_found = True
+                    match_reason.append(f"Patrol Nature: {patrol.alleged_nature}")
+                
+                # Search in details
+                if patrol.details and query_lower in patrol.details.lower():
+                    match_found = True
+                    match_reason.append(f"Patrol Details: {patrol.details[:50]}...")
             
             # 4. Search in linked SURVEILLANCE entries (if field exists)
             # Note: surveillance_id may not exist in all CaseProfile versions
@@ -1889,29 +1859,39 @@ def search_int_references():
                         match_reason.append(f"Surveillance Finding: {surveillance.details_of_finding[:50]}...")
             
             # 5. Search in linked RECEIVED BY HAND entries
+            # 🔧 CRITICAL FIX: Check BOTH directions of the relationship
+            rbh = None
             if cp.received_by_hand_id:
+                rbh = db.session.get(ReceivedByHandEntry, cp.received_by_hand_id)
+            if not rbh:
                 try:
-                    rbh = db.session.get(ReceivedByHandEntry, cp.received_by_hand_id)
-                    if rbh:
-                        total_sources += 1
-                        source_types.add('RECEIVED_BY_HAND')
-                        
-                        # Search in alleged person
-                        if hasattr(rbh, 'alleged_person') and rbh.alleged_person and query_lower in rbh.alleged_person.lower():
-                            match_found = True
-                            match_reason.append(f"Received Person: {rbh.alleged_person.split(',')[0].strip()}")
-                        
-                        # Search in standardized fields
-                        if hasattr(rbh, 'alleged_subject_english') and rbh.alleged_subject_english and query_lower in rbh.alleged_subject_english.lower():
-                            match_found = True
-                            match_reason.append(f"Received Person: {rbh.alleged_subject_english.split(',')[0].strip()}")
-                        
-                        # Search in details
-                        if hasattr(rbh, 'details') and rbh.details and query_lower in rbh.details.lower():
-                            match_found = True
-                            match_reason.append(f"Received Details: {rbh.details[:50]}...")
+                    linked_rbh = ReceivedByHandEntry.query.filter_by(caseprofile_id=cp.id).first()
+                    if linked_rbh:
+                        rbh = linked_rbh
                 except Exception:
-                    pass  # Model may not exist
+                    pass
+                    
+            if rbh:
+                total_sources += 1
+                source_types.add('RECEIVED_BY_HAND')
+                
+                # Search in alleged person
+                if hasattr(rbh, 'alleged_person') and rbh.alleged_person and query_lower in rbh.alleged_person.lower():
+                    match_found = True
+                    match_reason.append(f"Received Person: {rbh.alleged_person.split(',')[0].strip()}")
+                
+                # Search in standardized fields
+                if hasattr(rbh, 'alleged_subject_english') and rbh.alleged_subject_english and query_lower in rbh.alleged_subject_english.lower():
+                    match_found = True
+                    match_reason.append(f"Received Person: {rbh.alleged_subject_english.split(',')[0].strip()}")
+                if hasattr(rbh, 'alleged_subject_chinese') and rbh.alleged_subject_chinese and query_lower in rbh.alleged_subject_chinese.lower():
+                    match_found = True
+                    match_reason.append(f"Received Person (CN): {rbh.alleged_subject_chinese.split(',')[0].strip()}")
+                
+                # Search in details
+                if hasattr(rbh, 'details') and rbh.details and query_lower in rbh.details.lower():
+                    match_found = True
+                    match_reason.append(f"Received Details: {rbh.details[:50]}...")
             
             # 6. 🆕 Also search directly in INT reference itself
             if cp.int_reference and query_lower in cp.int_reference.lower():
