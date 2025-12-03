@@ -1634,11 +1634,15 @@ def search_int_references():
         
         query_lower = query.lower()
         
+        # Debug: Log the search query
+        print(f"[INT SEARCH] Searching for: '{query}' (lowercase: '{query_lower}')")
+        
         # Search in CaseProfiles and their linked sources
         results = []
         
         # Get all case profiles
         case_profiles = CaseProfile.query.all()
+        print(f"[INT SEARCH] Total CaseProfiles to search: {len(case_profiles)}")
         
         for cp in case_profiles:
             match_found = False
@@ -1651,9 +1655,11 @@ def search_int_references():
             if cp.alleged_subject_en and query_lower in cp.alleged_subject_en.lower():
                 match_found = True
                 match_reason.append(f"INT Person: {cp.alleged_subject_en}")
+                print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: alleged_subject_en = '{cp.alleged_subject_en}'")
             if cp.alleged_subject_cn and query_lower in cp.alleged_subject_cn.lower():
                 match_found = True
                 match_reason.append(f"INT Person (CN): {cp.alleged_subject_cn}")
+                print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: alleged_subject_cn = '{cp.alleged_subject_cn}'")
             if cp.alleged_misconduct_type and query_lower in cp.alleged_misconduct_type.lower():
                 match_found = True
                 match_reason.append(f"INT Nature: {cp.alleged_misconduct_type}")
@@ -1669,7 +1675,7 @@ def search_int_references():
             
             # 1. Search in linked EMAILS
             if cp.email_id:
-                email = Email.query.get(cp.email_id)
+                email = db.session.get(Email, cp.email_id)
                 if email:
                     total_sources += 1
                     source_types.add('EMAIL')
@@ -1709,7 +1715,7 @@ def search_int_references():
             
             # 2. Search in linked WHATSAPP entries
             if cp.whatsapp_id:
-                whatsapp = WhatsAppEntry.query.get(cp.whatsapp_id)
+                whatsapp = db.session.get(WhatsAppEntry, cp.whatsapp_id)
                 if whatsapp:
                     total_sources += 1
                     source_types.add('WHATSAPP')
@@ -1757,7 +1763,7 @@ def search_int_references():
             
             # 3. Search in linked ONLINE PATROL entries
             if cp.patrol_id:
-                patrol = OnlinePatrolEntry.query.get(cp.patrol_id)
+                patrol = db.session.get(OnlinePatrolEntry, cp.patrol_id)
                 if patrol:
                     total_sources += 1
                     source_types.add('PATROL')
@@ -1803,7 +1809,7 @@ def search_int_references():
             # 4. Search in linked SURVEILLANCE entries (if field exists)
             # Note: surveillance_id may not exist in all CaseProfile versions
             if hasattr(cp, 'surveillance_id') and cp.surveillance_id:
-                surveillance = SurveillanceEntry.query.get(cp.surveillance_id)
+                surveillance = db.session.get(SurveillanceEntry, cp.surveillance_id)
                 if surveillance:
                     total_sources += 1
                     source_types.add('SURVEILLANCE')
@@ -1832,7 +1838,7 @@ def search_int_references():
             # 5. Search in linked RECEIVED BY HAND entries
             if cp.received_by_hand_id:
                 try:
-                    rbh = ReceivedByHandEntry.query.get(cp.received_by_hand_id)
+                    rbh = db.session.get(ReceivedByHandEntry, cp.received_by_hand_id)
                     if rbh:
                         total_sources += 1
                         source_types.add('RECEIVED_BY_HAND')
