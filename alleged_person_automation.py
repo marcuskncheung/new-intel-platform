@@ -965,22 +965,14 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         if not changes:
             return {'changed': 0, 'gaps_found': len(gaps), 'message': f'Found {len(gaps)} gaps but no changes needed'}
         
-        # Apply changes in two steps to avoid unique constraint issues
-        # IMPORTANT: Update poi_intelligence_link FIRST to avoid FK violation
-        
-        # Step 1: Rename poi_intelligence_link references to temporary IDs FIRST
-        print(f"   Step 1: Updating {len(changes)} poi_intelligence_link references to temp IDs...")
-        for change in changes:
-            temp_id = f"TEMP-{change['id']}"
-            db.session.execute(
-                text("UPDATE poi_intelligence_link SET poi_id = :temp WHERE poi_id = :old"),
-                {'temp': temp_id, 'old': change['old_poi_id']}
-            )
-        
+        # TEMPORARILY DISABLE FK CONSTRAINT to allow resequencing
+        # This is safe because we update both tables in the same transaction
+        print(f"   Disabling FK constraint for resequencing...")
+        db.session.execute(text("ALTER TABLE poi_intelligence_link DROP CONSTRAINT IF EXISTS poi_intelligence_link_poi_id_fkey"))
         db.session.flush()
         
-        # Step 2: Now update alleged_person_profile to temp IDs (FK refs already moved)
-        print(f"   Step 2: Updating {len(changes)} alleged_person_profile to temp IDs...")
+        # Step 1: Update alleged_person_profile to temp IDs
+        print(f"   Step 1: Updating {len(changes)} alleged_person_profile to temp IDs...")
         for change in changes:
             temp_id = f"TEMP-{change['id']}"
             db.session.execute(
@@ -990,7 +982,18 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         
         db.session.flush()
         
-        # Step 3: Apply final IDs to alleged_person_profile first
+        # Step 2: Update poi_intelligence_link to temp IDs
+        print(f"   Step 2: Updating poi_intelligence_link references to temp IDs...")
+        for change in changes:
+            temp_id = f"TEMP-{change['id']}"
+            db.session.execute(
+                text("UPDATE poi_intelligence_link SET poi_id = :temp WHERE poi_id = :old"),
+                {'temp': temp_id, 'old': change['old_poi_id']}
+            )
+        
+        db.session.flush()
+        
+        # Step 3: Apply final IDs to alleged_person_profile
         print(f"   Step 3: Applying final sequential IDs to alleged_person_profile...")
         for change in changes:
             db.session.execute(
@@ -1008,6 +1011,16 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
                 text("UPDATE poi_intelligence_link SET poi_id = :new WHERE poi_id = :temp"),
                 {'new': change['new_poi_id'], 'temp': temp_id}
             )
+        
+        db.session.flush()
+        
+        # RE-ENABLE FK CONSTRAINT
+        print(f"   Re-enabling FK constraint...")
+        db.session.execute(text("""
+            ALTER TABLE poi_intelligence_link 
+            ADD CONSTRAINT poi_intelligence_link_poi_id_fkey 
+            FOREIGN KEY (poi_id) REFERENCES alleged_person_profile(poi_id) ON DELETE CASCADE
+        """))
         
         db.session.commit()
         
