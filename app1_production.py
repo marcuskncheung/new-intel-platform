@@ -1779,8 +1779,9 @@ def search_int_references():
                         match_found = True
                         match_reason.append(f"Patrol Details: {patrol.details[:50]}...")
             
-            # 4. Search in linked SURVEILLANCE entries
-            if cp.surveillance_id:
+            # 4. Search in linked SURVEILLANCE entries (if field exists)
+            # Note: surveillance_id may not exist in all CaseProfile versions
+            if hasattr(cp, 'surveillance_id') and cp.surveillance_id:
                 surveillance = SurveillanceEntry.query.get(cp.surveillance_id)
                 if surveillance:
                     total_sources += 1
@@ -1807,7 +1808,32 @@ def search_int_references():
                         match_found = True
                         match_reason.append(f"Surveillance Finding: {surveillance.details_of_finding[:50]}...")
             
-            # 5. 🆕 Also search directly in INT reference itself
+            # 5. Search in linked RECEIVED BY HAND entries
+            if cp.received_by_hand_id:
+                try:
+                    rbh = ReceivedByHandEntry.query.get(cp.received_by_hand_id)
+                    if rbh:
+                        total_sources += 1
+                        source_types.add('RECEIVED_BY_HAND')
+                        
+                        # Search in alleged person
+                        if hasattr(rbh, 'alleged_person') and rbh.alleged_person and query_lower in rbh.alleged_person.lower():
+                            match_found = True
+                            match_reason.append(f"Received Person: {rbh.alleged_person.split(',')[0].strip()}")
+                        
+                        # Search in standardized fields
+                        if hasattr(rbh, 'alleged_subject_english') and rbh.alleged_subject_english and query_lower in rbh.alleged_subject_english.lower():
+                            match_found = True
+                            match_reason.append(f"Received Person: {rbh.alleged_subject_english.split(',')[0].strip()}")
+                        
+                        # Search in details
+                        if hasattr(rbh, 'details') and rbh.details and query_lower in rbh.details.lower():
+                            match_found = True
+                            match_reason.append(f"Received Details: {rbh.details[:50]}...")
+                except Exception:
+                    pass  # Model may not exist
+            
+            # 6. 🆕 Also search directly in INT reference itself
             if cp.int_reference and query_lower in cp.int_reference.lower():
                 match_found = True
                 match_reason.insert(0, f"INT Reference: {cp.int_reference}")
