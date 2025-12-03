@@ -1644,6 +1644,25 @@ def search_int_references():
         case_profiles = CaseProfile.query.all()
         print(f"[INT SEARCH] Total CaseProfiles to search: {len(case_profiles)}")
         
+        # Debug: Show sample of CaseProfile data
+        for cp in case_profiles[:5]:  # First 5 for debugging
+            print(f"[INT SEARCH DEBUG] {cp.int_reference}: en='{cp.alleged_subject_en}' cn='{cp.alleged_subject_cn}' email_id={cp.email_id}")
+        
+        # Debug: Search specifically for INT-1115 to see what data it has
+        for cp in case_profiles:
+            if cp.int_reference and '1115' in cp.int_reference:
+                print(f"[INT SEARCH DEBUG] Found INT-1115: {cp.int_reference}")
+                print(f"[INT SEARCH DEBUG] - alleged_subject_en: '{cp.alleged_subject_en}'")
+                print(f"[INT SEARCH DEBUG] - alleged_subject_cn: '{cp.alleged_subject_cn}'")
+                print(f"[INT SEARCH DEBUG] - email_id: {cp.email_id}")
+                print(f"[INT SEARCH DEBUG] - whatsapp_id: {cp.whatsapp_id}")
+                print(f"[INT SEARCH DEBUG] - patrol_id: {cp.patrol_id}")
+                print(f"[INT SEARCH DEBUG] - received_by_hand_id: {cp.received_by_hand_id}")
+                if cp.email_id:
+                    email = db.session.get(Email, cp.email_id)
+                    if email:
+                        print(f"[INT SEARCH DEBUG] - Linked Email: alleged_subject_english='{email.alleged_subject_english}' alleged_subject_chinese='{email.alleged_subject_chinese}'")
+        
         for cp in case_profiles:
             match_found = False
             match_reason = []
