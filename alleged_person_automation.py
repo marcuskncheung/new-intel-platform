@@ -957,61 +957,99 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         
         print(f"   Need to update {len(changes)} POI IDs")
         
-        # TEMPORARILY DISABLE UNIQUE INDEX to allow resequencing
-        print(f"   Disabling constraints for resequencing...")
-        db.session.execute(text("DROP INDEX IF EXISTS ix_alleged_person_profile_poi_id"))
-        db.session.execute(text("ALTER TABLE poi_intelligence_link DROP CONSTRAINT IF EXISTS poi_intelligence_link_poi_id_fkey"))
-        db.session.flush()
+        # ============================================================
+        # STEP 1: DROP ALL CONSTRAINTS that reference poi_id
+        # ============================================================
+        print(f"   Step 1: Dropping ALL constraints on poi_id...")
         
-        # Step 1: Update ALL affected alleged_person_profile to temp IDs first
-        print(f"   Step 1: Updating {len(changes)} alleged_person_profile to temp IDs...")
+        # Drop FK constraints from child tables (these reference the unique index)
+        db.session.execute(text("ALTER TABLE poi_intelligence_link DROP CONSTRAINT IF EXISTS poi_intelligence_link_poi_id_fkey"))
+        db.session.execute(text("ALTER TABLE poi_assessment_history DROP CONSTRAINT IF EXISTS poi_assessment_history_poi_id_fkey"))
+        
+        # Now we can drop the unique index (no more FK dependencies)
+        db.session.execute(text("DROP INDEX IF EXISTS ix_alleged_person_profile_poi_id"))
+        
+        db.session.flush()
+        print(f"   ✓ All constraints dropped")
+        
+        # ============================================================
+        # STEP 2: Update alleged_person_profile to TEMP IDs
+        # ============================================================
+        print(f"   Step 2: Updating {len(changes)} alleged_person_profile to temp IDs...")
         for change in changes:
             temp_id = f"TEMP-{change['id']}"
             db.session.execute(
                 text("UPDATE alleged_person_profile SET poi_id = :temp WHERE id = :id"),
                 {'temp': temp_id, 'id': change['id']}
             )
-        
         db.session.flush()
         
-        # Step 2: Update poi_intelligence_link to temp IDs
-        print(f"   Step 2: Updating poi_intelligence_link references to temp IDs...")
+        # ============================================================
+        # STEP 3: Update ALL child tables to TEMP IDs
+        # ============================================================
+        print(f"   Step 3: Updating child tables to temp IDs...")
         for change in changes:
             temp_id = f"TEMP-{change['id']}"
+            # poi_intelligence_link
             db.session.execute(
                 text("UPDATE poi_intelligence_link SET poi_id = :temp WHERE poi_id = :old"),
                 {'temp': temp_id, 'old': change['old_poi_id']}
             )
-        
+            # poi_assessment_history
+            db.session.execute(
+                text("UPDATE poi_assessment_history SET poi_id = :temp WHERE poi_id = :old"),
+                {'temp': temp_id, 'old': change['old_poi_id']}
+            )
         db.session.flush()
         
-        # Step 3: Apply final IDs to alleged_person_profile
-        print(f"   Step 3: Applying final sequential IDs to alleged_person_profile...")
+        # ============================================================
+        # STEP 4: Apply final sequential IDs to alleged_person_profile
+        # ============================================================
+        print(f"   Step 4: Applying final sequential IDs to alleged_person_profile...")
         for change in changes:
             db.session.execute(
                 text("UPDATE alleged_person_profile SET poi_id = :new WHERE id = :id"),
                 {'new': change['new_poi_id'], 'id': change['id']}
             )
-        
         db.session.flush()
         
-        # Step 4: Update poi_intelligence_link to final IDs
-        print(f"   Step 4: Updating poi_intelligence_link to final IDs...")
+        # ============================================================
+        # STEP 5: Update ALL child tables to final IDs
+        # ============================================================
+        print(f"   Step 5: Updating child tables to final IDs...")
         for change in changes:
             temp_id = f"TEMP-{change['id']}"
+            # poi_intelligence_link
             db.session.execute(
                 text("UPDATE poi_intelligence_link SET poi_id = :new WHERE poi_id = :temp"),
                 {'new': change['new_poi_id'], 'temp': temp_id}
             )
-        
+            # poi_assessment_history
+            db.session.execute(
+                text("UPDATE poi_assessment_history SET poi_id = :new WHERE poi_id = :temp"),
+                {'new': change['new_poi_id'], 'temp': temp_id}
+            )
         db.session.flush()
         
-        # RE-ENABLE CONSTRAINTS
-        print(f"   Re-enabling constraints...")
+        # ============================================================
+        # STEP 6: RE-CREATE ALL CONSTRAINTS
+        # ============================================================
+        print(f"   Step 6: Re-creating all constraints...")
+        
+        # Recreate unique index on poi_id
         db.session.execute(text("CREATE UNIQUE INDEX ix_alleged_person_profile_poi_id ON alleged_person_profile(poi_id)"))
+        
+        # Recreate FK constraint from poi_intelligence_link
         db.session.execute(text("""
             ALTER TABLE poi_intelligence_link 
             ADD CONSTRAINT poi_intelligence_link_poi_id_fkey 
+            FOREIGN KEY (poi_id) REFERENCES alleged_person_profile(poi_id) ON DELETE CASCADE
+        """))
+        
+        # Recreate FK constraint from poi_assessment_history
+        db.session.execute(text("""
+            ALTER TABLE poi_assessment_history 
+            ADD CONSTRAINT poi_assessment_history_poi_id_fkey 
             FOREIGN KEY (poi_id) REFERENCES alleged_person_profile(poi_id) ON DELETE CASCADE
         """))
         
@@ -1027,4 +1065,6 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
     except Exception as e:
         db.session.rollback()
         print(f"❌ Auto-resequence failed: {e}")
+        import traceback
+        traceback.print_exc()
         return {'changed': 0, 'gaps_found': 0, 'message': f'Error: {e}'}
