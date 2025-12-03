@@ -13,7 +13,7 @@ Features:
 6. Create missing POI links
 """
 
-def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink, Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target):
+def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink, Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target, ReceivedByHandEntry=None):
     """
     Rescan all intelligence sources and update POI profiles
     
@@ -31,7 +31,8 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         'email': {'scanned': 0, 'profiles_created': 0, 'profiles_updated': 0, 'links_created': 0},
         'whatsapp': {'scanned': 0, 'profiles_created': 0, 'profiles_updated': 0, 'links_created': 0},
         'patrol': {'scanned': 0, 'profiles_created': 0, 'profiles_updated': 0, 'links_created': 0},
-        'surveillance': {'scanned': 0, 'profiles_created': 0, 'profiles_updated': 0, 'links_created': 0}
+        'surveillance': {'scanned': 0, 'profiles_created': 0, 'profiles_updated': 0, 'links_created': 0},
+        'received_by_hand': {'scanned': 0, 'profiles_created': 0, 'profiles_updated': 0, 'links_created': 0}
     }
     
     print("[POI REFRESH] 🔄 Starting comprehensive POI profile refresh...")
@@ -40,7 +41,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # ====================================================================
         # SCAN EMAILS
         # ====================================================================
-        print("\n[1/4] Scanning Email assessments...")
+        print("\n[1/5] Scanning Email assessments...")
         emails = db.session.query(Email).filter(
             (Email.alleged_subject_english.isnot(None)) | 
             (Email.alleged_subject_chinese.isnot(None))
@@ -234,7 +235,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # ====================================================================
         # SCAN WHATSAPP
         # ====================================================================
-        print("\n[2/4] Scanning WhatsApp entries...")
+        print("\n[2/5] Scanning WhatsApp entries...")
         whatsapp_entries = db.session.query(WhatsAppEntry).filter(
             (WhatsAppEntry.alleged_subject_english.isnot(None)) | 
             (WhatsAppEntry.alleged_subject_chinese.isnot(None))
@@ -383,7 +384,7 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
         # ====================================================================
         # SCAN PATROL
         # ====================================================================
-        print("\n[3/4] Scanning Online Patrol entries...")
+        print("\n[3/5] Scanning Online Patrol entries...")
         patrol_entries = db.session.query(OnlinePatrolEntry).filter(
             (OnlinePatrolEntry.alleged_subject_english.isnot(None)) | 
             (OnlinePatrolEntry.alleged_subject_chinese.isnot(None))
@@ -405,65 +406,132 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             
             db.session.flush()
             
-            # Now create fresh links based on CURRENT assessment details
-            english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
-            chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
+            # ✅ CRITICAL FIX: Read from OnlinePatrolAllegedSubject relational table (correct pairing)
+            from app1_production import OnlinePatrolAllegedSubject
+            alleged_subjects = db.session.query(OnlinePatrolAllegedSubject).filter_by(patrol_id=entry.id).order_by(OnlinePatrolAllegedSubject.sequence_order).all()
             
-            max_len = max(len(english_names), len(chinese_names))
-            
-            for i in range(max_len):
-                eng_name = english_names[i] if i < len(english_names) else None
-                chi_name = chinese_names[i] if i < len(chinese_names) else None
+            if not alleged_subjects:
+                # FALLBACK: Use old comma-separated fields if relational table is empty
+                print(f"[POI REFRESH] ⚠️ Patrol {entry.id}: No records in online_patrol_alleged_subjects table, using legacy fields")
+                english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
+                chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
                 
-                if not eng_name and not chi_name:
-                    continue
+                # ⚠️ CRITICAL WARNING: Check for name count mismatch
+                if len(english_names) != len(chinese_names) and english_names and chinese_names:
+                    print(f"[POI REFRESH] ⚠️ WARNING: Patrol {entry.id} has {len(english_names)} English names but {len(chinese_names)} Chinese names!")
+                    print(f"[POI REFRESH] ⚠️ Names may be incorrectly paired! Please update the assessment to save to relational table.")
                 
-                result = create_or_update_alleged_person_profile(
-                    db, AllegedPersonProfile, EmailAllegedPersonLink,
-                    name_english=eng_name,
-                    name_chinese=chi_name,
-                    email_id=None,
-                    source="PATROL",
-                    update_mode="merge"
-                )
+                max_len = max(len(english_names), len(chinese_names))
                 
-                if result.get('action') == 'created':
-                    results['patrol']['profiles_created'] += 1
-                elif result.get('action') == 'updated':
-                    results['patrol']['profiles_updated'] += 1
-                
-                # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
-                if result.get('poi_id'):
-                    existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                        poi_id=result['poi_id'],
-                        source_type='PATROL',
-                        source_id=entry.id
-                    ).first()
+                for i in range(max_len):
+                    eng_name = english_names[i] if i < len(english_names) else None
+                    chi_name = chinese_names[i] if i < len(chinese_names) else None
                     
-                    if not existing_link:
-                        new_link = POIIntelligenceLink(
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,
+                        source="PATROL",
+                        update_mode="merge"
+                    )
+                    
+                    if result.get('action') == 'created':
+                        results['patrol']['profiles_created'] += 1
+                    elif result.get('action') == 'updated':
+                        results['patrol']['profiles_updated'] += 1
+                    
+                    # 🔧 FIX: Create universal link ALWAYS (even if no case_profile_id)
+                    if result.get('poi_id'):
+                        existing_link = db.session.query(POIIntelligenceLink).filter_by(
                             poi_id=result['poi_id'],
                             source_type='PATROL',
-                            source_id=entry.id,
-                            case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
-                            confidence_score=0.90,
-                            extraction_method='REFRESH'
-                        )
-                        db.session.add(new_link)
-                        results['patrol']['links_created'] += 1
-                        print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← PATROL-{entry.id}")
+                            source_id=entry.id
+                        ).first()
+                        
+                        if not existing_link:
+                            new_link = POIIntelligenceLink(
+                                poi_id=result['poi_id'],
+                                source_type='PATROL',
+                                source_id=entry.id,
+                                case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
+                                confidence_score=0.90,
+                                extraction_method='REFRESH'
+                            )
+                            db.session.add(new_link)
+                            results['patrol']['links_created'] += 1
+                            print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← PATROL-{entry.id}")
+            else:
+                # ✅ NEW METHOD: Read from relational table (guaranteed correct pairing)
+                print(f"[POI REFRESH] ✅ Patrol {entry.id}: Processing {len(alleged_subjects)} alleged subjects from relational table")
+                
+                for subject in alleged_subjects:
+                    eng_name = subject.english_name
+                    chi_name = subject.chinese_name
+                    
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,
+                        source="PATROL",
+                        update_mode="merge"
+                    )
+                    
+                    if result.get('action') == 'created':
+                        results['patrol']['profiles_created'] += 1
+                    elif result.get('action') == 'updated':
+                        results['patrol']['profiles_updated'] += 1
+                    
+                    # Create universal link
+                    if result.get('poi_id'):
+                        existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                            poi_id=result['poi_id'],
+                            source_type='PATROL',
+                            source_id=entry.id
+                        ).first()
+                        
+                        if not existing_link:
+                            new_link = POIIntelligenceLink(
+                                poi_id=result['poi_id'],
+                                source_type='PATROL',
+                                source_id=entry.id,
+                                case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
+                                confidence_score=0.90,
+                                extraction_method='REFRESH'
+                            )
+                            db.session.add(new_link)
+                            results['patrol']['links_created'] += 1
+                            print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← PATROL-{entry.id}")
             
             # 🔧 FIX: Commit after processing EACH entry
             db.session.commit()
             
-            print(f"[POI REFRESH] ✅ PATROL-{entry.id} synced: {max_len} POI link(s) created")
+            # Count how many alleged subjects were processed
+            if alleged_subjects:
+                subject_count = len(alleged_subjects)
+                data_source = 'NEW table'
+            elif 'english_names' in locals() or 'max_len' in locals():
+                subject_count = max_len if 'max_len' in locals() else 0
+                data_source = 'LEGACY columns'
+            else:
+                subject_count = 0
+                data_source = 'NONE (empty Patrol)'
+            
+            print(f"[POI REFRESH] ✅ PATROL-{entry.id} synced: {subject_count} alleged subject(s) processed from {data_source}")
         
         print(f"  ✅ Patrol: {results['patrol']['scanned']} scanned, {results['patrol']['profiles_created']} created, {results['patrol']['profiles_updated']} updated, {results['patrol']['links_created']} links")
         
         # ====================================================================
         # SCAN SURVEILLANCE
         # ====================================================================
-        print("\n[4/4] Scanning Surveillance targets...")
+        print("\n[4/5] Scanning Surveillance targets...")
         
         # Get all surveillance entries (not individual targets)
         surveillance_entries = db.session.query(SurveillanceEntry).all()
@@ -542,6 +610,155 @@ def refresh_poi_from_all_sources(db, AllegedPersonProfile, EmailAllegedPersonLin
             print(f"[POI REFRESH] ✅ SURVEILLANCE-{entry.id} synced: {target_count} target(s) processed")
         
         print(f"  ✅ Surveillance: {results['surveillance']['scanned']} scanned, {results['surveillance']['profiles_created']} created, {results['surveillance']['profiles_updated']} updated")
+        
+        # ====================================================================
+        # SCAN RECEIVED BY HAND
+        # ====================================================================
+        print("\n[5/5] Scanning Received By Hand entries...")
+        
+        if ReceivedByHandEntry:
+            rbh_entries = db.session.query(ReceivedByHandEntry).filter(
+                (ReceivedByHandEntry.alleged_subject_english.isnot(None)) | 
+                (ReceivedByHandEntry.alleged_subject_chinese.isnot(None))
+            ).all()
+            
+            results['received_by_hand']['scanned'] = len(rbh_entries)
+            
+            for entry in rbh_entries:
+                # 🔄 CRITICAL FIX: Remove ALL old POI links for this RBH first
+                print(f"[POI REFRESH] 🧹 Syncing RECEIVED_BY_HAND-{entry.id} with current assessment details")
+                
+                old_universal_links = db.session.query(POIIntelligenceLink).filter_by(
+                    source_type='RECEIVED_BY_HAND',
+                    source_id=entry.id
+                ).all()
+                for old_link in old_universal_links:
+                    print(f"[POI REFRESH] 🗑️ Removing old link: {old_link.poi_id} → RECEIVED_BY_HAND-{entry.id}")
+                    db.session.delete(old_link)
+                
+                db.session.flush()
+                
+                # ✅ Try to read from ReceivedByHandAllegedSubject relational table
+                try:
+                    from app1_production import ReceivedByHandAllegedSubject
+                    alleged_subjects = db.session.query(ReceivedByHandAllegedSubject).filter_by(received_by_hand_id=entry.id).order_by(ReceivedByHandAllegedSubject.sequence_order).all()
+                except Exception:
+                    alleged_subjects = []
+                
+                if not alleged_subjects:
+                    # FALLBACK: Use old comma-separated fields if relational table is empty
+                    print(f"[POI REFRESH] ⚠️ RBH {entry.id}: No records in received_by_hand_alleged_subjects table, using legacy fields")
+                    english_names = [n.strip() for n in (entry.alleged_subject_english or '').split(',') if n.strip()]
+                    chinese_names = [n.strip() for n in (entry.alleged_subject_chinese or '').split(',') if n.strip()]
+                    
+                    max_len = max(len(english_names), len(chinese_names))
+                    
+                    for i in range(max_len):
+                        eng_name = english_names[i] if i < len(english_names) else None
+                        chi_name = chinese_names[i] if i < len(chinese_names) else None
+                        
+                        if not eng_name and not chi_name:
+                            continue
+                        
+                        result = create_or_update_alleged_person_profile(
+                            db, AllegedPersonProfile, EmailAllegedPersonLink,
+                            name_english=eng_name,
+                            name_chinese=chi_name,
+                            email_id=None,
+                            source="RECEIVED_BY_HAND",
+                            update_mode="merge"
+                        )
+                        
+                        if result.get('action') == 'created':
+                            results['received_by_hand']['profiles_created'] += 1
+                        elif result.get('action') == 'updated':
+                            results['received_by_hand']['profiles_updated'] += 1
+                        
+                        # Create universal link
+                        if result.get('poi_id'):
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['poi_id'],
+                                source_type='RECEIVED_BY_HAND',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                new_link = POIIntelligenceLink(
+                                    poi_id=result['poi_id'],
+                                    source_type='RECEIVED_BY_HAND',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
+                                    confidence_score=0.90,
+                                    extraction_method='REFRESH'
+                                )
+                                db.session.add(new_link)
+                                results['received_by_hand']['links_created'] += 1
+                                print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← RECEIVED_BY_HAND-{entry.id}")
+                else:
+                    # ✅ NEW METHOD: Read from relational table (guaranteed correct pairing)
+                    print(f"[POI REFRESH] ✅ RBH {entry.id}: Processing {len(alleged_subjects)} alleged subjects from relational table")
+                    
+                    for subject in alleged_subjects:
+                        eng_name = subject.english_name
+                        chi_name = subject.chinese_name
+                        
+                        if not eng_name and not chi_name:
+                            continue
+                        
+                        result = create_or_update_alleged_person_profile(
+                            db, AllegedPersonProfile, EmailAllegedPersonLink,
+                            name_english=eng_name,
+                            name_chinese=chi_name,
+                            email_id=None,
+                            source="RECEIVED_BY_HAND",
+                            update_mode="merge"
+                        )
+                        
+                        if result.get('action') == 'created':
+                            results['received_by_hand']['profiles_created'] += 1
+                        elif result.get('action') == 'updated':
+                            results['received_by_hand']['profiles_updated'] += 1
+                        
+                        # Create universal link
+                        if result.get('poi_id'):
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['poi_id'],
+                                source_type='RECEIVED_BY_HAND',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                new_link = POIIntelligenceLink(
+                                    poi_id=result['poi_id'],
+                                    source_type='RECEIVED_BY_HAND',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id if entry.caseprofile_id else None,
+                                    confidence_score=0.90,
+                                    extraction_method='REFRESH'
+                                )
+                                db.session.add(new_link)
+                                results['received_by_hand']['links_created'] += 1
+                                print(f"[POI REFRESH] 🔗 Created source link: {result['poi_id']} ← RECEIVED_BY_HAND-{entry.id}")
+                
+                # Commit after each RBH entry
+                db.session.commit()
+                
+                # Count how many alleged subjects were processed
+                if alleged_subjects:
+                    subject_count = len(alleged_subjects)
+                    data_source = 'NEW table'
+                elif 'max_len' in locals():
+                    subject_count = max_len if max_len else 0
+                    data_source = 'LEGACY columns'
+                else:
+                    subject_count = 0
+                    data_source = 'NONE (empty RBH)'
+                
+                print(f"[POI REFRESH] ✅ RECEIVED_BY_HAND-{entry.id} synced: {subject_count} alleged subject(s) processed from {data_source}")
+            
+            print(f"  ✅ Received By Hand: {results['received_by_hand']['scanned']} scanned, {results['received_by_hand']['profiles_created']} created, {results['received_by_hand']['profiles_updated']} updated")
+        else:
+            print("  ⚠️ Received By Hand: Model not provided, skipping")
         
         # ====================================================================
         # VERIFY ALL POIS HAVE SOURCES

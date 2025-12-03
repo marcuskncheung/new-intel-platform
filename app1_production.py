@@ -5364,7 +5364,8 @@ def refresh_poi_profiles():
         # Run the refresh within current app context (already have it from @login_required)
         result = refresh_poi_from_all_sources(
             db, AllegedPersonProfile, EmailAllegedPersonLink, POIIntelligenceLink,
-            Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target
+            Email, WhatsAppEntry, OnlinePatrolEntry, SurveillanceEntry, Target,
+            ReceivedByHandEntry=ReceivedByHandEntry
         )
         
         if result['success']:
@@ -8029,6 +8030,23 @@ def online_patrol_detail(entry_id):
             entry.alleged_subject_english = ', '.join(english_names) if english_names else None
             entry.alleged_subject_chinese = ', '.join(chinese_names) if chinese_names else None
             
+            # ✅ CRITICAL FIX: Save to OnlinePatrolAllegedSubject relational table (same as update_assessment)
+            # This ensures POI system can find all alleged persons individually
+            OnlinePatrolAllegedSubject.query.filter_by(patrol_id=entry.id).delete()
+            
+            for i in range(max(len(english_names), len(chinese_names))):
+                eng_name = english_names[i] if i < len(english_names) else None
+                chi_name = chinese_names[i] if i < len(chinese_names) else None
+                
+                if eng_name or chi_name:
+                    alleged_subject = OnlinePatrolAllegedSubject(
+                        patrol_id=entry.id,
+                        english_name=eng_name.strip() if eng_name else None,
+                        chinese_name=chi_name.strip() if chi_name else None,
+                        sequence_order=i
+                    )
+                    db.session.add(alleged_subject)
+            
             from secure_logger import secure_log_debug
             secure_log_debug(
                 "Saving online patrol information", 
@@ -10366,10 +10384,92 @@ def received_by_hand_detail(entry_id):
             # Update basic fields
             entry.complaint_name = request.form.get("complaint_name", "").strip() or None
             entry.contact_number = request.form.get("contact_number", "").strip() or None
-            entry.alleged_person = request.form.get("alleged_person", "").strip() or None
             entry.alleged_type = request.form.get("alleged_type", "").strip() or None
             entry.source = request.form.get("source", "").strip() or None
             entry.details = request.form.get("details", "").strip() or None
+            
+            # ✅ Handle multiple alleged subjects (same as Email/WhatsApp/Patrol)
+            english_names = request.form.getlist("alleged_subjects_en[]")
+            chinese_names = request.form.getlist("alleged_subjects_cn[]")
+            license_types = request.form.getlist("intermediary_type[]")
+            license_numbers_list = request.form.getlist("license_numbers[]")
+            
+            # Process alleged subjects
+            processed_english = []
+            processed_chinese = []
+            license_info = []
+            intermediary_info = []
+            
+            max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
+            
+            for i in range(max_len):
+                english_name = english_names[i].strip() if i < len(english_names) else ""
+                chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+                
+                if english_name or chinese_name:
+                    processed_english.append(english_name)
+                    processed_chinese.append(chinese_name)
+                    
+                    if i < len(license_numbers_list):
+                        license_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+                        license_type = license_types[i] if i < len(license_types) else ""
+                        license_info.append(license_num if license_num else "")
+                        intermediary_info.append(license_type if license_type else "")
+            
+            # ✅ CRITICAL FIX: Save to ReceivedByHandAllegedSubject relational table
+            ReceivedByHandAllegedSubject.query.filter_by(received_by_hand_id=entry.id).delete()
+            
+            for i in range(max(len(processed_english), len(processed_chinese))):
+                eng_name = processed_english[i] if i < len(processed_english) else None
+                chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+                lic_type = license_types[i] if i < len(license_types) else None
+                lic_num = license_numbers_list[i] if i < len(license_numbers_list) else None
+                
+                if eng_name or chi_name:
+                    alleged_subject = ReceivedByHandAllegedSubject(
+                        received_by_hand_id=entry.id,
+                        english_name=eng_name.strip() if eng_name else None,
+                        chinese_name=chi_name.strip() if chi_name else None,
+                        license_type=lic_type.strip() if lic_type else None,
+                        license_number=lic_num.strip() if lic_num else None,
+                        sequence_order=i
+                    )
+                    db.session.add(alleged_subject)
+            
+            # SAFETY: Keep old columns for backward compatibility
+            entry.alleged_subject_english = ', '.join(processed_english) if processed_english else None
+            entry.alleged_subject_chinese = ', '.join(processed_chinese) if processed_chinese else None
+            
+            # Update legacy field
+            if processed_english and processed_chinese:
+                combined_subjects = []
+                for i in range(max(len(processed_english), len(processed_chinese))):
+                    eng = processed_english[i] if i < len(processed_english) else ""
+                    chn = processed_chinese[i] if i < len(processed_chinese) else ""
+                    if eng and chn:
+                        combined_subjects.append(f"{eng} ({chn})")
+                    elif eng:
+                        combined_subjects.append(eng)
+                    elif chn:
+                        combined_subjects.append(f"({chn})")
+                entry.alleged_person = ', '.join(combined_subjects)
+            elif processed_english:
+                entry.alleged_person = ', '.join(processed_english)
+            elif processed_chinese:
+                entry.alleged_person = ', '.join(processed_chinese)
+            else:
+                # Fallback to single field if no list provided
+                entry.alleged_person = request.form.get("alleged_person", "").strip() or None
+            
+            # Store license information
+            if license_info and any(license_info):
+                entry.license_numbers_json = json.dumps(license_info)
+                entry.intermediary_types_json = json.dumps(intermediary_info)
+                entry.license_number = next((lic for lic in license_info if lic), None)
+            else:
+                entry.license_numbers_json = None
+                entry.intermediary_types_json = None
+                entry.license_number = None
             
             # Update assessment fields
             source_reliability = request.form.get("source_reliability")
@@ -10381,6 +10481,22 @@ def received_by_hand_detail(entry_id):
             entry.reviewer_comment = request.form.get("reviewer_comment", "").strip() or None
             entry.reviewer_decision = request.form.get("reviewer_decision", "").strip() or None
             
+            # Handle alleged nature as JSON array
+            alleged_nature_input = request.form.get("alleged_nature")
+            if alleged_nature_input:
+                try:
+                    alleged_nature_list = json.loads(alleged_nature_input)
+                    if isinstance(alleged_nature_list, list) and len(alleged_nature_list) > 0:
+                        entry.alleged_nature = json.dumps(alleged_nature_list)
+                    else:
+                        entry.alleged_nature = None
+                except (json.JSONDecodeError, ValueError):
+                    entry.alleged_nature = alleged_nature_input if alleged_nature_input.strip() else None
+            else:
+                entry.alleged_nature = None
+            
+            entry.allegation_summary = request.form.get("allegation_summary")
+            
             # Determine case opening
             combined_score = (entry.source_reliability or 0) + (entry.content_validity or 0)
             if combined_score >= 8 and entry.reviewer_decision == 'agree':
@@ -10391,7 +10507,63 @@ def received_by_hand_detail(entry_id):
             entry.assessment_updated_at = get_hk_time()
             db.session.commit()
             
-            flash("Entry updated successfully.", "success")
+            # 🤖 AUTO-UPDATE POI PROFILES
+            if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
+                try:
+                    print(f"[RBH AUTOMATION] 🚀 Auto-updating POI profiles for Received By Hand entry {entry.id}")
+                    
+                    max_persons = max(len(processed_english), len(processed_chinese))
+                    
+                    for i in range(max_persons):
+                        eng_name = processed_english[i] if i < len(processed_english) else None
+                        chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+                        
+                        if not eng_name and not chi_name:
+                            continue
+                        
+                        print(f"[RBH AUTOMATION] Processing person #{i+1}: EN='{eng_name}' CN='{chi_name}'")
+                        
+                        result = create_or_update_alleged_person_profile(
+                            db, AllegedPersonProfile, EmailAllegedPersonLink,
+                            name_english=eng_name,
+                            name_chinese=chi_name,
+                            email_id=None,
+                            source="RECEIVED_BY_HAND",
+                            update_mode="merge"
+                        )
+                        
+                        if result.get('poi_id'):
+                            # Create universal link in POI v2.0 table
+                            try:
+                                existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                    poi_id=result['poi_id'],
+                                    source_type='RECEIVED_BY_HAND',
+                                    source_id=entry.id
+                                ).first()
+                                
+                                if not existing_link:
+                                    universal_link = POIIntelligenceLink(
+                                        poi_id=result['poi_id'],
+                                        source_type='RECEIVED_BY_HAND',
+                                        source_id=entry.id,
+                                        case_profile_id=entry.caseprofile_id,
+                                        confidence_score=0.90,
+                                        created_by=f"USER-{current_user.username}"
+                                    )
+                                    db.session.add(universal_link)
+                                    db.session.commit()
+                                    print(f"[RBH AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                            except Exception as link_error:
+                                print(f"[RBH AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                    
+                    flash(f"Entry updated and {max_persons} POI profile(s) processed.", "success")
+                    
+                except Exception as automation_error:
+                    print(f"[RBH AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                    flash("Entry updated, but POI automation had an error.", "warning")
+            else:
+                flash("Entry updated successfully.", "success")
+            
             return redirect(url_for('received_by_hand_detail', entry_id=entry_id))
         except Exception as e:
             db.session.rollback()
