@@ -1646,6 +1646,27 @@ def search_int_references():
             source_types = set()
             total_sources = 0
             
+            # 🆕 CRITICAL FIX: Search in CaseProfile's OWN fields first!
+            # These are the fields where alleged names are stored directly in the INT reference
+            if cp.alleged_subject_en and query_lower in cp.alleged_subject_en.lower():
+                match_found = True
+                match_reason.append(f"INT Person: {cp.alleged_subject_en}")
+            if cp.alleged_subject_cn and query_lower in cp.alleged_subject_cn.lower():
+                match_found = True
+                match_reason.append(f"INT Person (CN): {cp.alleged_subject_cn}")
+            if cp.alleged_misconduct_type and query_lower in cp.alleged_misconduct_type.lower():
+                match_found = True
+                match_reason.append(f"INT Nature: {cp.alleged_misconduct_type}")
+            if cp.description_of_incident and query_lower in cp.description_of_incident.lower():
+                match_found = True
+                match_reason.append(f"INT Description: {cp.description_of_incident[:50]}...")
+            if cp.agent_number and query_lower in cp.agent_number.lower():
+                match_found = True
+                match_reason.append(f"INT Agent#: {cp.agent_number}")
+            if cp.agent_company_broker and query_lower in cp.agent_company_broker.lower():
+                match_found = True
+                match_reason.append(f"INT Company: {cp.agent_company_broker}")
+            
             # 1. Search in linked EMAILS
             if cp.email_id:
                 email = Email.query.get(cp.email_id)
