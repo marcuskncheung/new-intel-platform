@@ -212,8 +212,7 @@ def init_models(db_instance):
                 'source_type': self.source_type,
                 'source_id': self.source_id,
                 'confidence_score': self.confidence_score,
-                'extraction_method': self.extraction_method,
-                # 'created_by': self.created_by,  # Column removed from model - see line 193
+                'created_by': self.created_by,
                 'created_at': self.created_at.isoformat() if self.created_at else None
             }
 
@@ -331,19 +330,16 @@ def init_models(db_instance):
         
         def to_dict(self):
             """Convert to dictionary for JSON serialization"""
-            # NOTE: Only include columns that exist in database
-            # Columns like previous_risk_score, new_risk_score, assessment_reason
-            # are commented out in model definition (see lines 316-327)
             return {
                 'id': self.id,
                 'poi_id': self.poi_id,
                 'assessed_by': self.assessed_by,
                 'assessment_date': self.assessment_date.isoformat() if self.assessment_date else None,
                 'previous_risk_level': self.previous_risk_level,
-                'new_risk_level': self.new_risk_level
-                # 'previous_risk_score': self.previous_risk_score,  # ❌ Not in DB
-                # 'new_risk_score': self.new_risk_score,            # ❌ Not in DB
-                # 'assessment_reason': self.assessment_reason       # ❌ Not in DB
+                'new_risk_level': self.new_risk_level,
+                'previous_risk_score': self.previous_risk_score,
+                'new_risk_score': self.new_risk_score,
+                'assessment_reason': self.assessment_reason
             }
 
 

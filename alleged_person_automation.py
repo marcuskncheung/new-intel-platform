@@ -49,17 +49,29 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     - Fuzzy matching for English names
     - Handles name variations and common misspellings
     - Excludes company names from matching personal names
+    - Prevents single-word name false matches (e.g., "LEUNG" vs "LEUNG TAI LIN")
     """
     if not name1 or not name2:
         return 0.0
     
     # ✅ CRITICAL FIX: Check if either name is a company name
+    # 🔧 EXPANDED: Added more company indicators
     company_indicators = [
+        # English indicators
         'limited', 'ltd', 'llc', 'inc', 'corp', 'corporation',
         'company', 'co', 'group', 'holdings', 'international',
-        '有限公司', '公司', '集團', '控股', '國際', '投資',
         'consultant', 'consulting', 'services', 'advisory',
-        'financial', 'insurance', 'wealth', 'asset'
+        'financial', 'insurance', 'wealth', 'asset',
+        'enterprise', 'enterprises', 'association', 'foundation',
+        'property', 'properties', 'real estate', 'realty',
+        'agency', 'agents', 'bank', 'banking', 'finance',
+        'trust', 'trustees', 'investments', 'capital',
+        'development', 'management', 'solutions',
+        # Chinese indicators
+        '有限公司', '公司', '集團', '控股', '國際', '投資',
+        '發展', '實業', '地產', '代理', '商業', '企業',
+        '顧問', '服務', '銀行', '金融', '信託', '基金會',
+        '物業', '管理', '證券'
     ]
     
     name1_lower = name1.lower()
@@ -124,6 +136,27 @@ def calculate_name_similarity(name1: str, name2: str) -> float:
     words2 = set(norm2.split())
     
     if words1 and words2:
+        # 🔧 FIX #1: Check if names have same parts in different order
+        # e.g., "Chan Wei Ming" vs "Wei Ming Chan" → Same person (0.95)
+        words1_lower = set(w.lower() for w in words1)
+        words2_lower = set(w.lower() for w in words2)
+        if words1_lower == words2_lower:
+            print(f"[NAME MATCHING] Same words different order: '{name1}' vs '{name2}' → 0.95")
+            return 0.95
+        
+        # 🔧 FIX #2: CRITICAL - Single-word name protection
+        # Prevents "LEUNG" from matching "LEUNG TAI LIN" with false positive
+        if len(words1) == 1 and len(words2) > 1:
+            # Single word (surname only) cannot reliably match full name
+            # Cap the similarity to prevent false matches
+            similarity = min(0.50, similarity)
+            print(f"[NAME MATCHING] Single-word protection: '{name1}' vs '{name2}' → capped at {similarity:.2f}")
+            return similarity
+        if len(words2) == 1 and len(words1) > 1:
+            similarity = min(0.50, similarity)
+            print(f"[NAME MATCHING] Single-word protection: '{name1}' vs '{name2}' → capped at {similarity:.2f}")
+            return similarity
+        
         common_words = words1.intersection(words2)
         word_similarity = len(common_words) / max(len(words1), len(words2))
         
@@ -189,7 +222,7 @@ def generate_next_poi_id(db, AllegedPersonProfile) -> str:
 def find_matching_profile(db, AllegedPersonProfile, 
                          name_english: str, name_chinese: str,
                          agent_number: str = None, company: str = None,
-                         similarity_threshold: float = 0.80) -> Optional[Dict]:
+                         similarity_threshold: float = 0.85) -> Optional[Dict]:
     """
     Find existing profile that matches the given person details
     
@@ -201,8 +234,7 @@ def find_matching_profile(db, AllegedPersonProfile,
         agent_number: Optional agent/license number
         company: Optional company name
         similarity_threshold: Minimum similarity score (0.0-1.0)
-                             Lowered to 0.80 to catch variations like "Cao Yue" vs "Cao Yue Spero"
-        similarity_threshold: Minimum similarity score (0.0-1.0)
+                             Increased to 0.85 to reduce false positives
         
     Returns:
         Dict with profile info if match found, None otherwise
@@ -212,6 +244,11 @@ def find_matching_profile(db, AllegedPersonProfile,
     2. High similarity English + Chinese names 
     3. High similarity on either English OR Chinese name
     4. Company + name partial match
+    
+    Additional protections:
+    - Single-word names (e.g., "LEUNG") won't match multi-word names
+    - Company names won't match person names
+    - Names with same words in different order will match
     """
     
     try:
