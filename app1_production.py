@@ -1647,21 +1647,18 @@ def search_int_references():
         # Debug: Show sample of CaseProfile data
         for cp in case_profiles[:5]:  # First 5 for debugging
             print(f"[INT SEARCH DEBUG] {cp.int_reference}: en='{cp.alleged_subject_en}' cn='{cp.alleged_subject_cn}' email_id={cp.email_id}")
-        
-        # Debug: Search specifically for INT-1115 to see what data it has
-        for cp in case_profiles:
-            if cp.int_reference and '1115' in cp.int_reference:
-                print(f"[INT SEARCH DEBUG] Found INT-1115: {cp.int_reference}")
-                print(f"[INT SEARCH DEBUG] - alleged_subject_en: '{cp.alleged_subject_en}'")
-                print(f"[INT SEARCH DEBUG] - alleged_subject_cn: '{cp.alleged_subject_cn}'")
-                print(f"[INT SEARCH DEBUG] - email_id: {cp.email_id}")
-                print(f"[INT SEARCH DEBUG] - whatsapp_id: {cp.whatsapp_id}")
-                print(f"[INT SEARCH DEBUG] - patrol_id: {cp.patrol_id}")
-                print(f"[INT SEARCH DEBUG] - received_by_hand_id: {cp.received_by_hand_id}")
-                if cp.email_id:
-                    email = db.session.get(Email, cp.email_id)
-                    if email:
-                        print(f"[INT SEARCH DEBUG] - Linked Email: alleged_subject_english='{email.alleged_subject_english}' alleged_subject_chinese='{email.alleged_subject_chinese}'")
+            # Also check linked email data
+            if cp.email_id:
+                email = db.session.get(Email, cp.email_id)
+                if email:
+                    print(f"[INT SEARCH DEBUG]   -> Email alleged_subject_english='{email.alleged_subject_english}' chinese='{email.alleged_subject_chinese}'")
+                    # Check EmailAllegedSubject table
+                    try:
+                        subjects = EmailAllegedSubject.query.filter_by(email_id=email.id).all()
+                        for s in subjects:
+                            print(f"[INT SEARCH DEBUG]   -> EmailAllegedSubject: en='{s.english_name}' cn='{s.chinese_name}'")
+                    except:
+                        pass
         
         for cp in case_profiles:
             match_found = False
@@ -1699,13 +1696,18 @@ def search_int_references():
                     total_sources += 1
                     source_types.add('EMAIL')
                     
+                    # Debug: Print what we're searching in this email
+                    print(f"[INT SEARCH] Checking {cp.int_reference} Email {email.id}: en='{email.alleged_subject_english}' cn='{email.alleged_subject_chinese}'")
+                    
                     # Search in alleged person names (legacy fields)
                     if email.alleged_subject_english and query_lower in email.alleged_subject_english.lower():
                         match_found = True
                         match_reason.append(f"Email Person: {email.alleged_subject_english.split(',')[0].strip()}")
+                        print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: Email alleged_subject_english = '{email.alleged_subject_english}'")
                     if email.alleged_subject_chinese and query_lower in email.alleged_subject_chinese.lower():
                         match_found = True
                         match_reason.append(f"Email Person (CN): {email.alleged_subject_chinese.split(',')[0].strip()}")
+                        print(f"[INT SEARCH] ✅ Match in {cp.int_reference}: Email alleged_subject_chinese = '{email.alleged_subject_chinese}'")
                     
                     # Search in alleged nature
                     if email.alleged_nature and query_lower in email.alleged_nature.lower():
