@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   intelligence-platform:
     build: .
@@ -82,7 +80,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://intelligence:${DB_PASSWORD}@postgres-db:5432/intelligence_db
       - MIGRATION_MODE=true
-    volumes:
     depends_on:
       postgres-db:
         condition: service_healthy

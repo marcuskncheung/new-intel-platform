@@ -1,0 +1,145 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: intelligence-platform
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/Hong-Kong-Insurance-Authority/Enforcement-intelligence-platform.git
+      ref: main
+    # Or use binary source if pushing locally:
+    # type: Binary
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: intelligence-platform:latest
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: intelligence-platform
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intelligence-platform
+  labels:
+    app: intelligence-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: intelligence-platform
+  template:
+    metadata:
+      labels:
+        app: intelligence-platform
+    spec:
+      initContainers:
+      - name: wait-for-db
+        image: postgres:13-alpine
+        command: ['sh', '-c', 'until pg_isready -h postgresql -p 5432 -U intelligence; do echo waiting for database; sleep 2; done;']
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+      containers:
+      - name: intelligence-platform
+        image: image-registry.openshift-image-registry.svc:5000/enforcement-intelligence-test/intelligence-platform:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: intelligence-secrets
+        volumeMounts:
+        - name: instance-data
+          mountPath: /app/instance
+        - name: logs
+          mountPath: /app/logs
+        - name: uploads
+          mountPath: /app/static/uploads
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: instance-data
+        persistentVolumeClaim:
+          claimName: intelligence-instance-data
+      - name: logs
+        persistentVolumeClaim:
+          claimName: intelligence-logs
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: intelligence-uploads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intelligence-platform
+  labels:
+    app: intelligence-platform
+spec:
+  selector:
+    app: intelligence-platform
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: intelligence-platform
+  labels:
+    app: intelligence-platform
+spec:
+  to:
+    kind: Service
+    name: intelligence-platform
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

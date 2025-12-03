@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-creation-script
+  labels:
+    app: intelligence-platform
+data:
+  create-users.sh: |
+    #!/bin/sh
+    # User Creation Script for Intelligence Platform
+    # This runs as an init container before the main app starts
+    
+    echo "=========================================="
+    echo "Intelligence Platform - User Creation"
+    echo "=========================================="
+    echo ""
+    
+    # Create admin user from ADMIN_EMAIL and ADMIN_PASSWORD environment variables
+    # These are loaded from the main intelligence-secrets (from .env file)
+    if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+        echo "Creating admin user from .env configuration..."
+        # Extract username from email (everything before @)
+        ADMIN_USER=$(echo "$ADMIN_EMAIL" | cut -d'@' -f1)
+        echo "Username: $ADMIN_USER"
+        python create_user.py create "$ADMIN_USER" "$ADMIN_PASSWORD" admin || echo "User may already exist"
+    else
+        echo "WARNING: ADMIN_EMAIL or ADMIN_PASSWORD not set in environment"
+        echo "Creating default admin user..."
+        python create_user.py create "admin" "ChangeMe123!" admin || echo "User may already exist"
+    fi
+    
+    echo ""
+    echo "User creation completed!"
+    echo ""
+    
+    # Create regular users if specified
+    if [ -n "$USER1_USERNAME" ] && [ -n "$USER1_PASSWORD" ]; then
+        echo ""
+        echo "👤 Creating user: $USER1_USERNAME..."
+        python create_user.py create "$USER1_USERNAME" "$USER1_PASSWORD" user
+    fi
+    
+    if [ -n "$USER2_USERNAME" ] && [ -n "$USER2_PASSWORD" ]; then
+        echo ""
+        echo "👤 Creating user: $USER2_USERNAME..."
+        python create_user.py create "$USER2_USERNAME" "$USER2_PASSWORD" user
+    fi
+    
+    echo ""
+    echo "=========================================="
+    echo "📋 Listing all users..."
+    echo "=========================================="
+    python create_user.py list
+    
+    echo ""
+    echo "✅ User creation completed!"
+    echo ""

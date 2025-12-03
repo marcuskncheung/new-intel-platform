@@ -1,0 +1,19 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: intelligence-platform
+  labels:
+    app: intelligence-platform
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: intelligence-platform:latest
+  source:
+    type: Binary
+    binary: {}
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  triggers: []

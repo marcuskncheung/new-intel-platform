@@ -13646,6 +13646,32 @@ if __name__ == "__main__":
         # Setup production environment
         config = setup_production_environment()
         
+        # Create default admin user if it doesn't exist
+        try:
+            with app.app_context():
+                admin_email = os.getenv('ADMIN_EMAIL', 'admin@ia.org.hk')
+                admin_password = os.getenv('ADMIN_PASSWORD', 'ChangeMe123!')
+                admin_username = admin_email.split('@')[0]
+                
+                existing_admin = User.query.filter_by(username=admin_username).first()
+                if not existing_admin:
+                    from werkzeug.security import generate_password_hash
+                    from datetime import datetime
+                    admin_user = User(
+                        username=admin_username,
+                        password=generate_password_hash(admin_password),
+                        role='admin',
+                        created_at=datetime.utcnow(),
+                        is_active=True
+                    )
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    print(f"✅ Created admin user: {admin_username}")
+                else:
+                    print(f"ℹ️  Admin user already exists: {admin_username}")
+        except Exception as e:
+            print(f"⚠️  Could not create admin user: {e}")
+        
         print("\n" + "="*60)
         print("🎯 INTELLIGENCE PLATFORM - ULTRA-SCALE PRODUCTION MODE")
         print("   ⚡ Enhanced for 50+ concurrent users")

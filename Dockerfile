@@ -23,13 +23,18 @@ WORKDIR /app
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install with SSL certificate handling for corporate environments
+# Try normal install first, fallback to trusted hosts if SSL fails
+RUN pip install --no-cache-dir -r requirements.txt || \
+    pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/backups /app/migrate_data
+# Create necessary directories with proper permissions for OpenShift (random user IDs)
+RUN mkdir -p /app/logs /app/backups /app/migrate_data /app/data /app/email_attachments /app/static/uploads && \
+    chmod -R 777 /app/logs /app/backups /app/migrate_data /app/data /app/email_attachments /app/static/uploads
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
