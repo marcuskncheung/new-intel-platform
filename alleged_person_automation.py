@@ -904,7 +904,7 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
     try:
         from sqlalchemy import text
         
-        # Get all POI IDs ordered by creation date
+        # Get all ACTIVE POI IDs ordered by creation date
         existing_pois = db.session.query(
             AllegedPersonProfile.id,
             AllegedPersonProfile.poi_id,
@@ -918,7 +918,6 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
             return {'changed': 0, 'gaps_found': 0, 'message': 'No POIs found'}
         
         # Build mapping of what each record SHOULD have
-        # Sort by creation date to maintain chronological order
         poi_list = []
         for poi in existing_pois:
             try:
@@ -956,6 +955,18 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
             return {'changed': 0, 'gaps_found': gaps_count, 'message': f'Found {gaps_count} gaps but no changes needed'}
         
         print(f"   Need to update {len(changes)} POI IDs")
+        
+        # ============================================================
+        # STEP 0: Clear POI IDs from MERGED/INACTIVE profiles to avoid conflicts
+        # ============================================================
+        print(f"   Step 0: Clearing POI IDs from MERGED/INACTIVE profiles...")
+        db.session.execute(text("""
+            UPDATE alleged_person_profile 
+            SET poi_id = 'ARCHIVED-' || id::text 
+            WHERE status IN ('MERGED', 'INACTIVE') 
+            AND poi_id LIKE 'POI-%'
+        """))
+        db.session.flush()
         
         # ============================================================
         # STEP 1: DROP ALL CONSTRAINTS that reference poi_id
@@ -1032,9 +1043,42 @@ def auto_resequence_poi_ids(db, AllegedPersonProfile, force: bool = False) -> Di
         db.session.flush()
         
         # ============================================================
-        # STEP 6: RE-CREATE ALL CONSTRAINTS
+        # STEP 6: Verify no duplicates before recreating index
         # ============================================================
-        print(f"   Step 6: Re-creating all constraints...")
+        print(f"   Step 6: Verifying no duplicate POI IDs...")
+        dup_check = db.session.execute(text("""
+            SELECT poi_id, COUNT(*) as cnt 
+            FROM alleged_person_profile 
+            WHERE poi_id LIKE 'POI-%'
+            GROUP BY poi_id 
+            HAVING COUNT(*) > 1
+        """)).fetchall()
+        
+        if dup_check:
+            print(f"   ❌ Found duplicates: {dup_check}")
+            # Fix duplicates by appending ID
+            for dup_poi_id, cnt in dup_check:
+                # Get all records with this poi_id except the first one
+                dups = db.session.execute(text("""
+                    SELECT id FROM alleged_person_profile 
+                    WHERE poi_id = :poi_id 
+                    ORDER BY created_at ASC
+                """), {'poi_id': dup_poi_id}).fetchall()
+                
+                # Keep first one, rename others
+                for i, (dup_id,) in enumerate(dups[1:], start=1):
+                    new_id = f"{dup_poi_id}-DUP{i}"
+                    db.session.execute(
+                        text("UPDATE alleged_person_profile SET poi_id = :new WHERE id = :id"),
+                        {'new': new_id, 'id': dup_id}
+                    )
+            db.session.flush()
+            print(f"   ✓ Fixed duplicates")
+        
+        # ============================================================
+        # STEP 7: RE-CREATE ALL CONSTRAINTS
+        # ============================================================
+        print(f"   Step 7: Re-creating all constraints...")
         
         # Recreate unique index on poi_id
         db.session.execute(text("CREATE UNIQUE INDEX ix_alleged_person_profile_poi_id ON alleged_person_profile(poi_id)"))
