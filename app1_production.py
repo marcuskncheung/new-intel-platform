@@ -1644,6 +1644,38 @@ def search_int_references():
         case_profiles = CaseProfile.query.all()
         print(f"[INT SEARCH] Total CaseProfiles to search: {len(case_profiles)}")
         
+        # Debug: Show ALL INT references sorted
+        all_int_refs = sorted([cp.int_reference for cp in case_profiles])
+        print(f"[INT SEARCH DEBUG] All INT references: {all_int_refs[:20]}... (showing first 20)")
+        
+        # Debug: Check if INT-1115 exists
+        int_1115 = [cp for cp in case_profiles if '1115' in (cp.int_reference or '')]
+        if int_1115:
+            for cp in int_1115:
+                print(f"[INT SEARCH DEBUG] Found INT-1115: {cp.int_reference} en='{cp.alleged_subject_en}' cn='{cp.alleged_subject_cn}' email_id={cp.email_id} whatsapp_id={cp.whatsapp_id} patrol_id={cp.patrol_id}")
+        else:
+            print(f"[INT SEARCH DEBUG] INT-1115 NOT FOUND in CaseProfiles!")
+        
+        # Debug: Count how many have email_id vs None
+        with_email = len([cp for cp in case_profiles if cp.email_id])
+        without_email = len([cp for cp in case_profiles if not cp.email_id])
+        print(f"[INT SEARCH DEBUG] CaseProfiles with email_id: {with_email}, without: {without_email}")
+        
+        # 🆕 ALSO search ALL emails directly (not just those linked to CaseProfiles)
+        # This finds emails that have alleged person data but no CaseProfile link
+        print(f"[INT SEARCH DEBUG] Also searching all emails directly...")
+        all_emails = Email.query.all()
+        emails_with_match = []
+        for email in all_emails:
+            if email.alleged_subject_english and query_lower in email.alleged_subject_english.lower():
+                emails_with_match.append(f"Email {email.id}: '{email.alleged_subject_english}' (INT: {email.int_reference_number or 'None'})")
+            if email.alleged_subject_chinese and query_lower in email.alleged_subject_chinese.lower():
+                emails_with_match.append(f"Email {email.id}: '{email.alleged_subject_chinese}' (INT: {email.int_reference_number or 'None'})")
+        if emails_with_match:
+            print(f"[INT SEARCH DEBUG] ✅ Found '{query}' in these EMAILS: {emails_with_match}")
+        else:
+            print(f"[INT SEARCH DEBUG] ❌ '{query}' NOT FOUND in any Email alleged_subject fields")
+        
         # Debug: Show sample of CaseProfile data
         for cp in case_profiles[:5]:  # First 5 for debugging
             print(f"[INT SEARCH DEBUG] {cp.int_reference}: en='{cp.alleged_subject_en}' cn='{cp.alleged_subject_cn}' email_id={cp.email_id}")
