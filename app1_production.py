@@ -6800,59 +6800,27 @@ def int_source_inbox_export(fmt):
     else:
         abort(404)
 
-# AI-Powered Email Grouping Export Routes
+# Simple Individual Email Export (No AI grouping)
 @app.route("/int_source/ai_grouped_export/excel")
 @login_required
 def int_source_ai_grouped_excel_export():
-    """Professional AI-powered email export with LLM summaries and sequential tracking IDs"""
-    
-    def clean_email_body_for_excel(body_text):
-        """Clean email body text for Excel export - remove HTML and format as plain text"""
-        if not body_text or body_text.strip() == '':
-            return 'No content'
-        
-        import re
-        
-        # Remove HTML tags
-        clean_text = re.sub(r'<[^>]+>', ' ', body_text)
-        
-        # Replace HTML entities
-        html_entities = {
-            '&nbsp;': ' ',
-            '&amp;': '&',
-            '&lt;': '<',
-            '&gt;': '>',
-            '&quot;': '"',
-            '&#39;': "'",
-            '&hellip;': '...',
-            '&mdash;': '—',
-            '&ndash;': '–'
-        }
-        
-        for entity, replacement in html_entities.items():
-            clean_text = clean_text.replace(entity, replacement)
-        
-        # Clean up whitespace and line breaks
-        clean_text = re.sub(r'\s+', ' ', clean_text)  # Multiple spaces to single space
-        clean_text = re.sub(r'\n\s*\n', '\n\n', clean_text)  # Multiple line breaks to double
-        clean_text = clean_text.strip()
-        
-        # Limit length for Excel readability (10000 characters max)
-        if len(clean_text) > 10000:
-            clean_text = clean_text[:9997] + '...'
-        
-        return clean_text if clean_text else 'No readable content'
+    """Simple individual email export with source classification - no AI grouping"""
     
     try:
         import pandas as pd
         import io
         from datetime import datetime
         
-        print("[AI EXPORT] Starting professional AI-powered email export with summaries")
+        print("[EMAIL EXPORT] Starting individual email export with source classification")
         
-        # Get all emails for processing
-        emails = Email.query.all()
-        email_data = []
+        # Get all emails ordered by INT reference
+        emails = Email.query.order_by(Email.id.desc()).all()
+        
+        def get_source_category_display(email):
+            """Get source category display text"""
+            if not email.source_category:
+                return 'Not Yet Classified'
+            return email.source_category  # INTERNAL or EXTERNAL
         
         def get_source_detail(email):
             """Get detailed source description based on source classification"""
@@ -6862,263 +6830,80 @@ def int_source_ai_grouped_excel_export():
             if email.source_category == 'INTERNAL':
                 source_type = email.internal_source_type or 'Not Specified'
                 if source_type == 'MARKET_CONDUCT_SUPERVISION':
-                    return 'Internal - Market Conduct Supervision'
+                    return 'Market Conduct Supervision'
                 elif source_type == 'COMPLAINT_TEAM':
-                    return 'Internal - Complaint Team'
+                    return 'Complaint Team'
                 elif source_type == 'OTHER_INTERNAL':
-                    other_detail = email.internal_source_other or 'Other'
-                    return f'Internal - {other_detail}'
+                    return email.internal_source_other or 'Other Internal'
                 else:
-                    return f'Internal - {source_type.replace("_", " ").title()}'
+                    return source_type.replace('_', ' ').title()
             
             elif email.source_category == 'EXTERNAL':
                 source_type = email.external_source_type or 'Not Specified'
                 if source_type == 'REGULATOR':
                     regulator = email.external_regulator or 'Unknown'
                     if regulator == 'OTHER':
-                        other_detail = email.external_source_other or 'Other'
-                        return f'External - Regulator ({other_detail})'
-                    return f'External - Regulator ({regulator})'
+                        return f"Regulator - {email.external_source_other or 'Other'}"
+                    return f"Regulator - {regulator}"
                 elif source_type == 'LAW_ENFORCEMENT':
                     agency = email.external_law_enforcement or 'Unknown'
                     if agency == 'OTHER':
-                        other_detail = email.external_source_other or 'Other'
-                        return f'External - Law Enforcement ({other_detail})'
-                    return f'External - Law Enforcement ({agency})'
+                        return f"Law Enforcement - {email.external_source_other or 'Other'}"
+                    return f"Law Enforcement - {agency}"
                 elif source_type == 'INSURANCE_INDUSTRY':
-                    return 'External - Insurance Industry'
+                    return 'Insurance Industry'
                 elif source_type == 'OTHER_EXTERNAL':
-                    other_detail = email.external_source_other or 'Other'
-                    return f'External - {other_detail}'
+                    return email.external_source_other or 'Other External'
                 else:
-                    return f'External - {source_type.replace("_", " ").title()}'
+                    return source_type.replace('_', ' ').title()
             
             return 'Not Yet Classified'
         
-        # Debug: Count source classifications
+        def get_int_reference(email):
+            """Get INT reference from CaseProfile"""
+            if email.caseprofile_id:
+                case = db.session.get(CaseProfile, email.caseprofile_id)
+                return case.int_reference if case else ''
+            return email.int_reference_number or ''
+        
+        # Build export data - simple individual rows
+        export_data = []
+        
+        # Count source classifications for summary
         internal_count = 0
         external_count = 0
         unclassified_count = 0
         
         for email in emails:
-            if email:
-                # Count for debugging
-                if email.source_category == 'INTERNAL':
-                    internal_count += 1
-                elif email.source_category == 'EXTERNAL':
-                    external_count += 1
-                else:
-                    unclassified_count += 1
-                
-                # Format source category for display
-                source_cat_display = 'Not Yet Classified'
-                if email.source_category == 'INTERNAL':
-                    source_cat_display = 'INTERNAL'
-                elif email.source_category == 'EXTERNAL':
-                    source_cat_display = 'EXTERNAL'
-                
-                email_data.append({
-                    'id': email.id,
-                    'subject': email.subject or '',
-                    'sender': email.sender or '',
-                    'recipients': email.recipients or '',
-                    'received': email.received,
-                    'body': email.body or '',
-                    'alleged_subject': email.alleged_subject or '',
-                    'alleged_nature': email.alleged_nature or '',
-                    'preparer': email.preparer or '',
-                    'reviewer_name': email.reviewer_name or '',
-                    'reviewer_comment': email.reviewer_comment or '',
-                    'int_reference': email.int_reference_number or '',
-                    'source_category': source_cat_display,
-                    'source_detail': get_source_detail(email)
-                })
-        
-        print(f"[AI EXPORT] Source Classification Stats: Internal={internal_count}, External={external_count}, Unclassified={unclassified_count}")
-        
-        print(f"[AI EXPORT] Processing {len(email_data)} emails for AI analysis and grouping")
-        
-        # Use AI to group emails intelligently with strict title-based grouping
-        if AI_AVAILABLE:
-            ai_grouping_result = intelligence_ai.ai_group_emails_for_export(email_data)
-            print(f"[AI EXPORT] AI grouping completed successfully")
-        else:
-            print("[AI EXPORT] AI not available, using fallback grouping")
-            ai_grouping_result = intelligence_ai._fallback_grouping(email_data)
-        
-        # Process each email with AI summary (for better professional output)
-        email_lookup = {email['id']: email for email in email_data}
-        
-        # Create professional Excel export data with sequential Group IDs
-        export_data = []
-        group_id_counter = 1  # Sequential group IDs: 1, 2, 3, 4...
-        
-        # Process grouped emails first
-        for group in ai_grouping_result.get('email_groups', []):
-            group_name = group.get('group_name', f'Email Group {group_id_counter}')
-            current_group_id = group_id_counter
+            # Count classifications
+            if email.source_category == 'INTERNAL':
+                internal_count += 1
+            elif email.source_category == 'EXTERNAL':
+                external_count += 1
+            else:
+                unclassified_count += 1
             
-            for email_id in group.get('email_ids', []):
-                email = email_lookup.get(email_id)
-                if email:
-                    # Get comprehensive AI analysis for this email
-                    # Create better fallback summary from email body (not just subject)
-                    subject = email.get('subject', 'No subject')
-                    sender = email.get('sender', 'Unknown sender')
-                    email_body = email.get('body', '')
-                    
-                    # Try to extract meaningful content from email body
-                    if email_body and len(email_body.strip()) > 20:
-                        import re
-                        # Remove HTML tags
-                        clean_body = re.sub(r'<[^>]+>', ' ', email_body)
-                        clean_body = re.sub(r'\s+', ' ', clean_body).strip()
-                        
-                        # Extract first meaningful sentence(s) from body
-                        sentences = clean_body.split('.')[:2]  # First 2 sentences
-                        body_preview = '. '.join(sentences).strip()[:200]
-                        
-                        if len(body_preview) > 30:
-                            email_summary = f"Email from {sender}: {body_preview}..."
-                        else:
-                            # Clean the subject line as fallback
-                            clean_subject = subject.replace('FW:', '').replace('Re:', '').replace('RE:', '').replace('fw:', '').strip()[:60]
-                            email_summary = f"Email from {sender} regarding: {clean_subject}"
-                    else:
-                        # Clean the subject line as final fallback
-                        clean_subject = subject.replace('FW:', '').replace('Re:', '').replace('RE:', '').replace('fw:', '').strip()[:60]
-                        email_summary = f"Email from {sender} regarding: {clean_subject}"
-                    
-                    allegation_nature = email.get('alleged_nature', 'General Inquiry')
-                    alleged_person = email.get('alleged_subject', 'Unknown')
-                    
-                    if AI_AVAILABLE:
-                        try:
-                            print(f"[AI EXPORT] Analyzing email {email_id} with AI...")
-                            print(f"[AI EXPORT] Email subject: {email.get('subject', 'No subject')}")
-                            print(f"[AI EXPORT] Email sender: {email.get('sender', 'No sender')}")
-                            
-                            ai_analysis = intelligence_ai.ai_summarize_email(email)
-                            print(f"[AI EXPORT] AI analysis result: {ai_analysis}")
-                            
-                            if ai_analysis.get('success', False):
-                                email_summary = ai_analysis.get('email_summary', email_summary)
-                                allegation_nature = ai_analysis.get('allegation_nature', allegation_nature)
-                                alleged_person = ai_analysis.get('alleged_person', alleged_person)
-                                print(f"[AI EXPORT] AI analysis successful for email {email_id}")
-                                print(f"[AI EXPORT] Generated summary: {email_summary[:100]}...")
-                            else:
-                                print(f"[AI EXPORT] AI analysis failed for email {email_id}, using fallback")
-                                print(f"[AI EXPORT] Fallback summary: {email_summary[:100]}...")
-                        except Exception as e:
-                            print(f"[AI EXPORT] AI analysis error for email {email_id}: {e}")
-                            import traceback
-                            traceback.print_exc()
-                    else:
-                        print(f"[AI EXPORT] AI not available, using basic summary for email {email_id}")
-                    
-                    # Redesigned column structure - with source classification
-                    export_data.append({
-                        'Group ID': current_group_id,
-                        'Group Name': group_name,
-                        'INT Reference': email.get('int_reference', ''),
-                        'Source Category': email.get('source_category', 'Not Classified'),
-                        'Source Detail': email.get('source_detail', 'Not Classified'),
-                        'Email ID': email['id'],
-                        'Email Subject': email['subject'],
-                        'From': email['sender'],
-                        'To': email['recipients'],
-                        'Date': str(email['received']) if email['received'] else 'Unknown',
-                        'Email Summary': email_summary,
-                        'Allegation Type': allegation_nature,
-                        'Person Alleged': alleged_person,
-                        'Prepared By': email['preparer'],
-                        'Reviewed By': email['reviewer_name'],
-                        'Review Notes': email['reviewer_comment']
-                    })
-            
-            group_id_counter += 1
+            export_data.append({
+                'INT Reference': get_int_reference(email),
+                'Email ID': email.id,
+                'Source Category': get_source_category_display(email),
+                'Source Detail': get_source_detail(email),
+                'Email Subject': email.subject or '',
+                'From': email.sender or '',
+                'To': email.recipients or '',
+                'Date Received': email.received or '',
+                'Alleged Person': email.alleged_subject or '',
+                'Alleged Nature': email.alleged_nature or '',
+                'Preparer': email.preparer or '',
+                'Reviewer': email.reviewer_name or '',
+                'Review Decision': email.reviewer_decision or '',
+                'Status': email.status or 'Pending'
+            })
         
-        # Process ungrouped emails (each gets its own group ID)
-        for email_id in ai_grouping_result.get('ungrouped_emails', []):
-            email = email_lookup.get(email_id)
-            if email:
-                # Get comprehensive AI analysis for ungrouped email
-                # Create better fallback summary from email body for ungrouped emails
-                subject = email.get('subject', 'No subject')
-                sender = email.get('sender', 'Unknown sender')
-                email_body = email.get('body', '')
-                
-                # Try to extract meaningful content from email body
-                if email_body and len(email_body.strip()) > 20:
-                    import re
-                    # Remove HTML tags
-                    clean_body = re.sub(r'<[^>]+>', ' ', email_body)
-                    clean_body = re.sub(r'\s+', ' ', clean_body).strip()
-                    
-                    # Extract first meaningful sentence(s) from body
-                    sentences = clean_body.split('.')[:2]  # First 2 sentences
-                    body_preview = '. '.join(sentences).strip()[:200]
-                    
-                    if len(body_preview) > 30:
-                        email_summary = f"Email from {sender}: {body_preview}..."
-                    else:
-                        # Clean the subject line as fallback
-                        clean_subject = subject.replace('FW:', '').replace('Re:', '').replace('RE:', '').replace('fw:', '').strip()[:60]
-                        email_summary = f"Email from {sender} regarding: {clean_subject}"
-                else:
-                    # Clean the subject line as final fallback
-                    clean_subject = subject.replace('FW:', '').replace('Re:', '').replace('RE:', '').replace('fw:', '').strip()[:60]
-                    email_summary = f"Email from {sender} regarding: {clean_subject}"
-                
-                allegation_nature = email.get('alleged_nature', 'General Inquiry')
-                alleged_person = email.get('alleged_subject', 'Unknown')
-                
-                if AI_AVAILABLE:
-                    try:
-                        print(f"[AI EXPORT] Analyzing ungrouped email {email_id} with AI...")
-                        print(f"[AI EXPORT] Email subject: {email.get('subject', 'No subject')}")
-                        
-                        ai_analysis = intelligence_ai.ai_summarize_email(email)
-                        print(f"[AI EXPORT] AI analysis result: {ai_analysis}")
-                        
-                        if ai_analysis.get('success', False):
-                            email_summary = ai_analysis.get('email_summary', email_summary)
-                            allegation_nature = ai_analysis.get('allegation_nature', allegation_nature)
-                            alleged_person = ai_analysis.get('alleged_person', alleged_person)
-                            print(f"[AI EXPORT] AI analysis successful for ungrouped email {email_id}")
-                            print(f"[AI EXPORT] Generated summary: {email_summary[:100]}...")
-                        else:
-                            print(f"[AI EXPORT] AI analysis failed for ungrouped email {email_id}, using fallback")
-                    except Exception as e:
-                        print(f"[AI EXPORT] AI analysis error for ungrouped email {email_id}: {e}")
-                        import traceback
-                        traceback.print_exc()
-                else:
-                    print(f"[AI EXPORT] AI not available, using basic summary for ungrouped email {email_id}")
-                
-                # Redesigned column structure for ungrouped emails - with source classification
-                export_data.append({
-                    'Group ID': group_id_counter,
-                    'Group Name': f'Individual Email {group_id_counter}',
-                    'INT Reference': email.get('int_reference', ''),
-                    'Source Category': email.get('source_category', 'Not Classified'),
-                    'Source Detail': email.get('source_detail', 'Not Classified'),
-                    'Email ID': email['id'],
-                    'Email Subject': email['subject'],
-                    'From': email['sender'],
-                    'To': email['recipients'],
-                    'Date': str(email['received']) if email['received'] else 'Unknown',
-                    'Email Summary': email_summary,
-                    'Allegation Type': allegation_nature,
-                    'Person Alleged': alleged_person,
-                    'Prepared By': email['preparer'],
-                    'Reviewed By': email['reviewer_name'],
-                    'Review Notes': email['reviewer_comment']
-                })
-                group_id_counter += 1
+        print(f"[EMAIL EXPORT] Processed {len(export_data)} emails")
+        print(f"[EMAIL EXPORT] Source Stats: Internal={internal_count}, External={external_count}, Unclassified={unclassified_count}")
         
-        # Create professional Excel file
+        # Create Excel file
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             workbook = writer.book
@@ -7134,71 +6919,71 @@ def int_source_ai_grouped_excel_export():
                 'font_size': 11
             })
             
-            high_priority_format = workbook.add_format({
-                'bg_color': '#FFE6E6',
-                'border': 1,
-                'font_size': 10
-            })
-            
-            medium_priority_format = workbook.add_format({
-                'bg_color': '#FFF7E6',
-                'border': 1,
-                'font_size': 10
-            })
-            
-            low_priority_format = workbook.add_format({
-                'bg_color': '#E6F7E6',
-                'border': 1,
-                'font_size': 10
-            })
-            
             normal_format = workbook.add_format({
                 'border': 1,
                 'font_size': 10,
                 'text_wrap': True
             })
             
-            # Create main sheet
-            df = pd.DataFrame(export_data)
-            df.to_excel(writer, sheet_name='Professional Email Analysis', index=False)
+            internal_format = workbook.add_format({
+                'border': 1,
+                'font_size': 10,
+                'bg_color': '#E6F3FF'  # Light blue for internal
+            })
             
-            worksheet = writer.sheets['Professional Email Analysis']
+            external_format = workbook.add_format({
+                'border': 1,
+                'font_size': 10,
+                'bg_color': '#FFF3E6'  # Light orange for external
+            })
+            
+            # ========== MAIN DATA SHEET ==========
+            df = pd.DataFrame(export_data)
+            df.to_excel(writer, sheet_name='Email Intelligence', index=False)
+            
+            worksheet = writer.sheets['Email Intelligence']
             
             # Apply header formatting
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)
             
-            # Apply simple formatting to all rows (removed priority-based formatting as requested)
+            # Apply row formatting based on source category
             for row_num, row_data in enumerate(export_data, 1):
+                source_cat = row_data.get('Source Category', '')
+                if source_cat == 'INTERNAL':
+                    row_format = internal_format
+                elif source_cat == 'EXTERNAL':
+                    row_format = external_format
+                else:
+                    row_format = normal_format
+                
                 for col_num, value in enumerate(row_data.values()):
-                    worksheet.write(row_num, col_num, str(value), normal_format)
+                    worksheet.write(row_num, col_num, str(value) if value else '', row_format)
             
-            # Professional column widths - updated for redesigned structure with source classification
+            # Column widths
             column_widths = {
-                'Group ID': 10,
-                'Group Name': 35,
-                'INT Reference': 15,
+                'INT Reference': 12,
+                'Email ID': 8,
                 'Source Category': 15,
                 'Source Detail': 25,
-                'Email ID': 8,
-                'Email Subject': 40,
-                'From': 25,
-                'To': 25,
-                'Date': 18,
-                'Email Summary': 70,  # Wider for AI-generated summaries
-                'Allegation Type': 25,
-                'Person Alleged': 20,
-                'Prepared By': 15,
-                'Reviewed By': 15,
-                'Review Notes': 35
+                'Email Subject': 45,
+                'From': 30,
+                'To': 30,
+                'Date Received': 18,
+                'Alleged Person': 25,
+                'Alleged Nature': 25,
+                'Preparer': 15,
+                'Reviewer': 15,
+                'Review Decision': 12,
+                'Status': 12
             }
             
             for col_num, column in enumerate(df.columns):
                 width = column_widths.get(column, 15)
                 worksheet.set_column(col_num, col_num, width)
             
-            # Add title and summary sheet
-            summary_sheet = workbook.add_worksheet('Export Summary')
+            # ========== SUMMARY SHEET ==========
+            summary_sheet = workbook.add_worksheet('Summary')
             
             title_format = workbook.add_format({
                 'bold': True,
@@ -7208,112 +6993,69 @@ def int_source_ai_grouped_excel_export():
                 'font_color': 'white'
             })
             
-            summary_sheet.merge_range('A1:D1', 'Professional Email Analysis Report', title_format)
+            section_format = workbook.add_format({
+                'bold': True,
+                'font_size': 12,
+                'bg_color': '#4472C4',
+                'font_color': 'white'
+            })
             
-            # Create group summary data
-            grouped_emails_count = sum(len(group.get('email_ids', [])) for group in ai_grouping_result.get('email_groups', []))
-            ungrouped_emails_count = len(ai_grouping_result.get('ungrouped_emails', []))
+            summary_sheet.merge_range('A1:C1', 'Email Intelligence Export Summary', title_format)
             
-            # Calculate source classification statistics from export_data
-            source_stats = {'INTERNAL': 0, 'EXTERNAL': 0, 'Not Yet Classified': 0}
-            source_detail_stats = {}
-            for item in export_data:
-                category = item.get('Source Category', 'Not Yet Classified')
-                detail = item.get('Source Detail', 'Not Yet Classified')
-                
-                # Count by category
-                if category in source_stats:
-                    source_stats[category] += 1
-                else:
-                    source_stats['Not Yet Classified'] += 1
-                    
-                # Count by detail
-                source_detail_stats[detail] = source_detail_stats.get(detail, 0) + 1
-            
+            # Basic stats
             summary_data = [
-                ['Total Emails Processed', len(export_data)],
-                ['Email Groups Created', len(ai_grouping_result.get('email_groups', []))],
-                ['Emails in Groups', grouped_emails_count],
-                ['Individual Emails', ungrouped_emails_count],
-                ['AI Processing Status', 'Enabled' if AI_AVAILABLE else 'Fallback Mode'],
-                ['Export Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-                ['Group ID Range', f'1 to {group_id_counter-1}'],
-                ['', ''],  # Empty row
-                ['=== SOURCE CLASSIFICATION ===', ''],
-                ['Internal Sources', source_stats.get('INTERNAL', 0)],
-                ['External Sources', source_stats.get('EXTERNAL', 0)],
-                ['Not Yet Classified', source_stats.get('Not Yet Classified', 0)]
+                ['', ''],
+                ['OVERVIEW', ''],
+                ['Total Emails', len(export_data)],
+                ['Export Date', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+                ['', ''],
+                ['SOURCE CLASSIFICATION', ''],
+                ['Internal Sources', internal_count],
+                ['External Sources', external_count],
+                ['Not Yet Classified', unclassified_count],
             ]
             
             for row_idx, (label, value) in enumerate(summary_data, 3):
-                summary_sheet.write(row_idx, 0, label, header_format)
-                summary_sheet.write(row_idx, 1, str(value), normal_format)
+                if label in ['OVERVIEW', 'SOURCE CLASSIFICATION']:
+                    summary_sheet.write(row_idx, 0, label, section_format)
+                    summary_sheet.write(row_idx, 1, '', section_format)
+                elif label:
+                    summary_sheet.write(row_idx, 0, label, header_format)
+                    summary_sheet.write(row_idx, 1, str(value), normal_format)
             
-            # Add group details
-            summary_sheet.write(len(summary_data) + 5, 0, 'GROUP DETAILS:', header_format)
+            # Source Detail Breakdown
+            source_detail_counts = {}
+            for item in export_data:
+                detail = item.get('Source Detail', 'Not Yet Classified')
+                source_detail_counts[detail] = source_detail_counts.get(detail, 0) + 1
             
-            group_details_header = ['Group ID', 'Group Name', 'Email Count', 'Group Type']
-            for col_idx, header in enumerate(group_details_header):
-                summary_sheet.write(len(summary_data) + 6, col_idx, header, header_format)
-            
-            row_offset = len(summary_data) + 7
-            group_counter = 1
-            
-            # List all groups with their email counts
-            for group in ai_grouping_result.get('email_groups', []):
-                group_row = [
-                    group_counter,
-                    group.get('group_name', f'Group {group_counter}'),
-                    len(group.get('email_ids', [])),
-                    group.get('group_type', 'Related Emails')
-                ]
-                for col_idx, value in enumerate(group_row):
-                    summary_sheet.write(row_offset, col_idx, str(value), normal_format)
-                row_offset += 1
-                group_counter += 1
-            
-            # List individual emails
-            for email_id in ai_grouping_result.get('ungrouped_emails', []):
-                individual_row = [
-                    group_counter,
-                    f'Individual Email {group_counter}',
-                    1,
-                    'Standalone'
-                ]
-                for col_idx, value in enumerate(individual_row):
-                    summary_sheet.write(row_offset, col_idx, str(value), normal_format)
-                row_offset += 1
-                group_counter += 1
-            
-            # Add Source Detail Breakdown section
-            row_offset += 2
-            summary_sheet.write(row_offset, 0, 'SOURCE DETAIL BREAKDOWN:', header_format)
+            row_offset = len(summary_data) + 5
+            summary_sheet.write(row_offset, 0, 'SOURCE DETAIL BREAKDOWN', section_format)
+            summary_sheet.write(row_offset, 1, '', section_format)
+            summary_sheet.write(row_offset, 2, '', section_format)
             row_offset += 1
             
-            source_breakdown_header = ['Source Detail', 'Count']
-            for col_idx, header in enumerate(source_breakdown_header):
-                summary_sheet.write(row_offset, col_idx, header, header_format)
+            summary_sheet.write(row_offset, 0, 'Source', header_format)
+            summary_sheet.write(row_offset, 1, 'Count', header_format)
             row_offset += 1
             
-            # Sort source details by count (descending)
-            sorted_source_details = sorted(source_detail_stats.items(), key=lambda x: x[1], reverse=True)
-            for source_detail, count in sorted_source_details:
-                summary_sheet.write(row_offset, 0, source_detail, normal_format)
+            # Sort by count descending
+            sorted_details = sorted(source_detail_counts.items(), key=lambda x: x[1], reverse=True)
+            for detail, count in sorted_details:
+                summary_sheet.write(row_offset, 0, detail, normal_format)
                 summary_sheet.write(row_offset, 1, count, normal_format)
                 row_offset += 1
             
-            summary_sheet.set_column(0, 0, 30)
-            summary_sheet.set_column(1, 1, 35)
+            summary_sheet.set_column(0, 0, 35)
+            summary_sheet.set_column(1, 1, 15)
             summary_sheet.set_column(2, 2, 15)
-            summary_sheet.set_column(3, 3, 20)
         
         output.seek(0)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"Professional_Email_Analysis_{timestamp}.xlsx"
+        filename = f"Email_Intelligence_Export_{timestamp}.xlsx"
         
-        print(f"[AI EXPORT] Professional export completed: {filename}")
-        print(f"[AI EXPORT] Total Group IDs assigned: {group_id_counter-1}")
+        print(f"[EMAIL EXPORT] Export completed: {filename}")
         
         return send_file(
             output,
@@ -7323,254 +7065,10 @@ def int_source_ai_grouped_excel_export():
         )
         
     except Exception as e:
-        print(f"[ERROR] Professional AI export failed: {e}")
+        print(f"[ERROR] Email export failed: {e}")
         import traceback
         traceback.print_exc()
-        flash(f'Professional AI export failed: {str(e)}', 'error')
-        return redirect(url_for('int_source'))
-
-@app.route("/int_source/ai_thread_summary_export")
-@login_required
-def int_source_ai_thread_summary_export():
-    """Export thread summary with one row per conversation group"""
-    try:
-        import pandas as pd
-        import io
-        from datetime import datetime
-        
-        def safe_parse_date(date_val):
-            """Safely parse date value to datetime object"""
-            if not date_val:
-                return None
-            
-            if isinstance(date_val, datetime):
-                return date_val
-                
-            if isinstance(date_val, str):
-                # Try common date formats
-                for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d']:
-                    try:
-                        return datetime.strptime(date_val, fmt)
-                    except ValueError:
-                        continue
-            return None
-        
-        print("[AI EXPORT] Starting AI thread summary export")
-        
-        # Get all emails for AI grouping
-        emails = Email.query.all()
-        email_data = []
-        
-        def get_source_detail_for_thread(email):
-            """Get detailed source description based on source classification"""
-            if not email.source_category:
-                return 'Not Yet Classified'
-            
-            if email.source_category == 'INTERNAL':
-                source_type = email.internal_source_type or 'Not Specified'
-                if source_type == 'MARKET_CONDUCT_SUPERVISION':
-                    return 'Internal - Market Conduct Supervision'
-                elif source_type == 'COMPLAINT_TEAM':
-                    return 'Internal - Complaint Team'
-                elif source_type == 'OTHER_INTERNAL':
-                    other_detail = email.internal_source_other or 'Other'
-                    return f'Internal - {other_detail}'
-                else:
-                    return f'Internal - {source_type.replace("_", " ").title()}'
-            
-            elif email.source_category == 'EXTERNAL':
-                source_type = email.external_source_type or 'Not Specified'
-                if source_type == 'REGULATOR':
-                    regulator = email.external_regulator or 'Unknown'
-                    if regulator == 'OTHER':
-                        other_detail = email.external_source_other or 'Other'
-                        return f'External - Regulator ({other_detail})'
-                    return f'External - Regulator ({regulator})'
-                elif source_type == 'LAW_ENFORCEMENT':
-                    agency = email.external_law_enforcement or 'Unknown'
-                    if agency == 'OTHER':
-                        other_detail = email.external_source_other or 'Other'
-                        return f'External - Law Enforcement ({other_detail})'
-                    return f'External - Law Enforcement ({agency})'
-                elif source_type == 'INSURANCE_INDUSTRY':
-                    return 'External - Insurance Industry'
-                elif source_type == 'OTHER_EXTERNAL':
-                    other_detail = email.external_source_other or 'Other'
-                    return f'External - {other_detail}'
-                else:
-                    return f'External - {source_type.replace("_", " ").title()}'
-            
-            return 'Not Yet Classified'
-        
-        for email in emails:
-            if email:
-                # Format source category for display
-                source_cat_display = 'Not Yet Classified'
-                if email.source_category == 'INTERNAL':
-                    source_cat_display = 'INTERNAL'
-                elif email.source_category == 'EXTERNAL':
-                    source_cat_display = 'EXTERNAL'
-                
-                email_data.append({
-                    'id': email.id,
-                    'subject': email.subject or '',
-                    'sender': email.sender or '',
-                    'recipients': email.recipients or '',
-                    'received': email.received,
-                    'body': email.body or '',
-                    'alleged_subject': email.alleged_subject or '',
-                    'alleged_nature': email.alleged_nature or '',
-                    'int_reference': email.int_reference_number or '',
-                    'source_category': source_cat_display,
-                    'source_detail': get_source_detail_for_thread(email)
-                })
-        
-        # Use AI to group emails
-        if AI_AVAILABLE:
-            ai_grouping_result = intelligence_ai.ai_group_emails_for_export(email_data)
-        else:
-            ai_grouping_result = intelligence_ai._fallback_grouping(email_data)
-        
-        # Create thread summary data
-        thread_summary_data = []
-        email_lookup = {email['id']: email for email in email_data}
-        
-        for group in ai_grouping_result.get('email_groups', []):
-            group_emails = [email_lookup.get(eid) for eid in group.get('email_ids', []) if email_lookup.get(eid)]
-            
-            if group_emails:
-                # Calculate group statistics with safe handling of None values
-                valid_dates = []
-                for email in group_emails:
-                    if email.get('received'):
-                        parsed_date = safe_parse_date(email['received'])
-                        if parsed_date:
-                            valid_dates.append(parsed_date)
-                
-                if valid_dates:
-                    earliest_date = min(valid_dates)
-                    latest_date = max(valid_dates)
-                    try:
-                        duration_days = (latest_date - earliest_date).days if earliest_date and latest_date else 0
-                    except Exception:
-                        duration_days = 0
-                else:
-                    earliest_date = None
-                    latest_date = None
-                    duration_days = 0
-                
-                # Safe calculation for source statistics
-                source_categories = {}
-                source_details = {}
-                for email in group_emails:
-                    cat = email.get('source_category', 'Not Classified')
-                    detail = email.get('source_detail', 'Not Classified')
-                    source_categories[cat] = source_categories.get(cat, 0) + 1
-                    source_details[detail] = source_details.get(detail, 0) + 1
-                
-                # Get dominant source info
-                dominant_category = max(source_categories, key=source_categories.get) if source_categories else 'Not Classified'
-                dominant_detail = max(source_details, key=source_details.get) if source_details else 'Not Classified'
-                
-                participants = set()
-                for email in group_emails:
-                    if email.get('sender'):
-                        participants.add(email['sender'])
-                    if email.get('recipients'):
-                        participants.update([r.strip() for r in email['recipients'].split(',') if r.strip()])
-                
-                # Get INT references for this group
-                int_refs = list(set([email.get('int_reference', '') for email in group_emails if email.get('int_reference')]))
-                
-                thread_summary_data.append({
-                    'Thread ID': group.get('group_id', ''),
-                    'Thread Name': group.get('group_name', ''),
-                    'Thread Type': group.get('group_type', ''),
-                    'INT References': '; '.join(int_refs) if int_refs else 'No INT',
-                    'Source Category': dominant_category,
-                    'Source Detail': dominant_detail,
-                    'Email Count': len(group_emails),
-                    'Main Alleged Subject': group.get('main_alleged_subject', ''),
-                    'Allegation Type': group.get('allegation_type', ''),
-                    'Participants': '; '.join(list(participants)[:5]),  # Limit to 5 participants
-                    'Start Date': earliest_date.strftime('%Y-%m-%d') if earliest_date else 'Unknown',
-                    'End Date': latest_date.strftime('%Y-%m-%d') if latest_date else 'Unknown',
-                    'Duration Days': duration_days,
-                    'Description': group.get('description', ''),
-                    'AI Reasoning': group.get('reasoning', '')
-                })
-        
-        # Create DataFrame and export
-        df = pd.DataFrame(thread_summary_data)
-        
-        if df.empty:
-            print("[WARNING] No thread summary data to export")
-            # Create a minimal DataFrame with headers to avoid errors
-            df = pd.DataFrame([{
-                'Thread ID': 'No data available',
-                'Thread Name': 'No threads found',
-                'Thread Type': 'N/A',
-                'INT References': 'N/A',
-                'Source Category': 'N/A',
-                'Source Detail': 'N/A',
-                'Email Count': 0,
-                'Main Alleged Subject': 'N/A',
-                'Allegation Type': 'N/A',
-                'Participants': 'N/A',
-                'Start Date': 'N/A',
-                'End Date': 'N/A',
-                'Duration Days': 0,
-                'Description': 'No email threads found for export',
-                'AI Reasoning': 'No AI grouping data available'
-            }])
-        
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name='Thread Summary', index=False)
-            
-            # Add formatting
-            workbook = writer.book
-            worksheet = writer.sheets['Thread Summary']
-            
-            header_format = workbook.add_format({
-                'bold': True,
-                'bg_color': '#4472C4',
-                'font_color': 'white',
-                'border': 1
-            })
-            
-            # Apply header formatting
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-            
-            # Auto-adjust column widths with safe calculation
-            for col_num, column in enumerate(df.columns):
-                try:
-                    col_max = df[column].astype(str).map(len).max()
-                    header_len = len(str(column))
-                    max_length = max(col_max or 0, header_len or 0) + 2
-                    worksheet.set_column(col_num, col_num, min(max_length, 50))
-                except Exception as e:
-                    print(f"[WARNING] Error setting column width for {column}: {e}")
-                    worksheet.set_column(col_num, col_num, 15)  # Default width
-        
-        output.seek(0)
-        
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"AI_Thread_Summary_{timestamp}.xlsx"
-        
-        print(f"[AI EXPORT] Thread summary export completed: {filename}")
-        
-        return send_file(
-            output,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            as_attachment=True,
-            download_name=filename
-        )
-        
-    except Exception as e:
-        print(f"[ERROR] AI thread summary export failed: {e}")
-        flash(f'AI thread summary export failed: {str(e)}', 'error')
+        flash(f'Email export failed: {str(e)}', 'error')
         return redirect(url_for('int_source'))
 
 # Add this route to fix url_for('whatsapp_export', fmt=...) errors in your templates
