@@ -6854,6 +6854,43 @@ def int_source_ai_grouped_excel_export():
         emails = Email.query.all()
         email_data = []
         
+        def get_source_detail(email):
+            """Get detailed source description based on source classification"""
+            if not email.source_category:
+                return 'Not Classified'
+            
+            if email.source_category == 'INTERNAL':
+                source_type = email.internal_source_type or 'Not Specified'
+                if source_type == 'MARKET_CONDUCT_SUPERVISION':
+                    return 'Market Conduct Supervision'
+                elif source_type == 'COMPLAINT_TEAM':
+                    return 'Complaint Team'
+                elif source_type == 'OTHER_INTERNAL':
+                    return email.internal_source_other or 'Other Internal'
+                else:
+                    return source_type.replace('_', ' ').title()
+            
+            elif email.source_category == 'EXTERNAL':
+                source_type = email.external_source_type or 'Not Specified'
+                if source_type == 'REGULATOR':
+                    regulator = email.external_regulator or 'Unknown'
+                    if regulator == 'OTHER':
+                        return f"Regulator - {email.external_source_other or 'Other'}"
+                    return f"Regulator - {regulator}"
+                elif source_type == 'LAW_ENFORCEMENT':
+                    agency = email.external_law_enforcement or 'Unknown'
+                    if agency == 'OTHER':
+                        return f"Law Enforcement - {email.external_source_other or 'Other'}"
+                    return f"Law Enforcement - {agency}"
+                elif source_type == 'INSURANCE_INDUSTRY':
+                    return 'Insurance Industry'
+                elif source_type == 'OTHER_EXTERNAL':
+                    return email.external_source_other or 'Other External'
+                else:
+                    return source_type.replace('_', ' ').title()
+            
+            return 'Not Classified'
+        
         for email in emails:
             if email:
                 email_data.append({
@@ -6867,7 +6904,10 @@ def int_source_ai_grouped_excel_export():
                     'alleged_nature': email.alleged_nature or '',
                     'preparer': email.preparer or '',
                     'reviewer_name': email.reviewer_name or '',
-                    'reviewer_comment': email.reviewer_comment or ''
+                    'reviewer_comment': email.reviewer_comment or '',
+                    'int_reference': email.int_reference_number or '',
+                    'source_category': email.source_category or 'Not Classified',
+                    'source_detail': get_source_detail(email)
                 })
         
         print(f"[AI EXPORT] Processing {len(email_data)} emails for AI analysis and grouping")
@@ -6951,16 +6991,18 @@ def int_source_ai_grouped_excel_export():
                     else:
                         print(f"[AI EXPORT] AI not available, using basic summary for email {email_id}")
                     
-                    # Redesigned column structure
+                    # Redesigned column structure - with source classification
                     export_data.append({
                         'Group ID': current_group_id,
                         'Group Name': group_name,
+                        'INT Reference': email.get('int_reference', ''),
+                        'Source Category': email.get('source_category', 'Not Classified'),
+                        'Source Detail': email.get('source_detail', 'Not Classified'),
                         'Email ID': email['id'],
                         'Email Subject': email['subject'],
                         'From': email['sender'],
                         'To': email['recipients'],
                         'Date': str(email['received']) if email['received'] else 'Unknown',
-                        'Email Body': clean_email_body_for_excel(email['body']),
                         'Email Summary': email_summary,
                         'Allegation Type': allegation_nature,
                         'Person Alleged': alleged_person,
@@ -7029,16 +7071,18 @@ def int_source_ai_grouped_excel_export():
                 else:
                     print(f"[AI EXPORT] AI not available, using basic summary for ungrouped email {email_id}")
                 
-                # Redesigned column structure for ungrouped emails
+                # Redesigned column structure for ungrouped emails - with source classification
                 export_data.append({
                     'Group ID': group_id_counter,
                     'Group Name': f'Individual Email {group_id_counter}',
+                    'INT Reference': email.get('int_reference', ''),
+                    'Source Category': email.get('source_category', 'Not Classified'),
+                    'Source Detail': email.get('source_detail', 'Not Classified'),
                     'Email ID': email['id'],
                     'Email Subject': email['subject'],
                     'From': email['sender'],
                     'To': email['recipients'],
                     'Date': str(email['received']) if email['received'] else 'Unknown',
-                    'Email Body': clean_email_body_for_excel(email['body']),
                     'Email Summary': email_summary,
                     'Allegation Type': allegation_nature,
                     'Person Alleged': alleged_person,
@@ -7103,16 +7147,18 @@ def int_source_ai_grouped_excel_export():
                 for col_num, value in enumerate(row_data.values()):
                     worksheet.write(row_num, col_num, str(value), normal_format)
             
-            # Professional column widths - updated for redesigned structure
+            # Professional column widths - updated for redesigned structure with source classification
             column_widths = {
                 'Group ID': 10,
                 'Group Name': 35,
+                'INT Reference': 15,
+                'Source Category': 15,
+                'Source Detail': 25,
                 'Email ID': 8,
                 'Email Subject': 40,
                 'From': 25,
                 'To': 25,
                 'Date': 18,
-                'Email Body': 80,  # Wide column for full email content
                 'Email Summary': 70,  # Wider for AI-generated summaries
                 'Allegation Type': 25,
                 'Person Alleged': 20,
@@ -7142,6 +7188,15 @@ def int_source_ai_grouped_excel_export():
             grouped_emails_count = sum(len(group.get('email_ids', [])) for group in ai_grouping_result.get('email_groups', []))
             ungrouped_emails_count = len(ai_grouping_result.get('ungrouped_emails', []))
             
+            # Calculate source classification statistics
+            source_stats = {'INTERNAL': 0, 'EXTERNAL': 0, 'Not Classified': 0}
+            source_detail_stats = {}
+            for item in export_data:
+                category = item.get('Source Category', 'Not Classified')
+                detail = item.get('Source Detail', 'Not Classified')
+                source_stats[category] = source_stats.get(category, 0) + 1
+                source_detail_stats[detail] = source_detail_stats.get(detail, 0) + 1
+            
             summary_data = [
                 ['Total Emails Processed', len(export_data)],
                 ['Email Groups Created', len(ai_grouping_result.get('email_groups', []))],
@@ -7149,7 +7204,12 @@ def int_source_ai_grouped_excel_export():
                 ['Individual Emails', ungrouped_emails_count],
                 ['AI Processing Status', 'Enabled' if AI_AVAILABLE else 'Fallback Mode'],
                 ['Export Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-                ['Group ID Range', f'1 to {group_id_counter-1}']
+                ['Group ID Range', f'1 to {group_id_counter-1}'],
+                ['', ''],  # Empty row
+                ['--- SOURCE CLASSIFICATION ---', ''],
+                ['Internal Sources', source_stats.get('INTERNAL', 0)],
+                ['External Sources', source_stats.get('EXTERNAL', 0)],
+                ['Not Classified', source_stats.get('Not Classified', 0)]
             ]
             
             for row_idx, (label, value) in enumerate(summary_data, 3):
@@ -7192,8 +7252,27 @@ def int_source_ai_grouped_excel_export():
                 row_offset += 1
                 group_counter += 1
             
-            summary_sheet.set_column(0, 0, 25)
-            summary_sheet.set_column(1, 1, 30)
+            # Add Source Detail Breakdown section
+            row_offset += 2
+            summary_sheet.write(row_offset, 0, 'SOURCE DETAIL BREAKDOWN:', header_format)
+            row_offset += 1
+            
+            source_breakdown_header = ['Source Detail', 'Count']
+            for col_idx, header in enumerate(source_breakdown_header):
+                summary_sheet.write(row_offset, col_idx, header, header_format)
+            row_offset += 1
+            
+            # Sort source details by count (descending)
+            sorted_source_details = sorted(source_detail_stats.items(), key=lambda x: x[1], reverse=True)
+            for source_detail, count in sorted_source_details:
+                summary_sheet.write(row_offset, 0, source_detail, normal_format)
+                summary_sheet.write(row_offset, 1, count, normal_format)
+                row_offset += 1
+            
+            summary_sheet.set_column(0, 0, 30)
+            summary_sheet.set_column(1, 1, 35)
+            summary_sheet.set_column(2, 2, 15)
+            summary_sheet.set_column(3, 3, 20)
         
         output.seek(0)
         
@@ -7249,6 +7328,43 @@ def int_source_ai_thread_summary_export():
         emails = Email.query.all()
         email_data = []
         
+        def get_source_detail_for_thread(email):
+            """Get detailed source description based on source classification"""
+            if not email.source_category:
+                return 'Not Classified'
+            
+            if email.source_category == 'INTERNAL':
+                source_type = email.internal_source_type or 'Not Specified'
+                if source_type == 'MARKET_CONDUCT_SUPERVISION':
+                    return 'Market Conduct Supervision'
+                elif source_type == 'COMPLAINT_TEAM':
+                    return 'Complaint Team'
+                elif source_type == 'OTHER_INTERNAL':
+                    return email.internal_source_other or 'Other Internal'
+                else:
+                    return source_type.replace('_', ' ').title()
+            
+            elif email.source_category == 'EXTERNAL':
+                source_type = email.external_source_type or 'Not Specified'
+                if source_type == 'REGULATOR':
+                    regulator = email.external_regulator or 'Unknown'
+                    if regulator == 'OTHER':
+                        return f"Regulator - {email.external_source_other or 'Other'}"
+                    return f"Regulator - {regulator}"
+                elif source_type == 'LAW_ENFORCEMENT':
+                    agency = email.external_law_enforcement or 'Unknown'
+                    if agency == 'OTHER':
+                        return f"Law Enforcement - {email.external_source_other or 'Other'}"
+                    return f"Law Enforcement - {agency}"
+                elif source_type == 'INSURANCE_INDUSTRY':
+                    return 'Insurance Industry'
+                elif source_type == 'OTHER_EXTERNAL':
+                    return email.external_source_other or 'Other External'
+                else:
+                    return source_type.replace('_', ' ').title()
+            
+            return 'Not Classified'
+        
         for email in emails:
             if email:
                 email_data.append({
@@ -7260,8 +7376,9 @@ def int_source_ai_thread_summary_export():
                     'body': email.body or '',
                     'alleged_subject': email.alleged_subject or '',
                     'alleged_nature': email.alleged_nature or '',
-                    'source_reliability': email.source_reliability,
-                    'content_validity': email.content_validity
+                    'int_reference': email.int_reference_number or '',
+                    'source_category': email.source_category or 'Not Classified',
+                    'source_detail': get_source_detail_for_thread(email)
                 })
         
         # Use AI to group emails
@@ -7298,12 +7415,18 @@ def int_source_ai_thread_summary_export():
                     latest_date = None
                     duration_days = 0
                 
-                # Safe calculation of averages
-                valid_reliabilities = [email.get('source_reliability', 0) for email in group_emails if email.get('source_reliability') is not None]
-                valid_validities = [email.get('content_validity', 0) for email in group_emails if email.get('content_validity') is not None]
+                # Safe calculation for source statistics
+                source_categories = {}
+                source_details = {}
+                for email in group_emails:
+                    cat = email.get('source_category', 'Not Classified')
+                    detail = email.get('source_detail', 'Not Classified')
+                    source_categories[cat] = source_categories.get(cat, 0) + 1
+                    source_details[detail] = source_details.get(detail, 0) + 1
                 
-                avg_reliability = sum(valid_reliabilities) / len(valid_reliabilities) if valid_reliabilities else 0
-                avg_validity = sum(valid_validities) / len(valid_validities) if valid_validities else 0
+                # Get dominant source info
+                dominant_category = max(source_categories, key=source_categories.get) if source_categories else 'Not Classified'
+                dominant_detail = max(source_details, key=source_details.get) if source_details else 'Not Classified'
                 
                 participants = set()
                 for email in group_emails:
@@ -7312,20 +7435,23 @@ def int_source_ai_thread_summary_export():
                     if email.get('recipients'):
                         participants.update([r.strip() for r in email['recipients'].split(',') if r.strip()])
                 
+                # Get INT references for this group
+                int_refs = list(set([email.get('int_reference', '') for email in group_emails if email.get('int_reference')]))
+                
                 thread_summary_data.append({
                     'Thread ID': group.get('group_id', ''),
                     'Thread Name': group.get('group_name', ''),
                     'Thread Type': group.get('group_type', ''),
+                    'INT References': '; '.join(int_refs) if int_refs else 'No INT',
+                    'Source Category': dominant_category,
+                    'Source Detail': dominant_detail,
                     'Email Count': len(group_emails),
                     'Main Alleged Subject': group.get('main_alleged_subject', ''),
                     'Allegation Type': group.get('allegation_type', ''),
-                    'Priority': group.get('group_priority', ''),
                     'Participants': '; '.join(list(participants)[:5]),  # Limit to 5 participants
                     'Start Date': earliest_date.strftime('%Y-%m-%d') if earliest_date else 'Unknown',
                     'End Date': latest_date.strftime('%Y-%m-%d') if latest_date else 'Unknown',
                     'Duration Days': duration_days,
-                    'Avg Source Reliability': round(avg_reliability, 2),
-                    'Avg Content Validity': round(avg_validity, 2),
                     'Description': group.get('description', ''),
                     'AI Reasoning': group.get('reasoning', '')
                 })
@@ -7340,16 +7466,16 @@ def int_source_ai_thread_summary_export():
                 'Thread ID': 'No data available',
                 'Thread Name': 'No threads found',
                 'Thread Type': 'N/A',
+                'INT References': 'N/A',
+                'Source Category': 'N/A',
+                'Source Detail': 'N/A',
                 'Email Count': 0,
                 'Main Alleged Subject': 'N/A',
                 'Allegation Type': 'N/A',
-                'Priority': 'N/A',
                 'Participants': 'N/A',
                 'Start Date': 'N/A',
                 'End Date': 'N/A',
                 'Duration Days': 0,
-                'Avg Source Reliability': 0,
-                'Avg Content Validity': 0,
                 'Description': 'No email threads found for export',
                 'AI Reasoning': 'No AI grouping data available'
             }])
@@ -7415,13 +7541,13 @@ def whatsapp_export(fmt):
         writer = csv.writer(output)
         writer.writerow([
             "Received Time", "Complaint Name", "Phone Number", "Alleged Person",
-            "Alleged Type", "Details", "Source Reliability", "Content Validity", "Preparer"
+            "Alleged Type", "Details", "Preparer"
         ])
         for w in WhatsAppEntry.query.all():
             writer.writerow([
                 w.received_time, w.complaint_name, w.phone_number, w.alleged_person,
                 w.alleged_type, html_to_plain_text(w.details) if w.details else '', 
-                w.source_reliability, w.content_validity, w.preparer
+                w.preparer
             ])
         mem = io.BytesIO()
         mem.write(output.getvalue().encode('utf-8'))
@@ -7436,7 +7562,7 @@ def whatsapp_export(fmt):
         
         whatsapp_entries = WhatsAppEntry.query.all()
         
-        # Create main data for analysis
+        # Create main data for analysis (removed score columns)
         analysis_data = []
         for w in whatsapp_entries:
             analysis_data.append({
@@ -7445,8 +7571,6 @@ def whatsapp_export(fmt):
                 'Alleged Person': w.alleged_person or '',
                 'Alleged Type': w.alleged_type or '',
                 'Details': html_to_plain_text(w.details) if w.details else '',
-                'Source Reliability': w.source_reliability,
-                'Content Validity': w.content_validity,
                 'Preparer': w.preparer or '',
                 'Received Time': w.received_time or ''
             })
@@ -7454,43 +7578,30 @@ def whatsapp_export(fmt):
         # Create analysis DataFrame
         df_analysis = pd.DataFrame(analysis_data)
         
-        # Convert reliability and validity columns to numeric for calculations
-        df_analysis['Source Reliability'] = pd.to_numeric(df_analysis['Source Reliability'], errors='coerce')
-        df_analysis['Content Validity'] = pd.to_numeric(df_analysis['Content Validity'], errors='coerce')
-        
-        # Create Statistics DataFrames
+        # Create Statistics DataFrames (removed score-based calculations)
         total_entries = len(df_analysis)
-        reviewed_entries = df_analysis[(df_analysis['Source Reliability'].notna()) & (df_analysis['Content Validity'].notna())]
-        high_priority = df_analysis[((df_analysis['Source Reliability'].fillna(0) + df_analysis['Content Validity'].fillna(0)) >= 8)]
         
         # Summary Statistics
         summary_stats = pd.DataFrame([
             ['Total WhatsApp Reports', total_entries],
-            ['Reports Reviewed', len(reviewed_entries)],
-            ['High Priority Cases (Score ≥8)', len(high_priority)],
-            ['Pending Review', total_entries - len(reviewed_entries)],
-            ['Average Source Reliability', f"{reviewed_entries['Source Reliability'].mean():.1f}" if len(reviewed_entries) > 0 else 'N/A'],
-            ['Average Content Validity', f"{reviewed_entries['Content Validity'].mean():.1f}" if len(reviewed_entries) > 0 else 'N/A'],
             ['Unique Phone Numbers', df_analysis['Phone Number'].nunique()],
+            ['Unique Complainants', df_analysis['Complaint Name'].nunique()],
+            ['Unique Alleged Persons', df_analysis['Alleged Person'].nunique()],
             ['Most Common Allegation Type', df_analysis['Alleged Type'].mode().iloc[0] if not df_analysis['Alleged Type'].mode().empty else 'N/A']
         ], columns=['Metric', 'Value'])
         
-        # Phone Number Analysis
+        # Phone Number Analysis (removed score columns)
         phone_analysis = df_analysis.groupby('Phone Number').agg({
-            'Complaint Name': 'count',
-            'Source Reliability': 'mean',
-            'Content Validity': 'mean'
-        }).round(1).reset_index()
-        phone_analysis.columns = ['Phone Number', 'Report Count', 'Avg Source Reliability', 'Avg Content Validity']
+            'Complaint Name': 'count'
+        }).reset_index()
+        phone_analysis.columns = ['Phone Number', 'Report Count']
         phone_analysis = phone_analysis.sort_values('Report Count', ascending=False).head(20)
         
-        # Allegation Type Analysis
+        # Allegation Type Analysis (removed score columns)
         type_analysis = df_analysis.groupby('Alleged Type').agg({
-            'Complaint Name': 'count',
-            'Source Reliability': 'mean',
-            'Content Validity': 'mean'
-        }).round(1).reset_index()
-        type_analysis.columns = ['Allegation Type', 'Report Count', 'Avg Source Reliability', 'Avg Content Validity']
+            'Complaint Name': 'count'
+        }).reset_index()
+        type_analysis.columns = ['Allegation Type', 'Report Count']
         type_analysis = type_analysis.sort_values('Report Count', ascending=False)
         
         # Now create the detailed data with images
@@ -7504,8 +7615,7 @@ def whatsapp_export(fmt):
         
         info_fields = [
             "Case No", "Name", "Phone Number", "Alleged Person", "Alleged Type",
-            "Source", "Details", "Source Reliability", "Content Validity",
-            "Assessment Updated At", "Preparer"
+            "Source", "Details", "Assessment Updated At", "Preparer"
         ]
         image_fields = [f"Image {i+1}" for i in range(max_images)]
         all_columns = info_fields + image_fields
@@ -7520,8 +7630,6 @@ def whatsapp_export(fmt):
             row["Alleged Type"] = w.alleged_type or ''
             row["Source"] = w.source or ''
             row["Details"] = html_to_plain_text(w.details) if w.details else ''
-            row["Source Reliability"] = w.source_reliability
-            row["Content Validity"] = w.content_validity
             row["Assessment Updated At"] = w.assessment_updated_at
             row["Preparer"] = w.preparer or ''
             for i in range(max_images):
@@ -7800,13 +7908,11 @@ def online_patrol_export(fmt):
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow([
-            "Sender", "Complaint Time", "Source", "Status", "Details",
-            "Source Reliability", "Content Validity"
+            "Sender", "Complaint Time", "Source", "Status", "Details"
         ])
         for o in OnlinePatrolEntry.query.all():
             writer.writerow([
-                o.sender, o.complaint_time, o.source, o.status, o.details,
-                o.source_reliability, o.content_validity
+                o.sender, o.complaint_time, o.source, o.status, o.details
             ])
         mem = io.BytesIO()
         mem.write(output.getvalue().encode('utf-8'))
@@ -7822,8 +7928,6 @@ def online_patrol_export(fmt):
             "Source": o.source,
             "Status": o.status,
             "Details": o.details,
-            "Source Reliability": o.source_reliability,
-            "Content Validity": o.content_validity,
             "Assessment Updated At": o.assessment_updated_at
         } for o in OnlinePatrolEntry.query.all()])
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -8388,12 +8492,12 @@ def surveillance_export(fmt):
         writer = csv.writer(output)
         writer.writerow([
             "Operation Number", "Operation Type", "Date", "Venue", "Details of Finding",
-            "Conducted By", "Source Reliability"
+            "Conducted By"
         ])
         for s in SurveillanceEntry.query.all():
             writer.writerow([
                 s.operation_number, s.operation_type, s.date, s.venue, s.details_of_finding,
-                s.conducted_by, s.source_reliability
+                s.conducted_by
             ])
         mem = io.BytesIO()
         mem.write(output.getvalue().encode('utf-8'))
@@ -8436,7 +8540,6 @@ def surveillance_export(fmt):
             "Venue": s.venue,
             "Details of Finding": s.details_of_finding,
             "Conducted By": s.conducted_by,
-            "Source Reliability": s.source_reliability,
             "Targets": ", ".join(targets_by_surv.get(s.id, [])),
             "Documents": ", ".join(docs_by_surv.get(s.id, []))
         } for s in surveillance_entries])
@@ -10228,7 +10331,6 @@ def received_by_hand_export(fmt):
         writer.writerow([
             "INT Reference", "Date Received", "Complainant Name", "Contact Number",
             "Alleged Person", "Alleged Type", "Source", "Details",
-            "Source Reliability", "Content Validity", "Combined Score",
             "Preparer", "Reviewer Name", "Reviewer Comment", "Reviewer Decision",
             "Case Opened"
         ])
@@ -10237,8 +10339,6 @@ def received_by_hand_export(fmt):
             if rbh.caseprofile_id:
                 case = db.session.get(CaseProfile, rbh.caseprofile_id)
                 int_ref = case.int_reference if case else ""
-            
-            combined_score = (rbh.source_reliability or 0) + (rbh.content_validity or 0)
             
             writer.writerow([
                 int_ref,
@@ -10249,9 +10349,6 @@ def received_by_hand_export(fmt):
                 rbh.alleged_type or '',
                 rbh.source or '',
                 rbh.details or '',
-                rbh.source_reliability or '',
-                rbh.content_validity or '',
-                combined_score if combined_score > 0 else '',
                 rbh.preparer or '',
                 rbh.reviewer_name or '',
                 rbh.reviewer_comment or '',
@@ -10283,9 +10380,6 @@ def received_by_hand_export(fmt):
             "Alleged Type": rbh.alleged_type or '',
             "Source": rbh.source or '',
             "Details": rbh.details or '',
-            "Source Reliability": rbh.source_reliability or '',
-            "Content Validity": rbh.content_validity or '',
-            "Combined Score": (rbh.source_reliability or 0) + (rbh.content_validity or 0),
             "Preparer": rbh.preparer or '',
             "Reviewer Name": rbh.reviewer_name or '',
             "Reviewer Comment": rbh.reviewer_comment or '',
