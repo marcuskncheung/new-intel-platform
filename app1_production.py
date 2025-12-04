@@ -6857,42 +6857,66 @@ def int_source_ai_grouped_excel_export():
         def get_source_detail(email):
             """Get detailed source description based on source classification"""
             if not email.source_category:
-                return 'Not Classified'
+                return 'Not Yet Classified'
             
             if email.source_category == 'INTERNAL':
                 source_type = email.internal_source_type or 'Not Specified'
                 if source_type == 'MARKET_CONDUCT_SUPERVISION':
-                    return 'Market Conduct Supervision'
+                    return 'Internal - Market Conduct Supervision'
                 elif source_type == 'COMPLAINT_TEAM':
-                    return 'Complaint Team'
+                    return 'Internal - Complaint Team'
                 elif source_type == 'OTHER_INTERNAL':
-                    return email.internal_source_other or 'Other Internal'
+                    other_detail = email.internal_source_other or 'Other'
+                    return f'Internal - {other_detail}'
                 else:
-                    return source_type.replace('_', ' ').title()
+                    return f'Internal - {source_type.replace("_", " ").title()}'
             
             elif email.source_category == 'EXTERNAL':
                 source_type = email.external_source_type or 'Not Specified'
                 if source_type == 'REGULATOR':
                     regulator = email.external_regulator or 'Unknown'
                     if regulator == 'OTHER':
-                        return f"Regulator - {email.external_source_other or 'Other'}"
-                    return f"Regulator - {regulator}"
+                        other_detail = email.external_source_other or 'Other'
+                        return f'External - Regulator ({other_detail})'
+                    return f'External - Regulator ({regulator})'
                 elif source_type == 'LAW_ENFORCEMENT':
                     agency = email.external_law_enforcement or 'Unknown'
                     if agency == 'OTHER':
-                        return f"Law Enforcement - {email.external_source_other or 'Other'}"
-                    return f"Law Enforcement - {agency}"
+                        other_detail = email.external_source_other or 'Other'
+                        return f'External - Law Enforcement ({other_detail})'
+                    return f'External - Law Enforcement ({agency})'
                 elif source_type == 'INSURANCE_INDUSTRY':
-                    return 'Insurance Industry'
+                    return 'External - Insurance Industry'
                 elif source_type == 'OTHER_EXTERNAL':
-                    return email.external_source_other or 'Other External'
+                    other_detail = email.external_source_other or 'Other'
+                    return f'External - {other_detail}'
                 else:
-                    return source_type.replace('_', ' ').title()
+                    return f'External - {source_type.replace("_", " ").title()}'
             
-            return 'Not Classified'
+            return 'Not Yet Classified'
+        
+        # Debug: Count source classifications
+        internal_count = 0
+        external_count = 0
+        unclassified_count = 0
         
         for email in emails:
             if email:
+                # Count for debugging
+                if email.source_category == 'INTERNAL':
+                    internal_count += 1
+                elif email.source_category == 'EXTERNAL':
+                    external_count += 1
+                else:
+                    unclassified_count += 1
+                
+                # Format source category for display
+                source_cat_display = 'Not Yet Classified'
+                if email.source_category == 'INTERNAL':
+                    source_cat_display = 'INTERNAL'
+                elif email.source_category == 'EXTERNAL':
+                    source_cat_display = 'EXTERNAL'
+                
                 email_data.append({
                     'id': email.id,
                     'subject': email.subject or '',
@@ -6906,9 +6930,11 @@ def int_source_ai_grouped_excel_export():
                     'reviewer_name': email.reviewer_name or '',
                     'reviewer_comment': email.reviewer_comment or '',
                     'int_reference': email.int_reference_number or '',
-                    'source_category': email.source_category or 'Not Classified',
+                    'source_category': source_cat_display,
                     'source_detail': get_source_detail(email)
                 })
+        
+        print(f"[AI EXPORT] Source Classification Stats: Internal={internal_count}, External={external_count}, Unclassified={unclassified_count}")
         
         print(f"[AI EXPORT] Processing {len(email_data)} emails for AI analysis and grouping")
         
@@ -7188,13 +7214,20 @@ def int_source_ai_grouped_excel_export():
             grouped_emails_count = sum(len(group.get('email_ids', [])) for group in ai_grouping_result.get('email_groups', []))
             ungrouped_emails_count = len(ai_grouping_result.get('ungrouped_emails', []))
             
-            # Calculate source classification statistics
-            source_stats = {'INTERNAL': 0, 'EXTERNAL': 0, 'Not Classified': 0}
+            # Calculate source classification statistics from export_data
+            source_stats = {'INTERNAL': 0, 'EXTERNAL': 0, 'Not Yet Classified': 0}
             source_detail_stats = {}
             for item in export_data:
-                category = item.get('Source Category', 'Not Classified')
-                detail = item.get('Source Detail', 'Not Classified')
-                source_stats[category] = source_stats.get(category, 0) + 1
+                category = item.get('Source Category', 'Not Yet Classified')
+                detail = item.get('Source Detail', 'Not Yet Classified')
+                
+                # Count by category
+                if category in source_stats:
+                    source_stats[category] += 1
+                else:
+                    source_stats['Not Yet Classified'] += 1
+                    
+                # Count by detail
                 source_detail_stats[detail] = source_detail_stats.get(detail, 0) + 1
             
             summary_data = [
@@ -7206,10 +7239,10 @@ def int_source_ai_grouped_excel_export():
                 ['Export Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
                 ['Group ID Range', f'1 to {group_id_counter-1}'],
                 ['', ''],  # Empty row
-                ['--- SOURCE CLASSIFICATION ---', ''],
+                ['=== SOURCE CLASSIFICATION ===', ''],
                 ['Internal Sources', source_stats.get('INTERNAL', 0)],
                 ['External Sources', source_stats.get('EXTERNAL', 0)],
-                ['Not Classified', source_stats.get('Not Classified', 0)]
+                ['Not Yet Classified', source_stats.get('Not Yet Classified', 0)]
             ]
             
             for row_idx, (label, value) in enumerate(summary_data, 3):
@@ -7331,42 +7364,53 @@ def int_source_ai_thread_summary_export():
         def get_source_detail_for_thread(email):
             """Get detailed source description based on source classification"""
             if not email.source_category:
-                return 'Not Classified'
+                return 'Not Yet Classified'
             
             if email.source_category == 'INTERNAL':
                 source_type = email.internal_source_type or 'Not Specified'
                 if source_type == 'MARKET_CONDUCT_SUPERVISION':
-                    return 'Market Conduct Supervision'
+                    return 'Internal - Market Conduct Supervision'
                 elif source_type == 'COMPLAINT_TEAM':
-                    return 'Complaint Team'
+                    return 'Internal - Complaint Team'
                 elif source_type == 'OTHER_INTERNAL':
-                    return email.internal_source_other or 'Other Internal'
+                    other_detail = email.internal_source_other or 'Other'
+                    return f'Internal - {other_detail}'
                 else:
-                    return source_type.replace('_', ' ').title()
+                    return f'Internal - {source_type.replace("_", " ").title()}'
             
             elif email.source_category == 'EXTERNAL':
                 source_type = email.external_source_type or 'Not Specified'
                 if source_type == 'REGULATOR':
                     regulator = email.external_regulator or 'Unknown'
                     if regulator == 'OTHER':
-                        return f"Regulator - {email.external_source_other or 'Other'}"
-                    return f"Regulator - {regulator}"
+                        other_detail = email.external_source_other or 'Other'
+                        return f'External - Regulator ({other_detail})'
+                    return f'External - Regulator ({regulator})'
                 elif source_type == 'LAW_ENFORCEMENT':
                     agency = email.external_law_enforcement or 'Unknown'
                     if agency == 'OTHER':
-                        return f"Law Enforcement - {email.external_source_other or 'Other'}"
-                    return f"Law Enforcement - {agency}"
+                        other_detail = email.external_source_other or 'Other'
+                        return f'External - Law Enforcement ({other_detail})'
+                    return f'External - Law Enforcement ({agency})'
                 elif source_type == 'INSURANCE_INDUSTRY':
-                    return 'Insurance Industry'
+                    return 'External - Insurance Industry'
                 elif source_type == 'OTHER_EXTERNAL':
-                    return email.external_source_other or 'Other External'
+                    other_detail = email.external_source_other or 'Other'
+                    return f'External - {other_detail}'
                 else:
-                    return source_type.replace('_', ' ').title()
+                    return f'External - {source_type.replace("_", " ").title()}'
             
-            return 'Not Classified'
+            return 'Not Yet Classified'
         
         for email in emails:
             if email:
+                # Format source category for display
+                source_cat_display = 'Not Yet Classified'
+                if email.source_category == 'INTERNAL':
+                    source_cat_display = 'INTERNAL'
+                elif email.source_category == 'EXTERNAL':
+                    source_cat_display = 'EXTERNAL'
+                
                 email_data.append({
                     'id': email.id,
                     'subject': email.subject or '',
@@ -7377,7 +7421,7 @@ def int_source_ai_thread_summary_export():
                     'alleged_subject': email.alleged_subject or '',
                     'alleged_nature': email.alleged_nature or '',
                     'int_reference': email.int_reference_number or '',
-                    'source_category': email.source_category or 'Not Classified',
+                    'source_category': source_cat_display,
                     'source_detail': get_source_detail_for_thread(email)
                 })
         
