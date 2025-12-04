@@ -4486,8 +4486,15 @@ def int_analytics():
             .all()
         )
         
-        # OPTIMIZED: Get all emails with source classification in ONE query
+        # ============================================================
+        # SOURCE CLASSIFICATION BY INT (not by email!)
+        # Count unique INT references per source category
+        # This prevents inflated numbers from reply emails
+        # ============================================================
+        
+        # OPTIMIZED: Get all emails with source classification and caseprofile_id
         all_emails = db.session.query(
+            Email.caseprofile_id,
             Email.source_category,
             Email.internal_source_type,
             Email.external_source_type,
@@ -4496,7 +4503,7 @@ def int_analytics():
             Email.alleged_nature
         ).filter(Email.caseprofile_id.in_(case_ids)).all()
         
-        # Initialize counters for source classification
+        # Initialize counters for source classification (BY INT, not by email)
         source_classification_stats = {
             'internal': {
                 'total': 0,
@@ -4526,39 +4533,54 @@ def int_analytics():
             'unclassified': 0
         }
         
-        # Initialize allegation type counters
+        # Initialize allegation type counters (BY INT)
         allegation_stats = {}
         
-        # Process all emails in memory (no more N+1 queries!)
+        # Track which INTs have already been counted for each category
+        # This ensures we count each INT only ONCE per source category
+        counted_int_sources = {}  # {case_id: source_category_counted}
+        counted_int_allegations = {}  # {case_id: set of allegations counted}
+        
+        # Process all emails - but count by INT, not by email
         for email in all_emails:
-            if email.source_category == 'INTERNAL':
-                source_classification_stats['internal']['total'] += 1
-                if email.internal_source_type:
-                    source_classification_stats['internal'][email.internal_source_type] = source_classification_stats['internal'].get(email.internal_source_type, 0) + 1
-            elif email.source_category == 'EXTERNAL':
-                source_classification_stats['external']['total'] += 1
-                if email.external_source_type == 'REGULATOR':
-                    source_classification_stats['external']['REGULATOR']['total'] += 1
-                    if email.external_regulator:
-                        reg_key = email.external_regulator
-                        source_classification_stats['external']['REGULATOR'][reg_key] = source_classification_stats['external']['REGULATOR'].get(reg_key, 0) + 1
-                elif email.external_source_type == 'LAW_ENFORCEMENT':
-                    source_classification_stats['external']['LAW_ENFORCEMENT']['total'] += 1
-                    if email.external_law_enforcement:
-                        law_key = email.external_law_enforcement
-                        source_classification_stats['external']['LAW_ENFORCEMENT'][law_key] = source_classification_stats['external']['LAW_ENFORCEMENT'].get(law_key, 0) + 1
-                elif email.external_source_type:
-                    source_classification_stats['external'][email.external_source_type] = source_classification_stats['external'].get(email.external_source_type, 0) + 1
-            else:
-                source_classification_stats['unclassified'] += 1
+            case_id = email.caseprofile_id
             
-            # Count allegation types
+            # Only count source classification ONCE per INT
+            if case_id not in counted_int_sources:
+                counted_int_sources[case_id] = True  # Mark this INT as counted
+                
+                if email.source_category == 'INTERNAL':
+                    source_classification_stats['internal']['total'] += 1
+                    if email.internal_source_type:
+                        source_classification_stats['internal'][email.internal_source_type] = source_classification_stats['internal'].get(email.internal_source_type, 0) + 1
+                elif email.source_category == 'EXTERNAL':
+                    source_classification_stats['external']['total'] += 1
+                    if email.external_source_type == 'REGULATOR':
+                        source_classification_stats['external']['REGULATOR']['total'] += 1
+                        if email.external_regulator:
+                            reg_key = email.external_regulator
+                            source_classification_stats['external']['REGULATOR'][reg_key] = source_classification_stats['external']['REGULATOR'].get(reg_key, 0) + 1
+                    elif email.external_source_type == 'LAW_ENFORCEMENT':
+                        source_classification_stats['external']['LAW_ENFORCEMENT']['total'] += 1
+                        if email.external_law_enforcement:
+                            law_key = email.external_law_enforcement
+                            source_classification_stats['external']['LAW_ENFORCEMENT'][law_key] = source_classification_stats['external']['LAW_ENFORCEMENT'].get(law_key, 0) + 1
+                    elif email.external_source_type:
+                        source_classification_stats['external'][email.external_source_type] = source_classification_stats['external'].get(email.external_source_type, 0) + 1
+                else:
+                    source_classification_stats['unclassified'] += 1
+            
+            # Count allegation types BY INT (each INT counts once per allegation type)
             if email.alleged_nature:
                 try:
                     natures = json.loads(email.alleged_nature) if isinstance(email.alleged_nature, str) else email.alleged_nature
                     if isinstance(natures, list):
+                        if case_id not in counted_int_allegations:
+                            counted_int_allegations[case_id] = set()
                         for nature in natures:
-                            allegation_stats[nature] = allegation_stats.get(nature, 0) + 1
+                            if nature not in counted_int_allegations[case_id]:
+                                counted_int_allegations[case_id].add(nature)
+                                allegation_stats[nature] = allegation_stats.get(nature, 0) + 1
                 except Exception:
                     pass
         
@@ -6869,22 +6891,48 @@ def int_source_ai_grouped_excel_export():
         # Build export data - simple individual rows
         export_data = []
         
-        # Count source classifications for summary
-        internal_count = 0
-        external_count = 0
-        unclassified_count = 0
+        # ============================================================
+        # Count source classifications BY INT REFERENCE (not by email!)
+        # This prevents inflated numbers from reply emails
+        # ============================================================
+        int_source_counted = {}  # Track which INTs have been counted
+        internal_int_count = 0
+        external_int_count = 0
+        unclassified_int_count = 0
+        int_source_detail_counts = {}  # Count by source detail per INT
         
         for email in emails:
-            # Count classifications
-            if email.source_category == 'INTERNAL':
-                internal_count += 1
-            elif email.source_category == 'EXTERNAL':
-                external_count += 1
-            else:
-                unclassified_count += 1
+            int_ref = get_int_reference(email)
+            
+            # Only count source classification ONCE per INT Reference
+            if int_ref and int_ref not in int_source_counted:
+                int_source_counted[int_ref] = True
+                
+                # Count by category
+                if email.source_category == 'INTERNAL':
+                    internal_int_count += 1
+                elif email.source_category == 'EXTERNAL':
+                    external_int_count += 1
+                else:
+                    unclassified_int_count += 1
+                
+                # Count by source detail
+                detail = get_source_detail(email)
+                int_source_detail_counts[detail] = int_source_detail_counts.get(detail, 0) + 1
+            elif not int_ref:
+                # Email without INT reference - count it separately
+                if email.source_category == 'INTERNAL':
+                    internal_int_count += 1
+                elif email.source_category == 'EXTERNAL':
+                    external_int_count += 1
+                else:
+                    unclassified_int_count += 1
+                
+                detail = get_source_detail(email)
+                int_source_detail_counts[detail] = int_source_detail_counts.get(detail, 0) + 1
             
             export_data.append({
-                'INT Reference': get_int_reference(email),
+                'INT Reference': int_ref,
                 'Email ID': email.id,
                 'Source Category': get_source_category_display(email),
                 'Source Detail': get_source_detail(email),
@@ -6900,8 +6948,9 @@ def int_source_ai_grouped_excel_export():
                 'Status': email.status or 'Pending'
             })
         
-        print(f"[EMAIL EXPORT] Processed {len(export_data)} emails")
-        print(f"[EMAIL EXPORT] Source Stats: Internal={internal_count}, External={external_count}, Unclassified={unclassified_count}")
+        total_unique_ints = len(int_source_counted)
+        print(f"[EMAIL EXPORT] Processed {len(export_data)} emails across {total_unique_ints} unique INT references")
+        print(f"[EMAIL EXPORT] Source Stats BY INT: Internal={internal_int_count}, External={external_int_count}, Unclassified={unclassified_int_count}")
         
         # Create Excel file
         output = io.BytesIO()
@@ -7002,17 +7051,18 @@ def int_source_ai_grouped_excel_export():
             
             summary_sheet.merge_range('A1:C1', 'Email Intelligence Export Summary', title_format)
             
-            # Basic stats
+            # Basic stats - BY INT REFERENCE (not by email!)
             summary_data = [
                 ['', ''],
                 ['OVERVIEW', ''],
                 ['Total Emails', len(export_data)],
+                ['Unique INT References', total_unique_ints],
                 ['Export Date', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
                 ['', ''],
-                ['SOURCE CLASSIFICATION', ''],
-                ['Internal Sources', internal_count],
-                ['External Sources', external_count],
-                ['Not Yet Classified', unclassified_count],
+                ['SOURCE CLASSIFICATION (by INT)', ''],
+                ['Internal Sources', internal_int_count],
+                ['External Sources', external_int_count],
+                ['Not Yet Classified', unclassified_int_count],
             ]
             
             for row_idx, (label, value) in enumerate(summary_data, 3):
@@ -7023,24 +7073,19 @@ def int_source_ai_grouped_excel_export():
                     summary_sheet.write(row_idx, 0, label, header_format)
                     summary_sheet.write(row_idx, 1, str(value), normal_format)
             
-            # Source Detail Breakdown
-            source_detail_counts = {}
-            for item in export_data:
-                detail = item.get('Source Detail', 'Not Yet Classified')
-                source_detail_counts[detail] = source_detail_counts.get(detail, 0) + 1
-            
+            # Source Detail Breakdown - BY INT REFERENCE (not by email!)
             row_offset = len(summary_data) + 5
-            summary_sheet.write(row_offset, 0, 'SOURCE DETAIL BREAKDOWN', section_format)
+            summary_sheet.write(row_offset, 0, 'SOURCE DETAIL BREAKDOWN (by INT)', section_format)
             summary_sheet.write(row_offset, 1, '', section_format)
             summary_sheet.write(row_offset, 2, '', section_format)
             row_offset += 1
             
             summary_sheet.write(row_offset, 0, 'Source', header_format)
-            summary_sheet.write(row_offset, 1, 'Count', header_format)
+            summary_sheet.write(row_offset, 1, 'INT Count', header_format)
             row_offset += 1
             
-            # Sort by count descending
-            sorted_details = sorted(source_detail_counts.items(), key=lambda x: x[1], reverse=True)
+            # Sort by count descending - using INT counts, not email counts
+            sorted_details = sorted(int_source_detail_counts.items(), key=lambda x: x[1], reverse=True)
             for detail, count in sorted_details:
                 summary_sheet.write(row_offset, 0, detail, normal_format)
                 summary_sheet.write(row_offset, 1, count, normal_format)
