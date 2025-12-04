@@ -1515,11 +1515,8 @@
                 <i class="bi bi-file-earmark-excel"></i> 📋 Individual Emails (Classic)
               </a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('int_source_ai_grouped_excel_export') }}" title="AI groups related emails together for better organization">
-                <i class="bi bi-robot"></i> 🧵 AI Grouped Threads (Smart)
-              </a></li>
-              <li><a class="dropdown-item" href="{{ url_for('int_source_ai_thread_summary_export') }}" title="One row per conversation thread - perfect for statistics">
-                <i class="bi bi-graph-up"></i> 📊 Thread Summary (Statistics)
+              <li><a class="dropdown-item" href="{{ url_for('int_source_ai_grouped_excel_export') }}" title="Individual emails with source classification">
+                <i class="bi bi-file-earmark-spreadsheet"></i> 📊 Email Export (with Source)
               </a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="#" onclick="showExportModal('csv')">
