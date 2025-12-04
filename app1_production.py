@@ -11901,6 +11901,100 @@ def get_standardized_nature(ai_suggested_nature):
     else:
         return "Other"
 
+# ============================================================
+# AI MODEL MANAGEMENT ENDPOINTS
+# ============================================================
+
+@app.route('/api/ai/models', methods=['GET'])
+@login_required
+def api_ai_list_models():
+    """List available AI models from the server"""
+    if not AI_AVAILABLE:
+        return jsonify({'error': 'AI module not available'}), 500
+    
+    try:
+        available_models = ai_engine.list_available_models()
+        current_model = ai_engine.get_current_model()
+        
+        return jsonify({
+            'success': True,
+            'current_model': current_model,
+            'available_models': available_models,
+            'default_models': ai_engine.DEFAULT_MODELS
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ai/models/current', methods=['GET'])
+@login_required
+def api_ai_get_current_model():
+    """Get the currently configured AI model"""
+    if not AI_AVAILABLE:
+        return jsonify({'error': 'AI module not available'}), 500
+    
+    return jsonify({
+        'success': True,
+        'current_model': ai_engine.get_current_model()
+    })
+
+@app.route('/api/ai/models/set', methods=['POST'])
+@login_required
+def api_ai_set_model():
+    """Set the AI model to use"""
+    if not AI_AVAILABLE:
+        return jsonify({'error': 'AI module not available'}), 500
+    
+    data = request.get_json()
+    model_name = data.get('model')
+    
+    if not model_name:
+        return jsonify({'error': 'Model name required'}), 400
+    
+    # Verify model exists
+    available_models = ai_engine.list_available_models()
+    if available_models and model_name not in available_models:
+        return jsonify({
+            'error': f'Model "{model_name}" not found on server',
+            'available_models': available_models
+        }), 404
+    
+    ai_engine.set_model(model_name)
+    
+    return jsonify({
+        'success': True,
+        'message': f'Model set to {model_name}',
+        'current_model': ai_engine.get_current_model()
+    })
+
+@app.route('/api/ai/status', methods=['GET'])
+@login_required
+def api_ai_status():
+    """Get AI system status including model info"""
+    status = {
+        'ai_available': AI_AVAILABLE,
+        'current_model': None,
+        'available_models': [],
+        'api_endpoints': {
+            'llm': None,
+            'embedding': None,
+            'docling': None
+        }
+    }
+    
+    if AI_AVAILABLE:
+        try:
+            status['current_model'] = ai_engine.get_current_model()
+            status['available_models'] = ai_engine.list_available_models()
+            status['api_endpoints'] = {
+                'llm': ai_engine.llm_api,
+                'embedding': ai_engine.embedding_api,
+                'docling': ai_engine.docling_api
+            }
+        except Exception as e:
+            status['error'] = str(e)
+    
+    return jsonify(status)
+
 @app.route('/ai/comprehensive-analyze/<int:email_id>', methods=['POST'])
 @login_required
 def ai_comprehensive_analyze_email(email_id):

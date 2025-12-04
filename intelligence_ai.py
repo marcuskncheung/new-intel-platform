@@ -5,6 +5,7 @@ Uses company's internal AI services for automated email analysis
 import requests
 import json
 import re
+import os
 from typing import Dict, List, Optional
 import urllib3
 
@@ -12,8 +13,15 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class IntelligenceAI:
-    # Model configuration
-    LLM_MODEL = "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4"
+    # Model configuration - can be overridden by environment variable
+    # Default model with fallback options
+    DEFAULT_MODELS = [
+        "hosted_vllm/Qwen3-235B-A22B-GPTQ-Int4",  # Original model
+        "hosted_vllm/Qwen3-32B",                   # Smaller Qwen3
+        "hosted_vllm/Qwen2.5-72B-Instruct",        # Qwen 2.5
+        "hosted_vllm/Llama-3.1-70B-Instruct",      # Llama fallback
+        "gpt-4",                                    # Generic fallback
+    ]
     
     def __init__(self):
         self.llm_api = "https://ai-poc.corp.ia/vllm/v1"
@@ -34,10 +42,80 @@ class IntelligenceAI:
         self.max_async_file_size_mb = 100  # Maximum size for async processing
         
         # ✅ CRITICAL FIX: Configurable attachment text limits (was hardcoded to 2,000 chars!)
-        import os
         self.attachment_text_limit = int(os.environ.get('ATTACHMENT_TEXT_LIMIT', '15000'))  # 15K per attachment
         self.total_attachment_limit = int(os.environ.get('TOTAL_ATTACHMENT_LIMIT', '50000'))  # 50K total
         self.prompt_attachment_limit = int(os.environ.get('PROMPT_ATTACHMENT_LIMIT', '15000'))  # 15K in prompt
+        
+        # ✅ Model configuration - environment variable or auto-discovery
+        self.LLM_MODEL = os.environ.get('LLM_MODEL', None)
+        self._available_models = None
+        
+        if not self.LLM_MODEL:
+            # Try to discover available models from API
+            self._discover_and_set_model()
+    
+    def _discover_and_set_model(self):
+        """Discover available models from the API and set the best one"""
+        print("[AI] Discovering available models from API...")
+        available = self.list_available_models()
+        
+        if available:
+            print(f"[AI] Available models: {available}")
+            self._available_models = available
+            
+            # Try each default model in order of preference
+            for model in self.DEFAULT_MODELS:
+                if model in available:
+                    self.LLM_MODEL = model
+                    print(f"[AI] ✅ Selected model: {self.LLM_MODEL}")
+                    return
+            
+            # If no preferred model found, use first available
+            self.LLM_MODEL = available[0]
+            print(f"[AI] ⚠️ Using first available model: {self.LLM_MODEL}")
+        else:
+            # Fallback to first default model if API is unreachable
+            self.LLM_MODEL = self.DEFAULT_MODELS[0]
+            print(f"[AI] ⚠️ Could not discover models, using default: {self.LLM_MODEL}")
+    
+    def list_available_models(self) -> List[str]:
+        """Query the API to get list of available models"""
+        try:
+            response = self.session.get(
+                f"{self.llm_api}/models",
+                timeout=10,
+                verify=False
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                # OpenAI-compatible API returns {"data": [{"id": "model-name"}, ...]}
+                if 'data' in data:
+                    models = [m.get('id', m.get('name', '')) for m in data['data'] if m]
+                    return [m for m in models if m]  # Filter empty strings
+                # Some APIs return {"models": [...]}
+                elif 'models' in data:
+                    return data['models']
+                # Some APIs return list directly
+                elif isinstance(data, list):
+                    return data
+            else:
+                print(f"[AI] Model list API returned status {response.status_code}")
+                
+        except Exception as e:
+            print(f"[AI] Error listing models: {e}")
+        
+        return []
+    
+    def get_current_model(self) -> str:
+        """Get the currently configured model"""
+        return self.LLM_MODEL
+    
+    def set_model(self, model_name: str) -> bool:
+        """Manually set the model to use"""
+        self.LLM_MODEL = model_name
+        print(f"[AI] Model set to: {self.LLM_MODEL}")
+        return True
         
     def _calculate_dynamic_timeout(self, file_size_mb: float) -> int:
         """Calculate appropriate timeout based on file size (1 minute per MB, minimum 2 minutes)"""
@@ -367,6 +445,26 @@ class IntelligenceAI:
                 parsed_result = self._parse_comprehensive_analysis(analysis_text)
                 print(f"[DEBUG] Comprehensive parsed analysis: {parsed_result}")
                 return parsed_result
+            elif response.status_code == 404:
+                # Model not found - try to discover and use a different model
+                error_msg = response.text
+                print(f"[AI ERROR] Model not found: {self.LLM_MODEL}")
+                print(f"[AI ERROR] API Response: {error_msg}")
+                
+                # Try to discover available models
+                available = self.list_available_models()
+                if available:
+                    print(f"[AI] Available models on server: {available}")
+                    # Try the first available model
+                    old_model = self.LLM_MODEL
+                    self.LLM_MODEL = available[0]
+                    print(f"[AI] ⚠️ Switching from {old_model} to {self.LLM_MODEL}")
+                    
+                    # Retry with new model (recursive call with retry limit)
+                    return self._retry_comprehensive_analysis_with_new_model(email_data, attachment_content)
+                else:
+                    print(f"[AI ERROR] Could not discover alternative models")
+                    return self._get_default_comprehensive_analysis()
             else:
                 print(f"LLM API error: {response.status_code} - {response.text}")
                 return self._get_default_comprehensive_analysis()
@@ -374,7 +472,39 @@ class IntelligenceAI:
         except Exception as e:
             print(f"[ERROR] Error calling LLM API for comprehensive analysis: {e}")
             return self._get_default_comprehensive_analysis()
-
+    
+    def _retry_comprehensive_analysis_with_new_model(self, email_data: Dict, attachment_content: str) -> Dict:
+        """Retry comprehensive analysis with the newly discovered model"""
+        print(f"[AI] Retrying analysis with model: {self.LLM_MODEL}")
+        
+        prompt = self._create_comprehensive_analysis_prompt(email_data, attachment_content)
+        
+        try:
+            response = self.session.post(
+                f"{self.llm_api}/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": self.LLM_MODEL,
+                    "prompt": prompt,
+                    "max_tokens": 3000,
+                    "temperature": 0.3,
+                    "stop": ["</comprehensive_analysis>"]
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                analysis_text = result.get('choices', [{}])[0].get('text', '')
+                print(f"[AI] ✅ Retry successful with model {self.LLM_MODEL}")
+                parsed_result = self._parse_comprehensive_analysis(analysis_text)
+                return parsed_result
+            else:
+                print(f"[AI] Retry failed: {response.status_code} - {response.text}")
+                return self._get_default_comprehensive_analysis()
+                
+        except Exception as e:
+            print(f"[AI] Retry error: {e}")
+            return self._get_default_comprehensive_analysis()
     def _create_comprehensive_analysis_prompt(self, email_data: Dict, attachment_content: str) -> str:
         """Create comprehensive analysis prompt for detailed investigation"""
         # ✅ CRITICAL LOGGING: Show how much attachment content we're including
