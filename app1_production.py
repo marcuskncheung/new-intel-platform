@@ -1453,6 +1453,34 @@ class ReceivedByHandDocument(db.Model):
     file_type = db.Column(db.String(50))  # pdf, image, doc, etc.
     uploaded_at = db.Column(db.DateTime, default=get_hk_time)
 
+
+class ReceivedByHandAllegedSubject(db.Model):
+    """
+    Relational table for Received By Hand alleged subjects.
+    Each alleged person is a separate row with guaranteed correct English-Chinese pairing.
+    Similar to OnlinePatrolAllegedSubject for consistency.
+    """
+    __tablename__ = 'received_by_hand_alleged_subjects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id', ondelete='CASCADE'), nullable=False)
+    english_name = db.Column(db.String(255), nullable=True)
+    chinese_name = db.Column(db.String(255), nullable=True)
+    is_insurance_intermediary = db.Column(db.Boolean, default=False)
+    license_type = db.Column(db.String(100), nullable=True)
+    license_number = db.Column(db.String(100), nullable=True)
+    sequence_order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=get_hk_time)
+    
+    __table_args__ = (
+        db.CheckConstraint('english_name IS NOT NULL OR chinese_name IS NOT NULL', name='check_rbh_has_name'),
+        db.UniqueConstraint('received_by_hand_id', 'sequence_order', name='unique_rbh_subject'),
+        db.Index('idx_rbh_alleged_subjects_rbh_id', 'received_by_hand_id'),
+        db.Index('idx_rbh_alleged_subjects_english', 'english_name'),
+        db.Index('idx_rbh_alleged_subjects_chinese', 'chinese_name'),
+    )
+
+
 # --- SQLAlchemy model for Database table ---
 class CaseProfile(db.Model):
     """
@@ -10457,10 +10485,7 @@ def update_received_by_hand_int_reference(entry_id):
             # Find or create the CaseProfile with this INT reference
             case = CaseProfile.query.filter_by(int_reference=int_reference).first()
             if not case:
-                # Get next index_order
-                from sqlalchemy import func
-                max_order = db.session.query(func.max(CaseProfile.index_order)).scalar() or 0
-                case = CaseProfile(int_reference=int_reference, index_order=max_order + 1)
+                case = CaseProfile(int_reference=int_reference)
                 db.session.add(case)
                 db.session.flush()
             entry.caseprofile_id = case.id
@@ -10592,7 +10617,7 @@ def delete_received_by_hand_document(document_id):
 @app.route("/received_by_hand/<int:entry_id>/update_assessment", methods=["POST"])
 @login_required
 def update_received_by_hand_assessment(entry_id):
-    """Update assessment for a Received by Hand entry"""
+    """Update assessment for a Received by Hand entry - with full POI automation like WhatsApp/Online Patrol"""
     entry = db.session.get(ReceivedByHandEntry, entry_id)
     if not entry:
         flash("Entry not found.", "error")
@@ -10602,7 +10627,7 @@ def update_received_by_hand_assessment(entry_id):
         # Update preparer
         entry.preparer = request.form.get("preparer", "").strip() or None
         
-        # Handle multiple alleged subjects
+        # Handle multiple alleged subjects with English and Chinese names
         english_names = request.form.getlist("alleged_subjects_en[]")
         chinese_names = request.form.getlist("alleged_subjects_cn[]")
         license_types = request.form.getlist("intermediary_type[]")
@@ -10611,34 +10636,54 @@ def update_received_by_hand_assessment(entry_id):
         # Process alleged subjects
         processed_english = []
         processed_chinese = []
+        all_person_names = []
         processed_license_types = []
         processed_license_numbers = []
         
-        for i in range(len(english_names)):
-            en_name = english_names[i].strip() if i < len(english_names) else ""
-            cn_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+        max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
+        
+        for i in range(max_len):
+            eng_name = english_names[i].strip() if i < len(english_names) else ""
+            chi_name = chinese_names[i].strip() if i < len(chinese_names) else ""
             lic_type = license_types[i].strip() if i < len(license_types) else ""
             lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
             
-            if en_name or cn_name:
-                processed_english.append(en_name)
-                processed_chinese.append(cn_name)
+            if eng_name or chi_name:
+                if eng_name:
+                    processed_english.append(eng_name)
+                    all_person_names.append(eng_name)
+                if chi_name:
+                    processed_chinese.append(chi_name)
+                    if not eng_name:
+                        all_person_names.append(chi_name)
                 processed_license_types.append(lic_type)
                 processed_license_numbers.append(lic_num)
         
-        entry.alleged_subject_english = ", ".join(filter(None, processed_english)) or None
-        entry.alleged_subject_chinese = ", ".join(filter(None, processed_chinese)) or None
-        entry.alleged_person = entry.alleged_subject_english or entry.alleged_subject_chinese
+        entry.alleged_person = ", ".join(all_person_names) if all_person_names else None
+        entry.alleged_subject_english = ", ".join(processed_english) if processed_english else None
+        entry.alleged_subject_chinese = ", ".join(processed_chinese) if processed_chinese else None
         
         if processed_license_types:
             entry.intermediary_types_json = json.dumps(processed_license_types)
         if processed_license_numbers:
             entry.license_numbers_json = json.dumps(processed_license_numbers)
         
-        # Update alleged nature
-        alleged_nature = request.form.getlist("alleged_nature[]")
-        if alleged_nature:
-            entry.alleged_nature = json.dumps([n for n in alleged_nature if n])
+        # Handle alleged nature (multi-select)
+        alleged_nature_list = request.form.getlist("alleged_nature[]")
+        if alleged_nature_list:
+            entry.alleged_nature = json.dumps([n for n in alleged_nature_list if n])
+        else:
+            # Try single value
+            alleged_nature = request.form.get("alleged_nature")
+            if alleged_nature:
+                try:
+                    parsed = json.loads(alleged_nature)
+                    if isinstance(parsed, list):
+                        entry.alleged_nature = json.dumps(parsed)
+                    else:
+                        entry.alleged_nature = json.dumps([alleged_nature])
+                except:
+                    entry.alleged_nature = json.dumps([alleged_nature]) if alleged_nature else None
         
         # Update allegation summary
         entry.allegation_summary = request.form.get("allegation_summary", "").strip() or None
@@ -10651,7 +10696,69 @@ def update_received_by_hand_assessment(entry_id):
         entry.assessment_updated_at = get_hk_time()
         db.session.commit()
         
-        flash("Assessment updated successfully.", "success")
+        # 🤖 AUTO-UPDATE POI PROFILES (same as WhatsApp and Online Patrol)
+        if ALLEGED_PERSON_AUTOMATION and (processed_english or processed_chinese):
+            try:
+                print(f"[RECEIVED_BY_HAND AUTOMATION] 🚀 Auto-updating POI profiles for entry {entry.id}")
+                
+                max_persons = max(len(processed_english), len(processed_chinese))
+                
+                for i in range(max_persons):
+                    eng_name = processed_english[i] if i < len(processed_english) else None
+                    chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+                    
+                    if not eng_name and not chi_name:
+                        continue
+                    
+                    print(f"[RECEIVED_BY_HAND AUTOMATION] Processing person #{i+1}: EN='{eng_name}' CN='{chi_name}'")
+                    
+                    result = create_or_update_alleged_person_profile(
+                        db, AllegedPersonProfile, EmailAllegedPersonLink,
+                        name_english=eng_name,
+                        name_chinese=chi_name,
+                        email_id=None,
+                        source="RECEIVED_BY_HAND",
+                        update_mode="merge"
+                    )
+                    
+                    if result.get('profile_id'):
+                        # Create universal link in POI v2.0 table
+                        try:
+                            existing_link = db.session.query(POIIntelligenceLink).filter_by(
+                                poi_id=result['profile_id'],
+                                source_type='RECEIVED_BY_HAND',
+                                source_id=entry.id
+                            ).first()
+                            
+                            if not existing_link:
+                                universal_link = POIIntelligenceLink(
+                                    poi_id=result['profile_id'],
+                                    source_type='RECEIVED_BY_HAND',
+                                    source_id=entry.id,
+                                    case_profile_id=entry.caseprofile_id,
+                                    confidence_score=0.90,
+                                    created_by=f"USER-{current_user.username}"
+                                )
+                                db.session.add(universal_link)
+                                db.session.commit()
+                                print(f"[RECEIVED_BY_HAND AUTOMATION] ✅ Created universal link for POI {result.get('poi_id')}")
+                        except Exception as link_error:
+                            print(f"[RECEIVED_BY_HAND AUTOMATION] ⚠️ Could not create universal link: {link_error}")
+                
+                flash(f"Assessment updated and {max_persons} POI profile(s) processed.", "success")
+                
+                # 🎯 SMART REDIRECT: Go to linked POI profile if exists
+                linked_poi = get_linked_poi_for_intelligence('RECEIVED_BY_HAND', entry.id)
+                if linked_poi:
+                    flash(f'Assessment saved. Viewing POI profile: {linked_poi}', 'success')
+                    return redirect(url_for('alleged_subject_profile_detail', poi_id=linked_poi))
+                
+            except Exception as automation_error:
+                print(f"[RECEIVED_BY_HAND AUTOMATION] ❌ Error in POI automation: {automation_error}")
+                flash("Assessment updated, but POI automation had an error.", "warning")
+        else:
+            flash("Assessment updated successfully.", "success")
+        
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating assessment: {str(e)}", "error")
