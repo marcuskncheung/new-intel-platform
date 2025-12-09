@@ -290,6 +290,7 @@
   .source-badge.whatsapp { background: #e8f5e9; color: #388e3c; }
   .source-badge.patrol { background: #fff3e0; color: #f57c00; }
   .source-badge.surveillance { background: #fce4ec; color: #c2185b; }
+  .source-badge.received-by-hand { background: #e0f7fa; color: #00838f; }
   .action-buttons {
     display: flex;
     gap: 1rem;
@@ -429,6 +430,14 @@
       </div>
       <div class="stat-value">{{ stats.total_surveillance }}</div>
       <div class="stat-label">Surveillance Reports</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon teal" style="background: linear-gradient(135deg, #00acc1 0%, #00838f 100%);">
+        <i class="bi bi-hand-index"></i>
+      </div>
+      <div class="stat-value">{{ stats.total_received_by_hand }}</div>
+      <div class="stat-label">Received by Hand</div>
     </div>
 
     <div class="stat-card">
@@ -785,6 +794,11 @@
                 <i class="bi bi-camera-video"></i> {{ int.surveillance_count }}
               </span>
             {% endif %}
+            {% if int.received_by_hand_count > 0 %}
+              <span class="source-badge received-by-hand">
+                <i class="bi bi-hand-index"></i> {{ int.received_by_hand_count }}
+              </span>
+            {% endif %}
           </div>
         </div>
         {% endfor %}
@@ -866,14 +880,15 @@ function initOverviewCharts() {
   new Chart(sourceCtx, {
     type: 'doughnut',
     data: {
-      labels: ['Email', 'WhatsApp', 'Online Patrol', 'Surveillance'],
+      labels: ['Email', 'WhatsApp', 'Online Patrol', 'Surveillance', 'Received by Hand'],
       datasets: [{
-        data: [{{ stats.total_emails }}, {{ stats.total_whatsapp }}, {{ stats.total_patrol }}, {{ stats.total_surveillance }}],
+        data: [{{ stats.total_emails }}, {{ stats.total_whatsapp }}, {{ stats.total_patrol }}, {{ stats.total_surveillance }}, {{ stats.total_received_by_hand }}],
         backgroundColor: [
           '#1976d2',
           '#388e3c',
           '#f57c00',
-          '#c2185b'
+          '#c2185b',
+          '#00838f'
         ],
         borderWidth: 0
       }]
@@ -967,6 +982,12 @@ new Chart(topIntCtx, {
         label: 'Surveillance',
         data: topIntData.surveillance,
         backgroundColor: '#c2185b',
+        borderRadius: 6
+      },
+      {
+        label: 'Received by Hand',
+        data: topIntData.received_by_hand,
+        backgroundColor: '#00838f',
         borderRadius: 6
       }
     ]

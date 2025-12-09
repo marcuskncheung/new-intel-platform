@@ -4788,7 +4788,8 @@ def int_analytics():
             'email': [stat['email_count'] for stat in top_ints],
             'whatsapp': [stat['whatsapp_count'] for stat in top_ints],
             'patrol': [stat['online_count'] for stat in top_ints],
-            'surveillance': [stat['surveillance_count'] for stat in top_ints]
+            'surveillance': [stat['surveillance_count'] for stat in top_ints],
+            'received_by_hand': [stat['received_by_hand_count'] for stat in top_ints]
         }
         
         # Sort allegation stats by count for chart
@@ -4803,7 +4804,8 @@ def int_analytics():
                 'email_count': stat['email_count'],
                 'whatsapp_count': stat['whatsapp_count'],
                 'patrol_count': stat['online_count'],
-                'surveillance_count': stat['surveillance_count']
+                'surveillance_count': stat['surveillance_count'],
+                'received_by_hand_count': stat['received_by_hand_count']
             })
         
         return render_template(
