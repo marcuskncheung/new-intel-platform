@@ -57,6 +57,7 @@
 .stat-whatsapp { background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); }
 .stat-patrol { background: linear-gradient(135deg, #ff9800 0%, #e65100 100%); }
 .stat-surveillance { background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%); }
+.stat-received-by-hand { background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); }
 .stat-total { background: linear-gradient(135deg, #6610f2 0%, #520dc2 100%); }
 .stat-cases { background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); }
 .stat-activity { background: linear-gradient(135deg, #20c997 0%, #17a589 100%); }
@@ -140,7 +141,7 @@
     
     <!-- Row 1: Source Counts -->
     <div class="row g-3 mb-3">
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-2 col-md-4">
             <div class="poi-stat-card stat-email">
                 <i class="bi bi-envelope-fill poi-stat-icon"></i>
                 <div class="poi-stat-number">{{ email_count if email_count is defined else (profile.email_count or 0) }}</div>
@@ -148,7 +149,7 @@
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-2 col-md-4">
             <div class="poi-stat-card stat-whatsapp">
                 <i class="bi bi-whatsapp poi-stat-icon"></i>
                 <div class="poi-stat-number">{{ whatsapp_count if whatsapp_count is defined else (profile.whatsapp_count or 0) }}</div>
@@ -156,7 +157,7 @@
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-2 col-md-4">
             <div class="poi-stat-card stat-patrol">
                 <i class="bi bi-shield-fill-check poi-stat-icon"></i>
                 <div class="poi-stat-number">{{ patrol_count if patrol_count is defined else (profile.patrol_count or 0) }}</div>
@@ -164,11 +165,19 @@
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-2 col-md-4">
             <div class="poi-stat-card stat-surveillance">
                 <i class="bi bi-camera-video-fill poi-stat-icon"></i>
                 <div class="poi-stat-number">{{ surveillance_count if surveillance_count is defined else (profile.surveillance_count or 0) }}</div>
                 <div class="poi-stat-label">Surveillance</div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4">
+            <div class="poi-stat-card stat-received-by-hand">
+                <i class="bi bi-hand-index-fill poi-stat-icon"></i>
+                <div class="poi-stat-number">{{ received_by_hand_count if received_by_hand_count is defined else 0 }}</div>
+                <div class="poi-stat-label">Received by Hand</div>
             </div>
         </div>
     </div>
@@ -291,6 +300,11 @@
                         <i class="bi bi-camera-video"></i> Surveillance ({{ surveillance_count or 0 }})
                     </button>
                 </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#received-by-hand-tab" type="button">
+                        <i class="bi bi-hand-index"></i> Received by Hand ({{ received_by_hand_count or 0 }})
+                    </button>
+                </li>
             </ul>
             
             <div class="tab-content p-4">
@@ -321,6 +335,8 @@
                                             <span class="badge bg-warning text-dark"><i class="bi bi-shield"></i> Patrol</span>
                                         {% elif intel.get('source_type') == 'SURVEILLANCE' %}
                                             <span class="badge bg-danger"><i class="bi bi-camera-video"></i> Surveillance</span>
+                                        {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' %}
+                                            <span class="badge bg-info"><i class="bi bi-hand-index"></i> Received by Hand</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -358,6 +374,11 @@
                                         {% elif intel.get('source_type') == 'SURVEILLANCE' and intel.get('id') %}
                                             <a href="{{ url_for('surveillance_detail', entry_id=intel.get('id')) }}" 
                                                class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' and intel.get('id') %}
+                                            <a href="{{ url_for('received_by_hand_detail', entry_id=intel.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-info">
                                                 <i class="bi bi-eye"></i> View
                                             </a>
                                         {% else %}
@@ -551,6 +572,52 @@
                     {% else %}
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle me-2"></i>No surveillance records for this profile.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Received by Hand Tab -->
+                <div class="tab-pane fade" id="received-by-hand-tab">
+                    {% if received_by_hand and received_by_hand|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="15%">Date</th>
+                                    <th width="18%">Reference</th>
+                                    <th>Content</th>
+                                    <th width="12%" class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in received_by_hand %}
+                                <tr>
+                                    <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
+                                    <td><code>{{ entry.get('reference') or entry.get('int_reference_number') or 'N/A' }}</code></td>
+                                    <td>{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
+                                    <td class="text-center">
+                                        {% if entry.get('view_url') %}
+                                            <a href="{{ entry.get('view_url') }}" 
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% elif entry.get('id') %}
+                                            <a href="{{ url_for('received_by_hand_detail', entry_id=entry.get('id')) }}" 
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>No received by hand records for this profile.
                     </div>
                     {% endif %}
                 </div>

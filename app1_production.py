@@ -3580,6 +3580,7 @@ def alleged_subject_profile_detail(poi_id):
         whatsapp = []
         patrol = []
         surveillance = []
+        received_by_hand = []
         all_intelligence = []
         
         for link in links:
@@ -3707,6 +3708,28 @@ def alleged_subject_profile_detail(poi_id):
                     }
                     surveillance.append(intel_data)
                     all_intelligence.append(intel_data)
+            
+            elif link.source_type == 'RECEIVED_BY_HAND':
+                rbh = db.session.get(ReceivedByHandEntry, link.source_id)
+                if rbh:
+                    intel_data = {
+                        'link_id': link.link_id,
+                        'source_type': 'RECEIVED_BY_HAND',
+                        'confidence': link.confidence_score,
+                        'case_name': link.case_name,
+                        'case_id': link.case_id,
+                        'date': link.link_created_at or rbh.received_time or rbh.date_received,
+                        'date_str': (link.link_created_at or rbh.received_time or rbh.date_received).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or rbh.received_time or rbh.date_received) else 'N/A',
+                        'id': rbh.id,
+                        'reference': rbh.case_profile.int_reference if rbh.case_profile else f'RBH-{rbh.id}',
+                        'case_int': rbh.case_profile.int_reference if rbh.case_profile else None,
+                        'title': f'Received by Hand: {rbh.complaint_name or rbh.complainant_name or "Unknown"}',
+                        'summary': rbh.allegation_summary or rbh.alleged_nature or rbh.description or 'Received by hand report',
+                        'complaint_name': rbh.complaint_name or rbh.complainant_name,
+                        'view_url': url_for('received_by_hand_detail', entry_id=rbh.id)
+                    }
+                    received_by_hand.append(intel_data)
+                    all_intelligence.append(intel_data)
         
         # Calculate statistics
         total_intelligence = len(all_intelligence)
@@ -3714,8 +3737,9 @@ def alleged_subject_profile_detail(poi_id):
         whatsapp_count = len(whatsapp)
         patrol_count = len(patrol)
         surveillance_count = len(surveillance)
+        received_by_hand_count = len(received_by_hand)
         
-        print(f"[PROFILE DETAIL] Intelligence breakdown: Email={email_count}, WhatsApp={whatsapp_count}, Patrol={patrol_count}, Surveillance={surveillance_count}")
+        print(f"[PROFILE DETAIL] Intelligence breakdown: Email={email_count}, WhatsApp={whatsapp_count}, Patrol={patrol_count}, Surveillance={surveillance_count}, ReceivedByHand={received_by_hand_count}")
         
         # For backward compatibility, also keep related_emails for old template parts
         related_emails = emails  # Alias for compatibility
@@ -3726,12 +3750,14 @@ def alleged_subject_profile_detail(poi_id):
                              whatsapp=whatsapp,
                              patrol=patrol,
                              surveillance=surveillance,
+                             received_by_hand=received_by_hand,
                              all_intelligence=all_intelligence,
                              total_intelligence_count=total_intelligence,
                              email_count=email_count,
                              whatsapp_count=whatsapp_count,
                              patrol_count=patrol_count,
                              surveillance_count=surveillance_count,
+                             received_by_hand_count=received_by_hand_count,
                              related_emails=related_emails,  # Backward compatibility
                              total_emails=len(related_emails))  # Backward compatibility
     
