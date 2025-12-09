@@ -10441,6 +10441,225 @@ def int_source_received_by_hand_edit(entry_id):
     return render_template("int_source_received_by_hand_edit.html", entry=entry, documents=documents, int_reference=int_reference)
 
 
+@app.route("/received_by_hand/<int:entry_id>/update_int_reference", methods=["POST"])
+@login_required
+def update_received_by_hand_int_reference(entry_id):
+    """Update INT reference for a Received by Hand entry"""
+    entry = db.session.get(ReceivedByHandEntry, entry_id)
+    if not entry:
+        flash("Entry not found.", "error")
+        return redirect(url_for('int_source'))
+    
+    try:
+        int_reference = request.form.get("int_reference", "").strip()
+        
+        if int_reference:
+            # Find or create the CaseProfile with this INT reference
+            case = CaseProfile.query.filter_by(int_reference=int_reference).first()
+            if not case:
+                # Get next index_order
+                from sqlalchemy import func
+                max_order = db.session.query(func.max(CaseProfile.index_order)).scalar() or 0
+                case = CaseProfile(int_reference=int_reference, index_order=max_order + 1)
+                db.session.add(case)
+                db.session.flush()
+            entry.caseprofile_id = case.id
+        else:
+            entry.caseprofile_id = None
+        
+        db.session.commit()
+        flash("INT Reference updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating INT Reference: {str(e)}", "error")
+        print(f"Error updating INT reference: {e}")
+    
+    return redirect(url_for('received_by_hand_detail', entry_id=entry.id))
+
+
+@app.route("/received_by_hand/<int:entry_id>/update_details", methods=["POST"])
+@login_required
+def update_received_by_hand_details(entry_id):
+    """Update details for a Received by Hand entry (WhatsApp-style form)"""
+    entry = db.session.get(ReceivedByHandEntry, entry_id)
+    if not entry:
+        flash("Entry not found.", "error")
+        return redirect(url_for('int_source'))
+    
+    try:
+        # Update basic fields
+        entry.complaint_name = request.form.get("complaint_name", "").strip() or None
+        entry.alleged_type = request.form.get("alleged_type", "").strip() or None
+        entry.source = request.form.get("source", "").strip() or None
+        entry.details = request.form.get("details", "").strip() or None
+        
+        # Update received time if provided
+        received_time_str = request.form.get("received_time", "").strip()
+        if received_time_str:
+            try:
+                from datetime import datetime
+                entry.received_time = datetime.strptime(received_time_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                pass
+        
+        # Handle multiple alleged subjects
+        english_names = request.form.getlist("alleged_subjects_en[]")
+        chinese_names = request.form.getlist("alleged_subjects_cn[]")
+        license_types = request.form.getlist("intermediary_type[]")
+        license_numbers_list = request.form.getlist("license_numbers[]")
+        
+        # Process alleged subjects
+        processed_english = []
+        processed_chinese = []
+        processed_license_types = []
+        processed_license_numbers = []
+        
+        for i in range(len(english_names)):
+            en_name = english_names[i].strip() if i < len(english_names) else ""
+            cn_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+            lic_type = license_types[i].strip() if i < len(license_types) else ""
+            lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+            
+            if en_name or cn_name:
+                processed_english.append(en_name)
+                processed_chinese.append(cn_name)
+                processed_license_types.append(lic_type)
+                processed_license_numbers.append(lic_num)
+        
+        entry.alleged_subject_english = ", ".join(filter(None, processed_english)) or None
+        entry.alleged_subject_chinese = ", ".join(filter(None, processed_chinese)) or None
+        entry.alleged_person = entry.alleged_subject_english or entry.alleged_subject_chinese
+        
+        if processed_license_types:
+            entry.intermediary_types_json = json.dumps(processed_license_types)
+        if processed_license_numbers:
+            entry.license_numbers_json = json.dumps(processed_license_numbers)
+        
+        # Update alleged nature
+        alleged_nature = request.form.getlist("alleged_nature[]")
+        if alleged_nature:
+            entry.alleged_nature = json.dumps([n for n in alleged_nature if n])
+        
+        # Handle document uploads
+        uploaded_files = request.files.getlist("documents[]")
+        for file in uploaded_files:
+            if file and file.filename:
+                file_data = file.read()
+                file_type = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'unknown'
+                
+                doc = ReceivedByHandDocument(
+                    received_by_hand_id=entry.id,
+                    filename=file.filename,
+                    file_data=file_data,
+                    file_type=file_type
+                )
+                db.session.add(doc)
+        
+        entry.assessment_updated_at = get_hk_time()
+        db.session.commit()
+        
+        flash("Entry updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating entry: {str(e)}", "error")
+        print(f"Error updating entry: {e}")
+    
+    return redirect(url_for('received_by_hand_detail', entry_id=entry.id))
+
+
+@app.route("/received_by_hand/document/<int:document_id>/delete", methods=["POST"])
+@login_required
+def delete_received_by_hand_document(document_id):
+    """Delete a document from a Received by Hand entry"""
+    doc = db.session.get(ReceivedByHandDocument, document_id)
+    if not doc:
+        flash("Document not found.", "error")
+        return redirect(url_for('int_source'))
+    
+    entry_id = doc.received_by_hand_id
+    try:
+        db.session.delete(doc)
+        db.session.commit()
+        flash("Document deleted successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting document: {str(e)}", "error")
+        print(f"Error deleting document: {e}")
+    
+    return redirect(url_for('received_by_hand_detail', entry_id=entry_id))
+
+
+@app.route("/received_by_hand/<int:entry_id>/update_assessment", methods=["POST"])
+@login_required
+def update_received_by_hand_assessment(entry_id):
+    """Update assessment for a Received by Hand entry"""
+    entry = db.session.get(ReceivedByHandEntry, entry_id)
+    if not entry:
+        flash("Entry not found.", "error")
+        return redirect(url_for('int_source'))
+    
+    try:
+        # Update preparer
+        entry.preparer = request.form.get("preparer", "").strip() or None
+        
+        # Handle multiple alleged subjects
+        english_names = request.form.getlist("alleged_subjects_en[]")
+        chinese_names = request.form.getlist("alleged_subjects_cn[]")
+        license_types = request.form.getlist("intermediary_type[]")
+        license_numbers_list = request.form.getlist("license_numbers[]")
+        
+        # Process alleged subjects
+        processed_english = []
+        processed_chinese = []
+        processed_license_types = []
+        processed_license_numbers = []
+        
+        for i in range(len(english_names)):
+            en_name = english_names[i].strip() if i < len(english_names) else ""
+            cn_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+            lic_type = license_types[i].strip() if i < len(license_types) else ""
+            lic_num = license_numbers_list[i].strip() if i < len(license_numbers_list) else ""
+            
+            if en_name or cn_name:
+                processed_english.append(en_name)
+                processed_chinese.append(cn_name)
+                processed_license_types.append(lic_type)
+                processed_license_numbers.append(lic_num)
+        
+        entry.alleged_subject_english = ", ".join(filter(None, processed_english)) or None
+        entry.alleged_subject_chinese = ", ".join(filter(None, processed_chinese)) or None
+        entry.alleged_person = entry.alleged_subject_english or entry.alleged_subject_chinese
+        
+        if processed_license_types:
+            entry.intermediary_types_json = json.dumps(processed_license_types)
+        if processed_license_numbers:
+            entry.license_numbers_json = json.dumps(processed_license_numbers)
+        
+        # Update alleged nature
+        alleged_nature = request.form.getlist("alleged_nature[]")
+        if alleged_nature:
+            entry.alleged_nature = json.dumps([n for n in alleged_nature if n])
+        
+        # Update allegation summary
+        entry.allegation_summary = request.form.get("allegation_summary", "").strip() or None
+        
+        # Update reviewer fields
+        entry.reviewer_name = request.form.get("reviewer_name", "").strip() or None
+        entry.reviewer_comment = request.form.get("reviewer_comment", "").strip() or None
+        entry.reviewer_decision = request.form.get("reviewer_decision", "").strip() or None
+        
+        entry.assessment_updated_at = get_hk_time()
+        db.session.commit()
+        
+        flash("Assessment updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating assessment: {str(e)}", "error")
+        print(f"Error updating assessment: {e}")
+    
+    return redirect(url_for('received_by_hand_detail', entry_id=entry.id))
+
+
 # Add this route to fix url_for('int_source_update_assessment', email_id=...) errors in your templates
 @app.route("/int_source/email/<int:email_id>/update_assessment", methods=["POST"])
 @login_required
