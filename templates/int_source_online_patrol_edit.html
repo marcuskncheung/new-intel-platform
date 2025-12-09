@@ -137,6 +137,12 @@
       <textarea name="details" class="form-control" rows="4" placeholder="Describe the suspicious post content...">{{ entry.details if entry else '' }}</textarea>
     </div>
     
+    <div class="mb-3">
+      <label class="form-label">🚨 Identified Threats</label>
+      <small class="text-muted d-block">List any potential threats or risks identified from this entry</small>
+      <textarea name="threats" class="form-control" rows="3" placeholder="e.g., Potential fraud, misleading claims, unauthorized activity...">{{ entry.threats if entry else '' }}</textarea>
+    </div>
+    
     <!-- Photo Upload Section -->
     <div class="section-title">📸 Photo Evidence</div>
     <div class="mb-3">

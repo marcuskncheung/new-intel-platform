@@ -116,7 +116,7 @@
       </div>
 
       <!-- Keep the rest of the content below (alleged type, synopsis, details if they exist) -->
-      {% if entry.alleged_type or entry.details or entry.synopsis %}
+      {% if entry.alleged_type or entry.details or entry.synopsis or entry.threats %}
       <div class="card border-secondary mb-4">
         <div class="card-header bg-secondary text-white">
           <h6 class="mb-0">Additional Information</h6>
@@ -137,6 +137,12 @@
           <div class="mb-2">
               <strong>Details:</strong>
               <div class="p-3 bg-light rounded border" style="white-space: pre-wrap;">{{ entry.details }}</div>
+            </div>
+            {% endif %}
+          {% if entry.threats %}
+          <div class="mb-2">
+              <strong>🚨 Identified Threats:</strong>
+              <div class="p-3 bg-danger bg-opacity-10 rounded border border-danger" style="white-space: pre-wrap;">{{ entry.threats }}</div>
             </div>
             {% endif %}
           </div>

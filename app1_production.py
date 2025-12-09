@@ -1256,6 +1256,7 @@ class OnlinePatrolEntry(db.Model):
     
     # 📋 CONTENT DETAILS
     details = db.Column(db.Text)  # Description of the online post/content
+    threats = db.Column(db.Text)  # Identified threats or risks from this entry
     alleged_person = db.Column(db.String(255))  # Legacy field for POI automation
     
     # 🎯 ASSESSMENT FIELDS (Aligned with Email & WhatsApp standards)
@@ -7833,6 +7834,7 @@ def online_patrol_detail(entry_id):
             entry.source = request.form.get("source")
             entry.status = request.form.get("status")
             entry.details = request.form.get("details")
+            entry.threats = request.form.get("threats")  # 🆕 Save threats field
             
             # 🔧 NEW: Get paired English and Chinese names (same as WhatsApp/Email)
             alleged_person_english_list = request.form.getlist("alleged_subjects_en[]")

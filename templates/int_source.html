@@ -2209,6 +2209,7 @@
               <th>Post Time</th>
               <th>Alleged Person</th>
               <th>Alleged Nature</th>
+              <th>Threats</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -2274,6 +2275,15 @@
                   {% else %}
                     <span class="text-muted">-</span>
                   {% endif %}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if o.threats %}
+                  <span class="badge bg-danger text-white" style="font-size: 0.7em;" title="{{ o.threats }}">
+                    <i class="bi bi-exclamation-triangle"></i> {{ o.threats[:30] }}{% if o.threats|length > 30 %}...{% endif %}
+                  </span>
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
