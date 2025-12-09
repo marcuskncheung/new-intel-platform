@@ -10587,25 +10587,86 @@ def update_received_by_hand_int_reference(entry_id):
         return redirect(url_for('int_source'))
     
     try:
-        int_reference = request.form.get("int_reference", "").strip()
+        # Get the INT reference from the form (component sends it as int_reference_number)
+        int_reference = request.form.get("int_reference_number", "").strip()
         
         if int_reference:
-            # Find or create the CaseProfile with this INT reference
-            case = CaseProfile.query.filter_by(int_reference=int_reference).first()
-            if not case:
-                case = CaseProfile(int_reference=int_reference)
-                db.session.add(case)
-                db.session.flush()
-            entry.caseprofile_id = case.id
+            # Check if this INT reference already exists
+            existing_case = CaseProfile.query.filter_by(int_reference=int_reference).first()
+            
+            if existing_case:
+                # Assign to existing case
+                # First, unlink old case if exists and is different
+                if entry.caseprofile_id and entry.caseprofile_id != existing_case.id:
+                    old_case = db.session.get(CaseProfile, entry.caseprofile_id)
+                    if old_case and old_case.received_by_hand_id == entry.id:
+                        # This was a dedicated case for this entry, delete it
+                        db.session.delete(old_case)
+                
+                # Link to existing case
+                entry.caseprofile_id = existing_case.id
+                if not existing_case.received_by_hand_id:
+                    existing_case.received_by_hand_id = entry.id
+                db.session.commit()
+                
+                # Reorder INT references chronologically
+                reorder_int_numbers_chronologically()
+                
+                flash(f"Assigned to existing INT Reference: {int_reference}", "success")
+            else:
+                # Create NEW case with this INT reference using unified system
+                # Check if already has a case
+                if entry.caseprofile_id:
+                    old_case = db.session.get(CaseProfile, entry.caseprofile_id)
+                    if old_case:
+                        # Update existing case
+                        old_case.int_reference = int_reference
+                        db.session.commit()
+                        reorder_int_numbers_chronologically()
+                        flash(f"Updated INT Reference to: {int_reference}", "success")
+                        return redirect(url_for('received_by_hand_detail', entry_id=entry.id))
+                
+                # Create new CaseProfile with proper fields
+                case_profile = create_unified_intelligence_entry(
+                    source_record=entry,
+                    source_type="RECEIVED_BY_HAND",
+                    created_by=f"MANUAL-{current_user.username}"
+                )
+                
+                if case_profile:
+                    # Override the auto-generated INT if user specified one
+                    if case_profile.int_reference != int_reference:
+                        case_profile.int_reference = int_reference
+                    db.session.commit()
+                    
+                    # Reorder INT references chronologically
+                    reorder_int_numbers_chronologically()
+                    
+                    flash(f"Created new INT Reference: {int_reference}", "success")
+                else:
+                    flash("Failed to create INT Reference. Please try again.", "error")
         else:
-            entry.caseprofile_id = None
+            # Remove INT reference
+            if entry.caseprofile_id:
+                case = db.session.get(CaseProfile, entry.caseprofile_id)
+                if case:
+                    db.session.delete(case)
+                entry.caseprofile_id = None
+                db.session.commit()
+                
+                # Reorder INT references chronologically
+                reorder_int_numbers_chronologically()
+                
+                flash("INT Reference removed and numbers reordered.", "success")
+            else:
+                flash("No INT Reference to remove.", "info")
         
-        db.session.commit()
-        flash("INT Reference updated successfully.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating INT Reference: {str(e)}", "error")
         print(f"Error updating INT reference: {e}")
+        import traceback
+        traceback.print_exc()
     
     return redirect(url_for('received_by_hand_detail', entry_id=entry.id))
 
