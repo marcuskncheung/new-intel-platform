@@ -2361,20 +2361,15 @@
           <thead>
             <tr>
               <th>INT Reference</th>
-              <th>Date Received</th>
-              <th>Complainant Name</th>
-              <th>Contact Number</th>
-              <th>Description</th>
-              <th>Received By</th>
-              <th>Source Reliability</th>
-              <th>Content Validity</th>
-              <th>Total Score</th>
+              <th>Date/Time Received</th>
+              <th>Complaint Name</th>
+              <th>Alleged Person</th>
+              <th>Alleged Nature</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {% for rbh in received_by_hand_data %}
-            {% set combined_score = (rbh.source_reliability or 0) + (rbh.content_validity or 0) %}
             <tr>
               <td>
                 {% if rbh.case_profile and rbh.case_profile.int_reference %}
@@ -2383,34 +2378,10 @@
                   <span class="text-muted">—</span>
                 {% endif %}
               </td>
-              <td>{{ rbh.date_received.strftime('%Y-%m-%d') if rbh.date_received else '—' }}</td>
-              <td>{{ rbh.complainant_name or '—' }}</td>
-              <td>{{ rbh.contact_number or '—' }}</td>
-              <td>{{ (rbh.description[:50] + '...') if rbh.description and rbh.description|length > 50 else (rbh.description or '—') }}</td>
-              <td>{{ rbh.received_by or '—' }}</td>
-              <td>
-                {% if rbh.source_reliability %}
-                  <span class="badge bg-info">{{ rbh.source_reliability }}/5</span>
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if rbh.content_validity %}
-                  <span class="badge bg-info">{{ rbh.content_validity }}/5</span>
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if combined_score > 0 %}
-                  <span class="badge {% if combined_score >= 8 %}bg-success{% elif combined_score >= 6 %}bg-warning{% else %}bg-secondary{% endif %}">
-                    {{ combined_score }}/10
-                  </span>
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
-              </td>
+              <td>{{ rbh.received_time.strftime('%Y-%m-%d %H:%M') if rbh.received_time else (rbh.date_received.strftime('%Y-%m-%d') if rbh.date_received else '—') }}</td>
+              <td>{{ rbh.complaint_name or rbh.complainant_name or '—' }}</td>
+              <td>{{ rbh.alleged_person or '—' }}</td>
+              <td>{{ rbh.alleged_nature or '—' }}</td>
               <td>
                 <div class="pro-action-btns">
                   <a href="{{ url_for('received_by_hand_detail', entry_id=rbh.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
