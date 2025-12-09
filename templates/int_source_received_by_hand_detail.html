@@ -83,17 +83,51 @@
           <i class="bi bi-hand-thumbs-up-fill"></i>
           Received by Hand Entry #{{ entry.id }}
         </h3>
-        {% if entry.int_reference %}
-        <span class="badge bg-light text-dark">{{ entry.int_reference }}</span>
+        {% if int_reference %}
+        <span class="badge bg-warning text-dark fs-5">{{ int_reference }}</span>
+        {% elif entry.int_reference %}
+        <span class="badge bg-warning text-dark fs-5">{{ entry.int_reference }}</span>
+        {% else %}
+        <span class="badge bg-secondary">No INT Reference</span>
         {% endif %}
       </div>
       <div class="btn-actions">
+        <a href="{{ url_for('int_source_received_by_hand_edit', entry_id=entry.id) }}" class="btn btn-warning btn-sm">
+          <i class="bi bi-pencil"></i> Edit
+        </a>
         <a href="{{ url_for('int_source') }}" class="btn btn-light btn-sm">
           <i class="bi bi-arrow-left"></i> Back
         </a>
       </div>
     </div>
   </div>
+
+  <!-- INT Reference Card -->
+  {% if int_reference or entry.int_reference %}
+  <div class="detail-card">
+    <div class="detail-body">
+      <h5 class="mb-3">
+        <i class="bi bi-link-45deg"></i> Intelligence Reference
+      </h5>
+      <div class="info-row">
+        <div class="info-label">INT Reference:</div>
+        <div class="info-value">
+          <span class="badge bg-primary fs-6">{{ int_reference or entry.int_reference }}</span>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Date Received:</div>
+        <div class="info-value">
+          {% if entry.received_time %}
+            {{ entry.received_time.strftime('%Y-%m-%d %H:%M') }}
+          {% else %}
+            <em class="text-muted">Not specified</em>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Main Information Card -->
   <div class="detail-card">
