@@ -3718,18 +3718,100 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or rbh.received_time or rbh.date_received,
-                        'date_str': (link.link_created_at or rbh.received_time or rbh.date_received).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or rbh.received_time or rbh.date_received) else 'N/A',
+                        'date': link.link_created_at or rbh.received_time,
+                        'date_str': (link.link_created_at or rbh.received_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or rbh.received_time) else 'N/A',
                         'id': rbh.id,
-                        'reference': rbh.case_profile.int_reference if rbh.case_profile else f'RBH-{rbh.id}',
-                        'case_int': rbh.case_profile.int_reference if rbh.case_profile else None,
-                        'title': f'Received by Hand: {rbh.complaint_name or rbh.complainant_name or "Unknown"}',
-                        'summary': rbh.allegation_summary or rbh.alleged_nature or rbh.description or 'Received by hand report',
-                        'complaint_name': rbh.complaint_name or rbh.complainant_name,
+                        'reference': rbh.int_reference or f'RBH-{rbh.id}',
+                        'case_int': rbh.int_reference,
+                        'title': f'Received by Hand: {rbh.complaint_name or "Unknown"}',
+                        'summary': rbh.allegation_summary or rbh.alleged_nature or rbh.details or 'Received by hand report',
+                        'complaint_name': rbh.complaint_name,
                         'view_url': url_for('received_by_hand_detail', entry_id=rbh.id)
                     }
                     received_by_hand.append(intel_data)
                     all_intelligence.append(intel_data)
+        
+        # FALLBACK: Query ReceivedByHandAllegedSubject for entries not in poi_intelligence_link
+        # This finds RBH entries that match the POI name but weren't auto-linked
+        try:
+            rbh_ids_already_added = {r['id'] for r in received_by_hand}
+            
+            # Search by English or Chinese name match in ReceivedByHandAllegedSubject
+            rbh_subjects = db.session.query(ReceivedByHandAllegedSubject).filter(
+                db.or_(
+                    ReceivedByHandAllegedSubject.english_name == profile.name_english,
+                    ReceivedByHandAllegedSubject.chinese_name == profile.name_chinese,
+                    db.and_(
+                        profile.name_english.isnot(None),
+                        ReceivedByHandAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
+                    ),
+                    db.and_(
+                        profile.name_chinese.isnot(None),
+                        ReceivedByHandAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
+                    )
+                )
+            ).all() if (profile.name_english or profile.name_chinese) else []
+            
+            for subj in rbh_subjects:
+                if subj.received_by_hand_id not in rbh_ids_already_added:
+                    rbh = db.session.get(ReceivedByHandEntry, subj.received_by_hand_id)
+                    if rbh:
+                        intel_data = {
+                            'link_id': None,
+                            'source_type': 'RECEIVED_BY_HAND',
+                            'confidence': 0.85,  # Lower confidence for fallback matches
+                            'case_name': None,
+                            'case_id': rbh.caseprofile_id,
+                            'date': rbh.received_time,
+                            'date_str': rbh.received_time.strftime('%Y-%m-%d %H:%M') if rbh.received_time else 'N/A',
+                            'id': rbh.id,
+                            'reference': rbh.int_reference or f'RBH-{rbh.id}',
+                            'case_int': rbh.int_reference,
+                            'title': f'Received by Hand: {rbh.complaint_name or "Unknown"}',
+                            'summary': rbh.allegation_summary or rbh.alleged_nature or rbh.details or 'Received by hand report',
+                            'complaint_name': rbh.complaint_name,
+                            'view_url': url_for('received_by_hand_detail', entry_id=rbh.id)
+                        }
+                        received_by_hand.append(intel_data)
+                        all_intelligence.append(intel_data)
+                        rbh_ids_already_added.add(rbh.id)
+                        print(f"[PROFILE DETAIL] Added RBH {rbh.id} from fallback query (matched subject: {subj.english_name or subj.chinese_name})")
+            
+            # Also search by alleged_person field directly on ReceivedByHandEntry
+            if profile.name_english or profile.name_chinese:
+                direct_rbh_matches = db.session.query(ReceivedByHandEntry).filter(
+                    db.or_(
+                        ReceivedByHandEntry.alleged_person.ilike(f"%{profile.name_english}%") if profile.name_english else False,
+                        ReceivedByHandEntry.alleged_person.ilike(f"%{profile.name_chinese}%") if profile.name_chinese else False,
+                        ReceivedByHandEntry.alleged_subject_english.ilike(f"%{profile.name_english}%") if profile.name_english else False,
+                        ReceivedByHandEntry.alleged_subject_chinese.ilike(f"%{profile.name_chinese}%") if profile.name_chinese else False
+                    )
+                ).all()
+                
+                for rbh in direct_rbh_matches:
+                    if rbh.id not in rbh_ids_already_added:
+                        intel_data = {
+                            'link_id': None,
+                            'source_type': 'RECEIVED_BY_HAND',
+                            'confidence': 0.80,
+                            'case_name': None,
+                            'case_id': rbh.caseprofile_id,
+                            'date': rbh.received_time,
+                            'date_str': rbh.received_time.strftime('%Y-%m-%d %H:%M') if rbh.received_time else 'N/A',
+                            'id': rbh.id,
+                            'reference': rbh.int_reference or f'RBH-{rbh.id}',
+                            'case_int': rbh.int_reference,
+                            'title': f'Received by Hand: {rbh.complaint_name or "Unknown"}',
+                            'summary': rbh.allegation_summary or rbh.alleged_nature or rbh.details or 'Received by hand report',
+                            'complaint_name': rbh.complaint_name,
+                            'view_url': url_for('received_by_hand_detail', entry_id=rbh.id)
+                        }
+                        received_by_hand.append(intel_data)
+                        all_intelligence.append(intel_data)
+                        rbh_ids_already_added.add(rbh.id)
+                        print(f"[PROFILE DETAIL] Added RBH {rbh.id} from direct field match")
+        except Exception as rbh_fallback_error:
+            print(f"[PROFILE DETAIL] ⚠️ RBH fallback query failed: {rbh_fallback_error}")
         
         # Calculate statistics
         total_intelligence = len(all_intelligence)

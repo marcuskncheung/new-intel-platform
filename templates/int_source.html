@@ -2372,8 +2372,10 @@
             {% for rbh in received_by_hand_data %}
             <tr>
               <td>
-                {% if rbh.case_profile and rbh.case_profile.int_reference %}
-                  <span class="badge-pro">{{ rbh.case_profile.int_reference }}</span>
+                {% if rbh.int_reference %}
+                  <span class="badge-pro">{{ rbh.int_reference }}</span>
+                {% elif rbh.caseprofile_id %}
+                  <span class="badge-pro">INT-{{ rbh.caseprofile_id }}</span>
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}
