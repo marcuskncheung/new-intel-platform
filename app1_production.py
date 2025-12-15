@@ -3086,27 +3086,13 @@ def alleged_subject_list():
         import traceback
         traceback.print_exc()
         
-        # Fallback to old system if new system fails
+        # Fallback to empty list if new system fails - old CaseProfile columns no longer exist
         try:
-            profiles = CaseProfile.query.all()
-            seen = set()
-            targets = []
-            for p in profiles:
-                key = (p.alleged_subject_en, p.alleged_subject_cn)
-                if key in seen:
-                    continue
-                seen.add(key)
-                targets.append({
-                    "idx": p.id,
-                    "label": p.alleged_subject_en or p.alleged_subject_cn,
-                    "subtitle": p.alleged_subject_cn if p.alleged_subject_en else "",
-                    "time": p.date_of_receipt
-                })
-            
-            flash("Using legacy profile system due to error. Check logs.", "warning")
+            flash("Error loading POI profiles. Please check logs.", "warning")
             return render_template("alleged_subject_list.html", 
-                                 targets=targets,
-                                 automation_enabled=False)
+                                 targets=[],
+                                 automation_enabled=False,
+                                 total_profiles=0)
         
         except Exception as fallback_error:
             print(f"[ALLEGED SUBJECT LIST] ❌ Fallback also failed: {fallback_error}")
@@ -3976,45 +3962,32 @@ def delete(idx):
 @app.route("/details/<int:idx>", methods=["GET", "POST"])
 @login_required
 def details(idx):
+    """
+    DEPRECATED: Legacy details page for CaseProfile.
+    
+    CaseProfile now only stores references - all data is in source tables.
+    Redirect users to the appropriate source detail page.
+    """
     cp = CaseProfile.query.get_or_404(idx)
-    if request.method == "POST":
-        if "save" in request.form:
-            for field in [
-                "date_of_receipt", "source_type", "source", "case_status", "case_number",
-                "alleged_subject_en", "alleged_subject_cn", "agent_number", "agent_company_broker",
-                "alleged_misconduct_type", "description_of_incident"
-            ]:
-                setattr(cp, field, request.form.get(field, ""))
-            db.session.commit()
-            flash("Record updated", "success")
-            return redirect(url_for("details", idx=cp.id))
-        # ...existing attachment upload logic...
-    row = cp.__dict__
-    # ...existing code for formatting date, attachments, etc...
-    return render_template(
-        "details.html",
-        row=row,
-        cols=[
-            "index", "date_of_receipt", "source_type", "source", "case_status", "case_number",
-            "alleged_subject_en", "alleged_subject_cn", "agent_number", "agent_company_broker",
-            "alleged_misconduct_type", "description_of_incident"
-        ],
-        subj_en_col="alleged_subject_en",
-        subj_cn_col="alleged_subject_cn",
-        AGENT_COL="agent_number",
-        # ...other context...
-    )
+    
+    # Redirect to the appropriate source detail page
+    if cp.source_type == 'EMAIL' and cp.email_id:
+        return redirect(url_for('int_source_email_detail', email_id=cp.email_id))
+    elif cp.source_type == 'WHATSAPP' and cp.whatsapp_id:
+        return redirect(url_for('int_source_whatsapp_detail', whatsapp_id=cp.whatsapp_id))
+    elif cp.source_type == 'PATROL' and cp.patrol_id:
+        return redirect(url_for('online_patrol_detail', entry_id=cp.patrol_id))
+    elif cp.source_type == 'RECEIVED_BY_HAND' and cp.received_by_hand_id:
+        return redirect(url_for('received_by_hand_detail', entry_id=cp.received_by_hand_id))
+    else:
+        # Fallback: redirect to INT reference detail
+        flash(f"Redirecting to INT Reference {cp.int_reference}", "info")
+        return redirect(url_for('int_reference_detail', int_reference=cp.int_reference))
 
-# --- Update all helper functions to use CaseProfile.query instead of df_db ---
-# For example:
+# --- Helper function to get associated entries ---
 def get_associated(idx):
-    cp = db.session.get(CaseProfile, idx)
-    if not cp:
-        return []
-    subs = CaseProfile.query.filter(
-        (CaseProfile.int_reference == cp.int_reference) & (CaseProfile.id != idx)
-    ).all()
-    return [(s.alleged_subject_en, s.alleged_subject_cn, s.id) for s in subs]
+    """Get associated entries for a CaseProfile - returns empty list since CaseProfile no longer stores alleged person data."""
+    return []  # Legacy function - CaseProfile only stores references now
 
 # ...existing code for Email, WhatsApp, etc. remains unchanged...
 
