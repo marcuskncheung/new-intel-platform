@@ -1487,6 +1487,9 @@ class CaseProfile(db.Model):
     """
     🔗 UNIFIED INT-### REFERENCE SYSTEM
     Central intelligence item registry - links ALL sources (Email, WhatsApp, Patrol, Received by Hand)
+    
+    NOTE: This table ONLY stores references. All alleged person data is in the source tables.
+    Use the relationships (email, whatsapp, patrol, received_by_hand) to get actual data.
     """
     __tablename__ = "case_profile"
     
@@ -1507,35 +1510,16 @@ class CaseProfile(db.Model):
     patrol_id = db.Column(db.Integer, db.ForeignKey('online_patrol_entry.id'), nullable=True, unique=True)
     received_by_hand_id = db.Column(db.Integer, db.ForeignKey('received_by_hand_entry.id'), nullable=True, unique=True)
     
-    # Legacy fields (backward compatibility)
-    source = db.Column(db.String(255))  # Detailed source info
-    case_status = db.Column(db.String(255))  # Pending, Under Investigation, Closed
-    case_number = db.Column(db.String(255))  # Human-assigned case (C2025-001)
-    alleged_subject_en = db.Column(db.String(255))
-    alleged_subject_cn = db.Column(db.String(255))
-    agent_number = db.Column(db.String(255))
-    agent_company_broker = db.Column(db.String(255))
-    alleged_misconduct_type = db.Column(db.String(255))
-    description_of_incident = db.Column(db.Text)
-    
     # ✅ Metadata
     created_at = db.Column(db.DateTime, default=get_hk_time)
     updated_at = db.Column(db.DateTime, default=get_hk_time, onupdate=get_hk_time)
     created_by = db.Column(db.String(100))  # AI_AUTO, MANUAL, SYSTEM
-    
-    # ✅ Deduplication tracking
-    similarity_checked = db.Column(db.Boolean, default=False)
-    duplicate_of_id = db.Column(db.Integer, db.ForeignKey('case_profile.id'), nullable=True)
     
     # Relationships
     email = db.relationship('Email', backref='case_profile', foreign_keys=[email_id], uselist=False)
     whatsapp = db.relationship('WhatsAppEntry', backref='case_profile', foreign_keys=[whatsapp_id], uselist=False)
     patrol = db.relationship('OnlinePatrolEntry', backref='case_profile', foreign_keys=[patrol_id], uselist=False)
     received_by_hand = db.relationship('ReceivedByHandEntry', backref='case_profile', foreign_keys=[received_by_hand_id], uselist=False)
-    duplicates = db.relationship('CaseProfile', 
-                                 foreign_keys=[duplicate_of_id],
-                                 remote_side=[id],
-                                 backref='master_case')
     
     def __repr__(self):
         return f'<CaseProfile {self.int_reference} ({self.source_type})>'
@@ -1679,26 +1663,9 @@ def search_int_references():
             source_types = set()
             total_sources = 0
             
-            # 🆕 CRITICAL FIX: Search in CaseProfile's OWN fields first!
-            # These are the fields where alleged names are stored directly in the INT reference
-            if cp.alleged_subject_en and query_lower in cp.alleged_subject_en.lower():
-                match_found = True
-                match_reason.append(f"INT Person: {cp.alleged_subject_en}")
-            if cp.alleged_subject_cn and query_lower in cp.alleged_subject_cn.lower():
-                match_found = True
-                match_reason.append(f"INT Person (CN): {cp.alleged_subject_cn}")
-            if cp.alleged_misconduct_type and query_lower in cp.alleged_misconduct_type.lower():
-                match_found = True
-                match_reason.append(f"INT Nature: {cp.alleged_misconduct_type}")
-            if cp.description_of_incident and query_lower in cp.description_of_incident.lower():
-                match_found = True
-                match_reason.append(f"INT Description: {cp.description_of_incident[:50]}...")
-            if cp.agent_number and query_lower in cp.agent_number.lower():
-                match_found = True
-                match_reason.append(f"INT Agent#: {cp.agent_number}")
-            if cp.agent_company_broker and query_lower in cp.agent_company_broker.lower():
-                match_found = True
-                match_reason.append(f"INT Company: {cp.agent_company_broker}")
+            # NOTE: CaseProfile only stores references now.
+            # All alleged person data is in the source tables (email, whatsapp, etc.)
+            # Search the linked source entries directly.
             
             # 1. Search in linked EMAILS
             # 🔧 CRITICAL FIX: Check BOTH directions of the relationship:
@@ -2679,8 +2646,16 @@ def check_duplicate_intelligence(source_record, source_type, similarity_threshol
             if case.source_type == source_type:
                 continue
             
-            # Get comparison text from existing case
-            existing_text = f"{case.alleged_subject_en or ''} {case.alleged_subject_cn or ''} {case.description_of_incident or ''}"
+            # Get comparison text from the linked source record
+            existing_text = ""
+            if case.email:
+                existing_text = f"{case.email.alleged_subject_english or ''} {case.email.alleged_subject_chinese or ''} {case.email.allegation_summary or ''}"
+            elif case.whatsapp:
+                existing_text = f"{case.whatsapp.alleged_subject_english or ''} {case.whatsapp.alleged_subject_chinese or ''}"
+            elif case.patrol:
+                existing_text = f"{case.patrol.alleged_subject_english or ''} {case.patrol.alleged_subject_chinese or ''}"
+            elif case.received_by_hand:
+                existing_text = f"{case.received_by_hand.alleged_subject_english or ''} {case.received_by_hand.alleged_subject_chinese or ''}"
             
             # Calculate similarity
             similarity = calculate_text_similarity(search_text, existing_text)
@@ -2805,7 +2780,7 @@ def get_entries_by_case_profile(int_reference):
         List of dicts with 'type' and 'record' keys
     """
     try:
-        case = CaseProfile.query.filter_by(index=int_reference.upper()).first()
+        case = CaseProfile.query.filter_by(int_reference=int_reference.upper()).first()
         if not case:
             return []
         
@@ -2817,15 +2792,8 @@ def get_entries_by_case_profile(int_reference):
             entries.append({'type': 'WHATSAPP', 'record': case.whatsapp})
         if case.patrol:
             entries.append({'type': 'PATROL', 'record': case.patrol})
-        
-        # Include linked duplicates
-        for dup in case.duplicates:
-            if dup.email:
-                entries.append({'type': 'EMAIL', 'record': dup.email})
-            if dup.whatsapp:
-                entries.append({'type': 'WHATSAPP', 'record': dup.whatsapp})
-            if dup.patrol:
-                entries.append({'type': 'PATROL', 'record': dup.patrol})
+        if case.received_by_hand:
+            entries.append({'type': 'RECEIVED_BY_HAND', 'record': case.received_by_hand})
         
         return entries
         
@@ -3981,78 +3949,18 @@ def test_automation():
 @app.route("/create", methods=["GET", "POST"])
 @login_required
 def create():
-    if request.method == "POST":
-        # Get basic form data
-        cp = CaseProfile(
-            index=request.form.get("Index", ""),
-            date_of_receipt=request.form.get("Date of Receipt", ""),
-            source_type=request.form.get("Source Type", ""),
-            source=request.form.get("Source", ""),
-            case_status=request.form.get("Case Status", ""),
-            case_number=request.form.get("Case Number", ""),
-            alleged_subject_en=request.form.get("Alleged Subject (English Name)", ""),
-            alleged_subject_cn=request.form.get("Alleged Subject (Chinese Name)", ""),
-            agent_number=request.form.get("Agent Number", ""),
-            agent_company_broker=request.form.get("Agent Company/Broker", ""),
-            alleged_misconduct_type=request.form.get("Alleged Misconduct Type", ""),
-            description_of_incident=request.form.get("Description of Incident", ""),
-        )
-        
-        # Process multiple alleged subjects from the form
-        alleged_subjects = []
-        for key in request.form.keys():
-            if key.startswith('alleged_subjects[') and key.endswith('][english_name]'):
-                # Extract the index
-                import re
-                match = re.search(r'alleged_subjects\[(\d+)\]', key)
-                if match:
-                    index = match.group(1)
-                    english_name = request.form.get(f'alleged_subjects[{index}][english_name]', '').strip()
-                    chinese_name = request.form.get(f'alleged_subjects[{index}][chinese_name]', '').strip()
-                    is_insurance = request.form.get(f'alleged_subjects[{index}][is_insurance_intermediary]') == 'on'
-                    license_type = request.form.get(f'alleged_subjects[{index}][license_type]', '').strip()
-                    license_number = request.form.get(f'alleged_subjects[{index}][license_number]', '').strip()
-                    
-                    if english_name or chinese_name:  # At least one name must be provided
-                        alleged_subjects.append({
-                            'english_name': english_name,
-                            'chinese_name': chinese_name,
-                            'is_insurance': is_insurance,
-                            'license_type': license_type,
-                            'license_number': license_number
-                        })
-        
-        # Update the profile with collected subject names
-        if alleged_subjects:
-            english_names = [s['english_name'] for s in alleged_subjects if s['english_name']]
-            chinese_names = [s['chinese_name'] for s in alleged_subjects if s['chinese_name']]
-            cp.alleged_subject_en = ', '.join(english_names)
-            cp.alleged_subject_cn = ', '.join(chinese_names)
-            
-            # For insurance intermediaries, store the first license info in the main record
-            insurance_subjects = [s for s in alleged_subjects if s['is_insurance']]
-            if insurance_subjects:
-                first_insurance = insurance_subjects[0]
-                if hasattr(cp, 'license_number'):  # Check if column exists
-                    cp.license_number = first_insurance['license_number']
-        
-        try:
-            db.session.add(cp)
-            db.session.commit()
-            flash(f"[SUCCESS] Profile created successfully! Added {len(alleged_subjects)} alleged subject(s).", "success")
-            return redirect(url_for("details", idx=cp.id))
-        except Exception as e:
-            db.session.rollback()
-            flash(f"[ERROR] Error creating profile: {str(e)}", "error")
-            print(f"Database error: {e}")
+    """
+    DEPRECATED: Legacy create route.
+    CaseProfile entries are now created automatically when you create:
+    - Email entries (via Exchange import)
+    - WhatsApp entries
+    - Online Patrol entries
+    - Received by Hand entries
     
-    # For form rendering, get columns from CaseProfile
-    create_cols = [
-        "Index", "Date of Receipt", "Source Type", "Source", "Case Status", "Case Number",
-        "Alleged Subject (English Name)", "Alleged Subject (Chinese Name)", "Agent Number",
-        "Agent Company/Broker", "Alleged Misconduct Type", "Description of Incident"
-    ]
-    return render_template("create.html", create_cols=create_cols)
+    Redirect users to the proper INT Source page.
+    """
+    flash("CaseProfile entries are created automatically when you add intelligence from Email, WhatsApp, Online Patrol, or Received by Hand sources.", "info")
+    return redirect(url_for("int_source"))
 
 # Example: Delete route
 @app.route("/delete/<int:idx>", methods=["POST"])
