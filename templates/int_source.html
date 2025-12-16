@@ -1615,19 +1615,8 @@
               </select>
             </div>
             
-            <!-- Score Range Filter -->
-            <div class="col-md-1">
-              <select class="form-select form-select-sm" id="score-filter">
-                <option value="">All Scores</option>
-                <option value="high">High (8-10)</option>
-                <option value="medium">Medium (5-7)</option>
-                <option value="low">Low (1-4)</option>
-                <option value="none">No Score</option>
-              </select>
-            </div>
-            
             <!-- Date Range Filter -->
-            <div class="col-md-1">
+            <div class="col-md-2">
               <select class="form-select form-select-sm" id="date-filter">
                 <option value="">All Dates</option>
                 <option value="today">Today</option>
@@ -1662,24 +1651,7 @@
             </div>
           </div>
           
-          <!-- Quick Filter Chips -->
-          <div class="mt-3" id="quick-filters">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-              <small class="text-muted me-2">Quick Filters:</small>
-              <button class="btn btn-outline-info btn-sm quick-filter-chip" data-filter="unreviewed">
-                <i class="bi bi-clock"></i> Unreviewed
-              </button>
-              <button class="btn btn-outline-warning btn-sm quick-filter-chip" data-filter="high-priority">
-                <i class="bi bi-exclamation-triangle"></i> High Priority
-              </button>
-              <button class="btn btn-outline-success btn-sm quick-filter-chip" data-filter="case-opened">
-                <i class="bi bi-folder-check"></i> Case Opened
-              </button>
-              <button class="btn btn-outline-secondary btn-sm quick-filter-chip" data-filter="recent">
-                <i class="bi bi-calendar-week"></i> Recent
-              </button>
-            </div>
-          </div>
+          <!-- Quick Filter Chips - REMOVED -->
           
           <!-- Active Filters Display -->
           <div class="mt-2 d-none" id="active-filters">
@@ -1720,9 +1692,6 @@
                 Received <i class="fas fa-sort sort-icon"></i>
               </th>
               <th class="sortable" data-column="6">
-                Combined Score <i class="fas fa-sort sort-icon"></i>
-              </th>
-              <th class="sortable" data-column="7">
                 Status <i class="fas fa-sort sort-icon"></i>
               </th>
               <th>Action</th>
@@ -1730,7 +1699,6 @@
           </thead>
           <tbody>
             {% for email in emails %}
-            {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
             <tr class="email-row" 
                 style="background-color: {{ email.thread_color if email.is_thread else 'transparent' }}; border-left: {{ '4px solid ' + email.thread_color if email.is_thread else 'none' }};"
                 data-thread-id="{{ email.thread_id }}" 
@@ -1778,13 +1746,6 @@
                 {% endif %}
               </td>
               <td>{{ email.received }}</td>
-              <td>
-                {% if email.source_reliability is not none and email.content_validity is not none %}
-                  <span class="badge-pro">{{ combined_score }}</span>
-                {% else %}
-                  -
-                {% endif %}
-              </td>
               <td>
                 {% set reviewer_name = (email.reviewer_name or '').strip() %}
                 {% set reviewer_decision = (email.reviewer_decision or '').strip() %}
@@ -1910,30 +1871,6 @@
             <label class="form-label">To Date:</label>
             <input type="date" id="whatsapp-date-to" class="form-control">
           </div>
-        </div>
-        
-        <!-- Quick Filter Chips -->
-        <div class="quick-filters mt-3">
-          <span class="me-2 fw-bold">Quick Filters:</span>
-          <button class="btn btn-outline-info btn-sm quick-filter-chip" data-filter="unreviewed">
-            <i class="bi bi-clock"></i> Unreviewed
-          </button>
-          <button class="btn btn-outline-warning btn-sm quick-filter-chip" data-filter="high-priority">
-            <i class="bi bi-exclamation-triangle"></i> High Priority
-          </button>
-          <button class="btn btn-outline-success btn-sm quick-filter-chip" data-filter="case-opened">
-            <i class="bi bi-folder-check"></i> Case Opened
-          </button>
-          <button class="btn btn-outline-secondary btn-sm quick-filter-chip" data-filter="recent">
-            <i class="bi bi-calendar-week"></i> Recent (7 days)
-          </button>
-          <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearAllWhatsAppFilters()">Clear All</button>
-        </div>
-        
-        <!-- Active Filters Display -->
-        <div id="whatsapp-active-filters" class="active-filters mt-2 d-none">
-          <span class="me-2 fw-bold">Active Filters:</span>
-          <div id="whatsapp-active-filters-container" class="d-inline"></div>
         </div>
         
         <!-- Results Summary -->
@@ -2141,30 +2078,6 @@
             <label class="form-label">To Date:</label>
             <input type="date" id="online-date-to" class="form-control">
           </div>
-        </div>
-        
-        <!-- Quick Filter Chips -->
-        <div class="quick-filters mt-3">
-          <span class="me-2 fw-bold">Quick Filters:</span>
-          <button class="btn btn-outline-info btn-sm quick-filter-chip" data-filter="unreviewed">
-            <i class="bi bi-clock"></i> Unreviewed
-          </button>
-          <button class="btn btn-outline-warning btn-sm quick-filter-chip" data-filter="high-priority">
-            <i class="bi bi-exclamation-triangle"></i> High Priority
-          </button>
-          <button class="btn btn-outline-success btn-sm quick-filter-chip" data-filter="case-opened">
-            <i class="bi bi-folder-check"></i> Case Opened
-          </button>
-          <button class="btn btn-outline-secondary btn-sm quick-filter-chip" data-filter="recent">
-            <i class="bi bi-calendar-week"></i> Recent (7 days)
-          </button>
-          <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearAllOnlineFilters()">Clear All</button>
-        </div>
-        
-        <!-- Active Filters Display -->
-        <div id="online-active-filters" class="active-filters mt-2 d-none">
-          <span class="me-2 fw-bold">Active Filters:</span>
-          <div id="online-active-filters-container" class="d-inline"></div>
         </div>
         
         <!-- Results Summary -->
