@@ -3017,7 +3017,7 @@ def alleged_subject_list():
                 
                 patrol_count = POIIntelligenceLink.query.filter_by(
                     poi_id=profile.poi_id,
-                    source_type='ONLINE_PATROL'
+                    source_type='PATROL'
                 ).count()
                 
                 surveillance_count = POIIntelligenceLink.query.filter_by(
@@ -3031,8 +3031,55 @@ def alleged_subject_list():
                     alleged_person_id=profile.id
                 ).count()
             
+            # Fallback: Count from OnlinePatrolAllegedSubject table
+            if patrol_count == 0 and (profile.name_english or profile.name_chinese):
+                try:
+                    patrol_subjects = db.session.query(OnlinePatrolAllegedSubject).filter(
+                        db.or_(
+                            OnlinePatrolAllegedSubject.english_name == profile.name_english,
+                            OnlinePatrolAllegedSubject.chinese_name == profile.name_chinese,
+                            db.and_(
+                                profile.name_english.isnot(None),
+                                OnlinePatrolAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
+                            ),
+                            db.and_(
+                                profile.name_chinese.isnot(None),
+                                OnlinePatrolAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
+                            )
+                        )
+                    ).all() if (profile.name_english or profile.name_chinese) else []
+                    # Count unique patrol entries
+                    patrol_ids = set(subj.patrol_id for subj in patrol_subjects)
+                    patrol_count = len(patrol_ids)
+                except Exception as e:
+                    print(f"[POI LIST] Patrol fallback failed for {profile.poi_id}: {e}")
+            
+            # Fallback: Count from ReceivedByHandAllegedSubject table
+            received_by_hand_count = 0
+            if profile.name_english or profile.name_chinese:
+                try:
+                    rbh_subjects = db.session.query(ReceivedByHandAllegedSubject).filter(
+                        db.or_(
+                            ReceivedByHandAllegedSubject.english_name == profile.name_english,
+                            ReceivedByHandAllegedSubject.chinese_name == profile.name_chinese,
+                            db.and_(
+                                profile.name_english.isnot(None),
+                                ReceivedByHandAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
+                            ),
+                            db.and_(
+                                profile.name_chinese.isnot(None),
+                                ReceivedByHandAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
+                            )
+                        )
+                    ).all() if (profile.name_english or profile.name_chinese) else []
+                    # Count unique RBH entries
+                    rbh_ids = set(subj.received_by_hand_id for subj in rbh_subjects)
+                    received_by_hand_count = len(rbh_ids)
+                except Exception as e:
+                    print(f"[POI LIST] RBH fallback failed for {profile.poi_id}: {e}")
+            
             # Calculate total intelligence count
-            total_intel = email_count + whatsapp_count + patrol_count + surveillance_count
+            total_intel = email_count + whatsapp_count + patrol_count + surveillance_count + received_by_hand_count
             
             # Build subtitle with additional info
             subtitle_parts = []
@@ -3051,6 +3098,8 @@ def alleged_subject_list():
                 intel_parts.append(f"{patrol_count} patrol")
             if surveillance_count > 0:
                 intel_parts.append(f"{surveillance_count} surveillance")
+            if received_by_hand_count > 0:
+                intel_parts.append(f"{received_by_hand_count} received by hand")
             
             if intel_parts:
                 subtitle_parts.append(" + ".join(intel_parts))
@@ -3067,6 +3116,7 @@ def alleged_subject_list():
                 "whatsapp_count": whatsapp_count,  # ✅ WhatsApp count
                 "patrol_count": patrol_count,  # ✅ Online Patrol count
                 "surveillance_count": surveillance_count,  # ✅ Surveillance count
+                "received_by_hand_count": received_by_hand_count,  # ✅ Received by Hand count
                 "total_intel": total_intel,  # ✅ Total intelligence from all sources
                 "created_by": profile.created_by,
                 "agent_number": profile.agent_number,
