@@ -11110,6 +11110,17 @@ def int_source_update_assessment(email_id):
         success_msg = f"Assessment updated successfully! Saved: {'; '.join(saved_info) if saved_info else 'basic assessment data'}"
         flash(success_msg, "success")
         
+        # 🔄 AUTO-SYNC: Sync assessment to all other emails with the same INT number
+        try:
+            sync_result = sync_assessment_to_same_int_emails(email, db.session)
+            if sync_result['synced_count'] > 0:
+                flash(f"📋 Auto-synced assessment to {sync_result['synced_count']} other email(s) with same INT number", "info")
+                print(f"[INT-SYNC] Assessment synced to {sync_result['synced_count']} sibling emails")
+        except Exception as sync_error:
+            print(f"[INT-SYNC] ❌ Error syncing to sibling emails: {sync_error}")
+            # Don't fail the main save if sync fails
+            flash("Assessment saved, but sync to other emails with same INT had an error.", "warning")
+        
     except Exception as e:
         db.session.rollback()
         flash(f"Error updating assessment: {str(e)}", "error")
@@ -11129,6 +11140,112 @@ def int_source_update_assessment(email_id):
 # =============================================================================
 # INT REFERENCE NUMBER MANAGEMENT ROUTES
 # =============================================================================
+
+# =============================================================================
+# AUTO-SYNC ASSESSMENT FOR SAME INT EMAILS
+# =============================================================================
+
+def sync_assessment_to_same_int_emails(source_email, db_session):
+    """
+    Sync assessment data from source_email to all other emails with the same INT number.
+    This ensures all emails under the same INT share the same allegation details.
+    
+    The source email is determined by which email is being updated - its data becomes 
+    the master data for all other emails with the same caseprofile_id.
+    
+    Args:
+        source_email: The Email object that was just updated
+        db_session: The database session to use
+    
+    Returns:
+        dict with 'synced_count' and 'synced_emails' list
+    """
+    if not source_email.caseprofile_id:
+        print(f"[INT-SYNC] Email {source_email.id} has no caseprofile_id, skipping sync")
+        return {'synced_count': 0, 'synced_emails': []}
+    
+    # Find all other emails with the same caseprofile_id
+    sibling_emails = Email.query.filter(
+        Email.caseprofile_id == source_email.caseprofile_id,
+        Email.id != source_email.id
+    ).all()
+    
+    if not sibling_emails:
+        print(f"[INT-SYNC] No sibling emails found for INT (caseprofile_id={source_email.caseprofile_id})")
+        return {'synced_count': 0, 'synced_emails': []}
+    
+    print(f"[INT-SYNC] 🔄 Syncing assessment from Email {source_email.id} to {len(sibling_emails)} sibling email(s)")
+    
+    # Assessment fields to sync
+    assessment_fields = [
+        'alleged_subject_english',
+        'alleged_subject_chinese', 
+        'alleged_subject',
+        'alleged_nature',
+        'allegation_summary',
+        'source_category',
+        'internal_source_type',
+        'internal_source_other',
+        'external_source_type',
+        'external_regulator',
+        'external_law_enforcement',
+        'external_source_other',
+        'source_reliability',
+        'content_validity',
+        'license_number',
+        'license_numbers_json',
+        'intermediary_types_json',
+    ]
+    
+    synced_emails = []
+    
+    for sibling in sibling_emails:
+        # Copy assessment fields
+        for field in assessment_fields:
+            source_value = getattr(source_email, field, None)
+            setattr(sibling, field, source_value)
+        
+        # Copy EmailAllegedSubject records (relational table)
+        # First, delete existing records for this sibling
+        EmailAllegedSubject.query.filter_by(email_id=sibling.id).delete()
+        
+        # Get source email's alleged subjects
+        source_subjects = EmailAllegedSubject.query.filter_by(email_id=source_email.id)\
+                                                    .order_by(EmailAllegedSubject.sequence_order)\
+                                                    .all()
+        
+        # Create copies for the sibling
+        for subject in source_subjects:
+            new_subject = EmailAllegedSubject(
+                email_id=sibling.id,
+                english_name=subject.english_name,
+                chinese_name=subject.chinese_name,
+                is_insurance_intermediary=subject.is_insurance_intermediary,
+                license_type=subject.license_type,
+                license_number=subject.license_number,
+                sequence_order=subject.sequence_order
+            )
+            db_session.add(new_subject)
+        
+        # Update timestamp
+        sibling.assessment_updated_at = get_hk_time()
+        
+        synced_emails.append({
+            'id': sibling.id,
+            'subject': sibling.subject[:50] if sibling.subject else 'No Subject'
+        })
+        print(f"[INT-SYNC] ✅ Synced assessment to Email {sibling.id}")
+    
+    try:
+        db_session.commit()
+        print(f"[INT-SYNC] ✅ Successfully synced {len(synced_emails)} email(s)")
+    except Exception as e:
+        print(f"[INT-SYNC] ❌ Error committing sync: {e}")
+        db_session.rollback()
+        raise
+    
+    return {'synced_count': len(synced_emails), 'synced_emails': synced_emails}
+
 
 @app.route("/int_source/unified_int_reference/reorder_all", methods=["POST"])
 @login_required
