@@ -3768,6 +3768,86 @@ def alleged_subject_profile_detail(poi_id):
         except Exception as rbh_fallback_error:
             print(f"[PROFILE DETAIL] ⚠️ RBH fallback query failed: {rbh_fallback_error}")
         
+        # FALLBACK: Query OnlinePatrolAllegedSubject for entries not in poi_intelligence_link
+        # This finds Online Patrol entries that match the POI name but weren't auto-linked
+        try:
+            patrol_ids_already_added = {p['id'] for p in patrol}
+            
+            # Search by English or Chinese name match in OnlinePatrolAllegedSubject
+            patrol_subjects = db.session.query(OnlinePatrolAllegedSubject).filter(
+                db.or_(
+                    OnlinePatrolAllegedSubject.english_name == profile.name_english,
+                    OnlinePatrolAllegedSubject.chinese_name == profile.name_chinese,
+                    db.and_(
+                        profile.name_english.isnot(None),
+                        OnlinePatrolAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
+                    ),
+                    db.and_(
+                        profile.name_chinese.isnot(None),
+                        OnlinePatrolAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
+                    )
+                )
+            ).all() if (profile.name_english or profile.name_chinese) else []
+            
+            for subj in patrol_subjects:
+                if subj.patrol_id not in patrol_ids_already_added:
+                    pt = db.session.get(OnlinePatrolEntry, subj.patrol_id)
+                    if pt:
+                        intel_data = {
+                            'link_id': None,
+                            'source_type': 'PATROL',
+                            'confidence': 0.85,  # Lower confidence for fallback matches
+                            'case_name': None,
+                            'case_id': pt.caseprofile_id,
+                            'date': pt.complaint_time,
+                            'date_str': pt.complaint_time.strftime('%Y-%m-%d %H:%M') if pt.complaint_time else 'N/A',
+                            'id': pt.id,
+                            'reference': pt.int_reference or f'PATROL-{pt.id}',
+                            'case_int': get_case_int_reference(pt),
+                            'title': f'Online Patrol: {pt.sender or "Unknown"}',
+                            'summary': pt.allegation_summary or pt.alleged_nature or pt.details or 'Patrol observation',
+                            'status': pt.status,
+                            'view_url': url_for('online_patrol_detail', entry_id=pt.id)
+                        }
+                        patrol.append(intel_data)
+                        all_intelligence.append(intel_data)
+                        patrol_ids_already_added.add(pt.id)
+                        print(f"[PROFILE DETAIL] Added Patrol {pt.id} from fallback query (matched subject: {subj.english_name or subj.chinese_name})")
+            
+            # Also search by alleged_subject_english/chinese fields directly on OnlinePatrolEntry
+            if profile.name_english or profile.name_chinese:
+                direct_patrol_matches = db.session.query(OnlinePatrolEntry).filter(
+                    db.or_(
+                        OnlinePatrolEntry.alleged_subject_english.ilike(f"%{profile.name_english}%") if profile.name_english else False,
+                        OnlinePatrolEntry.alleged_subject_chinese.ilike(f"%{profile.name_chinese}%") if profile.name_chinese else False
+                    )
+                ).all()
+                
+                for pt in direct_patrol_matches:
+                    if pt.id not in patrol_ids_already_added:
+                        intel_data = {
+                            'link_id': None,
+                            'source_type': 'PATROL',
+                            'confidence': 0.80,
+                            'case_name': None,
+                            'case_id': pt.caseprofile_id,
+                            'date': pt.complaint_time,
+                            'date_str': pt.complaint_time.strftime('%Y-%m-%d %H:%M') if pt.complaint_time else 'N/A',
+                            'id': pt.id,
+                            'reference': pt.int_reference or f'PATROL-{pt.id}',
+                            'case_int': get_case_int_reference(pt),
+                            'title': f'Online Patrol: {pt.sender or "Unknown"}',
+                            'summary': pt.allegation_summary or pt.alleged_nature or pt.details or 'Patrol observation',
+                            'status': pt.status,
+                            'view_url': url_for('online_patrol_detail', entry_id=pt.id)
+                        }
+                        patrol.append(intel_data)
+                        all_intelligence.append(intel_data)
+                        patrol_ids_already_added.add(pt.id)
+                        print(f"[PROFILE DETAIL] Added Patrol {pt.id} from direct field match")
+        except Exception as patrol_fallback_error:
+            print(f"[PROFILE DETAIL] ⚠️ Patrol fallback query failed: {patrol_fallback_error}")
+        
         # Calculate statistics
         total_intelligence = len(all_intelligence)
         email_count = len(emails)
