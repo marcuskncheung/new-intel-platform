@@ -4481,7 +4481,7 @@ AI Services: ${data.ai_available ? 'Available' : 'Not Available'}`;
     var senderList = Array.from(senders).sort();
     
     var filterHtml = `
-      <div class="pro-sender-filter-panel">
+      <div class="pro-sender-filter-panel collapsed">
         <div class="filter-header" onclick="toggleSenderFilterPanel()">
           <h6 class="mb-0">
             <i class="bi bi-funnel-fill text-white"></i> 
@@ -4489,11 +4489,11 @@ AI Services: ${data.ai_available ? 'Available' : 'Not Available'}`;
             <span class="filter-status-badge" id="filterStatusBadge">Ready</span>
           </h6>
           <div class="filter-toggle">
-            <i class="bi bi-chevron-down" id="filterToggleIcon"></i>
+            <i class="bi bi-chevron-right" id="filterToggleIcon"></i>
           </div>
         </div>
         
-        <div class="filter-body" id="filterBody">
+        <div class="filter-body collapsed" id="filterBody">
           <div class="row">
             <div class="col-md-8">
               <div class="sender-selection-container">
