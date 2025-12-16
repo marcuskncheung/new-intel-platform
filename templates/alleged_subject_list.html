@@ -537,25 +537,7 @@
             </div>
             <div class="dash-stat-pill-info">
                 <span class="dash-stat-pill-value">{{ targets|length }}</span>
-                <span class="dash-stat-pill-label">Total Profiles</span>
-            </div>
-        </div>
-        <div class="dash-stat-pill">
-            <div class="dash-stat-pill-icon active">
-                <i class="bi bi-check-circle-fill"></i>
-            </div>
-            <div class="dash-stat-pill-info">
-                <span class="dash-stat-pill-value">{{ targets|selectattr('status', 'equalto', 'ACTIVE')|list|length if targets else 0 }}</span>
-                <span class="dash-stat-pill-label">Active</span>
-            </div>
-        </div>
-        <div class="dash-stat-pill">
-            <div class="dash-stat-pill-icon inactive">
-                <i class="bi bi-pause-circle-fill"></i>
-            </div>
-            <div class="dash-stat-pill-info">
-                <span class="dash-stat-pill-value">{{ targets|rejectattr('status', 'equalto', 'ACTIVE')|list|length if targets else 0 }}</span>
-                <span class="dash-stat-pill-label">Inactive</span>
+                <span class="dash-stat-pill-label">Total POI Recorded</span>
             </div>
         </div>
     </div>
