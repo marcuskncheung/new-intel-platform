@@ -3511,7 +3511,7 @@ def alleged_subject_profile_detail(poi_id):
                 pil.source_id,
                 pil.confidence_score,
                 pil.created_at as link_created_at,
-                cp.case_number as case_name,
+                cp.int_reference as case_name,
                 cp.id as case_id
             FROM poi_intelligence_link pil
             LEFT JOIN case_profile cp ON pil.case_profile_id = cp.id
