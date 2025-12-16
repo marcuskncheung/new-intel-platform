@@ -553,8 +553,11 @@
                     </label>
                     <select class="form-select" name="license_type[]">
                       <option value="" {% if not t.license_type %}selected{% endif %}>N/A</option>
-                      <option value="Agent" {% if t.license_type=='Agent' %}selected{% endif %}>Insurance Agent</option>
-                      <option value="Broker" {% if t.license_type=='Broker' %}selected{% endif %}>Insurance Broker</option>
+                      <option value="Agent" {% if t.license_type=='Agent' %}selected{% endif %}>Agent</option>
+                      <option value="Technical Representative" {% if t.license_type=='Technical Representative' %}selected{% endif %}>Technical Representative</option>
+                      <option value="Insurer" {% if t.license_type=='Insurer' %}selected{% endif %}>Insurer</option>
+                      <option value="Broker" {% if t.license_type=='Broker' %}selected{% endif %}>Broker</option>
+                      <option value="Others" {% if t.license_type=='Others' or t.license_type=='Other' %}selected{% endif %}>Others</option>
                     </select>
                   </div>
                   
@@ -592,8 +595,11 @@
                   </label>
                   <select class="form-select" name="license_type[]">
                     <option value="" selected>N/A</option>
-                    <option value="Agent">Insurance Agent</option>
-                    <option value="Broker">Insurance Broker</option>
+                    <option value="Agent">Agent</option>
+                    <option value="Technical Representative">Technical Representative</option>
+                    <option value="Insurer">Insurer</option>
+                    <option value="Broker">Broker</option>
+                    <option value="Others">Others</option>
                   </select>
                 </div>
                 
@@ -737,8 +743,11 @@ function addTarget() {
         </label>
         <select class="form-select" name="license_type[]">
           <option value="" selected>N/A</option>
-          <option value="Agent">Insurance Agent</option>
-          <option value="Broker">Insurance Broker</option>
+          <option value="Agent">Agent</option>
+          <option value="Technical Representative">Technical Representative</option>
+          <option value="Insurer">Insurer</option>
+          <option value="Broker">Broker</option>
+          <option value="Others">Others</option>
         </select>
       </div>
       

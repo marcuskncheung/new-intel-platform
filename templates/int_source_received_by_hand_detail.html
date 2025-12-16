@@ -203,9 +203,11 @@
                                 <label class="form-label">License Type:</label>
                                 <select name="intermediary_type[]" class="form-select">
                                   <option value="">Select Type</option>
-                                  <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
-                                  <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
-                                  <option value="Other" {% if license_type == 'Other' %}selected{% endif %}>Other</option>
+                              <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
+                              <option value="Technical Representative" {% if license_type == 'Technical Representative' %}selected{% endif %}>Technical Representative</option>
+                              <option value="Insurer" {% if license_type == 'Insurer' %}selected{% endif %}>Insurer</option>
+                              <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
+                              <option value="Others" {% if license_type == 'Others' or license_type == 'Other' %}selected{% endif %}>Others</option>
                                 </select>
                               </div>
                               <div class="col-6">
@@ -251,9 +253,11 @@
                                 <label class="form-label">License Type:</label>
                                 <select name="intermediary_type[]" class="form-select">
                                   <option value="">Select Type</option>
-                                  <option value="Agent">Agent</option>
-                                  <option value="Broker">Broker</option>
-                                  <option value="Other">Other</option>
+                              <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
+                              <option value="Technical Representative" {% if license_type == 'Technical Representative' %}selected{% endif %}>Technical Representative</option>
+                              <option value="Insurer" {% if license_type == 'Insurer' %}selected{% endif %}>Insurer</option>
+                              <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
+                              <option value="Others" {% if license_type == 'Others' or license_type == 'Other' %}selected{% endif %}>Others</option>
                                 </select>
                               </div>
                               <div class="col-6">
@@ -297,9 +301,11 @@
                               <label class="form-label">License Type:</label>
                               <select name="intermediary_type[]" class="form-select">
                                 <option value="">Select Type</option>
-                                <option value="Agent">Agent</option>
-                                <option value="Broker">Broker</option>
-                                <option value="Other">Other</option>
+                              <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
+                              <option value="Technical Representative" {% if license_type == 'Technical Representative' %}selected{% endif %}>Technical Representative</option>
+                              <option value="Insurer" {% if license_type == 'Insurer' %}selected{% endif %}>Insurer</option>
+                              <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
+                              <option value="Others" {% if license_type == 'Others' or license_type == 'Other' %}selected{% endif %}>Others</option>
                               </select>
                             </div>
                             <div class="col-6">
@@ -462,9 +468,11 @@ function addAllegedSubject() {
                     <label class="form-label">License Type:</label>
                     <select name="intermediary_type[]" class="form-select">
                         <option value="">Select Type</option>
-                        <option value="Agent">Agent</option>
-                        <option value="Broker">Broker</option>
-                        <option value="Other">Other</option>
+                              <option value="Agent" {% if license_type == 'Agent' %}selected{% endif %}>Agent</option>
+                              <option value="Technical Representative" {% if license_type == 'Technical Representative' %}selected{% endif %}>Technical Representative</option>
+                              <option value="Insurer" {% if license_type == 'Insurer' %}selected{% endif %}>Insurer</option>
+                              <option value="Broker" {% if license_type == 'Broker' %}selected{% endif %}>Broker</option>
+                              <option value="Others" {% if license_type == 'Others' or license_type == 'Other' %}selected{% endif %}>Others</option>
                     </select>
                 </div>
                 <div class="col-6">
