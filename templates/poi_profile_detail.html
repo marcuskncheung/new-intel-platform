@@ -1,630 +1,1152 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-/* POI Profile Page - Clean Light Mode Only */
-.poi-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* POI Profile Page - Professional Modern Design */
+:root {
+    --poi-primary: #4f46e5;
+    --poi-primary-dark: #3730a3;
+    --poi-success: #10b981;
+    --poi-warning: #f59e0b;
+    --poi-danger: #ef4444;
+    --poi-info: #06b6d4;
+    --poi-purple: #8b5cf6;
+    --poi-gray-50: #f9fafb;
+    --poi-gray-100: #f3f4f6;
+    --poi-gray-200: #e5e7eb;
+    --poi-gray-600: #4b5563;
+    --poi-gray-700: #374151;
+    --poi-gray-900: #111827;
+}
+
+.poi-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background: var(--poi-gray-50);
+    min-height: 100vh;
+}
+
+/* Top Navigation Bar */
+.poi-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1.25rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.poi-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--poi-gray-600);
+}
+
+.poi-breadcrumb a {
+    color: var(--poi-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.poi-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.poi-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-poi {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-poi-back {
+    background: var(--poi-gray-100);
+    color: var(--poi-gray-700);
+}
+
+.btn-poi-back:hover {
+    background: var(--poi-gray-200);
+    color: var(--poi-gray-900);
+}
+
+.btn-poi-delete {
+    background: #fef2f2;
+    color: var(--poi-danger);
+}
+
+.btn-poi-delete:hover {
+    background: #fee2e2;
+}
+
+/* Profile Header Card */
+.poi-profile-header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    border-radius: 20px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.poi-profile-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.poi-profile-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.poi-profile-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.poi-avatar {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, var(--poi-primary) 0%, var(--poi-purple) 100%);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
     color: white;
-    border-radius: 15px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+}
+
+.poi-identity {
+    flex: 1;
+    color: white;
+}
+
+.poi-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+}
+
+.poi-name-primary {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.poi-name-secondary {
+    font-size: 1.25rem;
+    opacity: 0.85;
+    font-weight: 400;
+    margin-bottom: 1rem;
+}
+
+.poi-meta-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.poi-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.12);
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.poi-pill i {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.poi-status-active {
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+
+.poi-status-inactive {
+    background: rgba(156, 163, 175, 0.25);
+    color: #d1d5db;
+}
+
+/* Stats Grid */
+.poi-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+    .poi-stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .poi-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .poi-stat-card {
-    border-radius: 15px;
-    padding: 1.5rem;
-    text-align: center;
-    color: white;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: none;
-    height: 100%;
+    background: white;
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid var(--poi-gray-100);
+    transition: all 0.2s ease;
 }
 
 .poi-stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-}
-
-.poi-stat-number {
-    font-size: 3.5rem;
-    font-weight: 800;
-    line-height: 1;
-    margin: 1rem 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
 .poi-stat-icon {
-    font-size: 3rem;
-    opacity: 0.9;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.poi-stat-icon.email { background: #eef2ff; color: #4f46e5; }
+.poi-stat-icon.whatsapp { background: #ecfdf5; color: #059669; }
+.poi-stat-icon.patrol { background: #fffbeb; color: #d97706; }
+.poi-stat-icon.surveillance { background: #fef2f2; color: #dc2626; }
+.poi-stat-icon.received { background: #ecfeff; color: #0891b2; }
+.poi-stat-icon.total { background: #f5f3ff; color: #7c3aed; }
+
+.poi-stat-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.poi-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--poi-gray-900);
+    line-height: 1;
+    margin-bottom: 0.25rem;
 }
 
 .poi-stat-label {
-    font-size: 1.1rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 1px;
+    color: var(--poi-gray-600);
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Main Content Grid */
+.poi-main-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .poi-main-grid { grid-template-columns: 1fr; }
+}
+
+/* Sidebar Profile Info */
+.poi-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .poi-info-card {
     background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    border: none;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid var(--poi-gray-100);
+    overflow: hidden;
 }
 
-.stat-email { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.stat-whatsapp { background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); }
-.stat-patrol { background: linear-gradient(135deg, #ff9800 0%, #e65100 100%); }
-.stat-surveillance { background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%); }
-.stat-received-by-hand { background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); }
-.stat-total { background: linear-gradient(135deg, #6610f2 0%, #520dc2 100%); }
-.stat-cases { background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); }
-.stat-activity { background: linear-gradient(135deg, #20c997 0%, #17a589 100%); }
+.poi-info-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--poi-gray-100);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.poi-info-header i {
+    font-size: 1.1rem;
+    color: var(--poi-primary);
+}
+
+.poi-info-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--poi-gray-900);
+}
+
+.poi-info-body {
+    padding: 1rem 1.25rem;
+}
+
+.poi-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--poi-gray-100);
+}
+
+.poi-info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.poi-info-row:first-child {
+    padding-top: 0;
+}
+
+.poi-info-label {
+    font-size: 0.8rem;
+    color: var(--poi-gray-600);
+    font-weight: 500;
+}
+
+.poi-info-value {
+    font-size: 0.875rem;
+    color: var(--poi-gray-900);
+    font-weight: 600;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+}
+
+.poi-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.poi-badge-success {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.poi-badge-secondary {
+    background: var(--poi-gray-100);
+    color: var(--poi-gray-600);
+}
+
+.poi-badge-info {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+/* Timeline Section */
+.poi-timeline-section {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid var(--poi-gray-100);
+    overflow: hidden;
+}
+
+.poi-timeline-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--poi-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.poi-timeline-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--poi-gray-900);
+}
+
+.poi-timeline-title i {
+    color: var(--poi-primary);
+}
+
+/* Modern Tabs */
+.poi-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0 1.5rem;
+    background: var(--poi-gray-50);
+    border-bottom: 1px solid var(--poi-gray-200);
+    overflow-x: auto;
+}
+
+.poi-tab {
+    padding: 0.875rem 1.25rem;
+    background: none;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--poi-gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.poi-tab:hover {
+    color: var(--poi-primary);
+}
+
+.poi-tab.active {
+    color: var(--poi-primary);
+    font-weight: 600;
+}
+
+.poi-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--poi-primary);
+    border-radius: 2px 2px 0 0;
+}
+
+.poi-tab-count {
+    background: var(--poi-gray-100);
+    color: var(--poi-gray-600);
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.poi-tab.active .poi-tab-count {
+    background: var(--poi-primary);
+    color: white;
+}
+
+/* Tab Content */
+.poi-tab-content {
+    display: none;
+    padding: 1.5rem;
+}
+
+.poi-tab-content.active {
+    display: block;
+}
+
+/* Intelligence Table */
+.poi-intel-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.poi-intel-table thead th {
+    background: var(--poi-gray-50);
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--poi-gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--poi-gray-200);
+    text-align: left;
+}
+
+.poi-intel-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.poi-intel-table tbody tr:hover {
+    background: var(--poi-gray-50);
+}
+
+.poi-intel-table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--poi-gray-100);
+    font-size: 0.875rem;
+    color: var(--poi-gray-700);
+    vertical-align: middle;
+}
+
+.poi-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.poi-source-email { background: #eef2ff; color: #4338ca; }
+.poi-source-whatsapp { background: #ecfdf5; color: #059669; }
+.poi-source-patrol { background: #fffbeb; color: #b45309; }
+.poi-source-surveillance { background: #fef2f2; color: #b91c1c; }
+.poi-source-received { background: #ecfeff; color: #0e7490; }
+
+.poi-ref-code {
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-size: 0.8rem;
+    background: var(--poi-gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--poi-gray-700);
+}
+
+.poi-intel-subject {
+    font-weight: 500;
+    color: var(--poi-gray-900);
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-poi-view {
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--poi-gray-100);
+    color: var(--poi-gray-700);
+    border: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+
+.btn-poi-view:hover {
+    background: var(--poi-primary);
+    color: white;
+}
+
+/* Empty State */
+.poi-empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--poi-gray-600);
+}
+
+.poi-empty-state i {
+    font-size: 3rem;
+    color: var(--poi-gray-300);
+    margin-bottom: 1rem;
+}
+
+.poi-empty-state h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--poi-gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.poi-empty-state p {
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .poi-container { padding: 1rem; }
+    .poi-profile-content { flex-direction: column; gap: 1.5rem; }
+    .poi-avatar { width: 80px; height: 80px; font-size: 2rem; }
+    .poi-name-primary { font-size: 1.5rem; }
+    .poi-tabs { padding: 0 1rem; }
+    .poi-tab { padding: 0.75rem 1rem; font-size: 0.8rem; }
+    .poi-intel-table { display: block; overflow-x: auto; }
+}
 </style>
 
-<div class="container-fluid py-4">
+<div class="poi-container">
     
-    <!-- Header Card -->
-    <div class="poi-header">
-        <div class="d-flex justify-content-between align-items-start flex-wrap">
-            <div class="flex-grow-1 mb-3 mb-md-0">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-person-badge-fill" style="font-size: 3rem; margin-right: 1rem;"></i>
-                    <div>
-                        <h1 class="mb-1" style="font-size: 2.5rem; font-weight: 700;">{{ profile.poi_id }}</h1>
-                        <h3 class="mb-0" style="font-weight: 500;">
-                            {% if profile.name_english %}{{ profile.name_english }}{% endif %}
-                            {% if profile.name_chinese %}
-                                {% if profile.name_english %}<span style="opacity: 0.7;"> / </span>{% endif %}{{ profile.name_chinese }}
-                            {% endif %}
-                            {% if not profile.name_english and not profile.name_chinese %}
-                                <span style="opacity: 0.7;">Name Not Specified</span>
-                            {% endif %}
-                        </h3>
-                    </div>
+    <!-- Top Bar -->
+    <div class="poi-topbar">
+        <div class="poi-breadcrumb">
+            <a href="{{ url_for('int_source') }}"><i class="bi bi-house-door"></i></a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{{ url_for('alleged_subject_list') }}">POI Profiles</a>
+            <i class="bi bi-chevron-right"></i>
+            <span>{{ profile.poi_id }}</span>
+        </div>
+        <div class="poi-actions">
+            <a href="{{ url_for('alleged_subject_list') }}" class="btn-poi btn-poi-back">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+            <form method="post" action="{{ url_for('delete_alleged_person_profile', profile_id=profile.id) }}"
+                  onsubmit="return confirm('⚠️ DELETE {{ profile.poi_id }}?\n\nThis will permanently remove this profile.\nThis action cannot be undone.\n\nAre you sure?')"
+                  style="display: inline;">
+                <button class="btn-poi btn-poi-delete" type="submit">
+                    <i class="bi bi-trash3"></i> Delete
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Profile Header -->
+    <div class="poi-profile-header">
+        <div class="poi-profile-content">
+            <div class="poi-avatar">
+                <i class="bi bi-person-fill"></i>
+            </div>
+            <div class="poi-identity">
+                <div class="poi-id-badge">
+                    <i class="bi bi-fingerprint"></i>
+                    {{ profile.poi_id }}
                 </div>
-                
-                <div class="d-flex flex-wrap gap-2 mb-3">
+                <h1 class="poi-name-primary">
+                    {% if profile.name_english %}{{ profile.name_english }}{% endif %}
+                    {% if not profile.name_english and profile.name_chinese %}{{ profile.name_chinese }}{% endif %}
+                    {% if not profile.name_english and not profile.name_chinese %}Unknown Person{% endif %}
+                </h1>
+                {% if profile.name_english and profile.name_chinese %}
+                <div class="poi-name-secondary">{{ profile.name_chinese }}</div>
+                {% endif %}
+                <div class="poi-meta-pills">
+                    <span class="poi-pill {{ 'poi-status-active' if profile.status == 'ACTIVE' else 'poi-status-inactive' }}">
+                        <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+                        {{ profile.status }}
+                    </span>
+                    {% if profile.license_number %}
+                    <span class="poi-pill">
+                        <i class="bi bi-card-checklist"></i>
+                        {{ profile.license_number }}
+                    </span>
+                    {% endif %}
                     {% if profile.company %}
-                    <span class="badge bg-light text-dark px-3 py-2" style="font-size: 0.9rem;">
-                        <i class="bi bi-building"></i> {{ profile.company }}
+                    <span class="poi-pill">
+                        <i class="bi bi-building"></i>
+                        {{ profile.company }}
                     </span>
                     {% endif %}
                     {% if profile.role %}
-                    <span class="badge bg-light text-dark px-3 py-2" style="font-size: 0.9rem;">
-                        <i class="bi bi-briefcase"></i> {{ profile.role }}
+                    <span class="poi-pill">
+                        <i class="bi bi-briefcase"></i>
+                        {{ profile.role }}
                     </span>
                     {% endif %}
-                    {% if profile.license_number %}
-                    <span class="badge bg-light text-dark px-3 py-2" style="font-size: 0.9rem;">
-                        <i class="bi bi-card-checklist"></i> License: {{ profile.license_number }}
+                    <span class="poi-pill">
+                        <i class="bi bi-calendar-plus"></i>
+                        Created {{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}
                     </span>
-                    {% endif %}
                 </div>
-                
-                <div class="d-flex flex-wrap gap-3" style="opacity: 0.9; font-size: 0.95rem;">
-                    <div>
-                        <i class="bi bi-circle-fill me-1 {% if profile.status == 'ACTIVE' %}text-success{% else %}text-light{% endif %}"></i>
-                        <strong>Status:</strong> {{ profile.status }}
-                    </div>
-                    <div>
-                        <i class="bi bi-robot me-1"></i>
-                        <strong>Created By:</strong> {{ profile.created_by }}
-                    </div>
-                    <div>
-                        <i class="bi bi-calendar-plus me-1"></i>
-                        <strong>Created:</strong> {{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="text-end">
-                <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-light btn-lg me-2">
-                    <i class="bi bi-arrow-left"></i> Back
-                </a>
-                <form method="post" action="{{ url_for('delete_alleged_person_profile', profile_id=profile.id) }}"
-                      onsubmit="return confirm('⚠️ DELETE PROFILE {{ profile.poi_id }}?\n\nThis will permanently remove this profile.\n\n⚠️ THIS CANNOT BE UNDONE!\n\nAre you sure?')"
-                      style="display: inline;">
-                    <button class="btn btn-danger btn-lg" type="submit">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
-                </form>
             </div>
         </div>
     </div>
     
-    <!-- Statistics Section -->
-    <h4 class="mb-3" style="color: #333; font-weight: 600;">
-        <i class="bi bi-graph-up-arrow me-2"></i>Cross-Source Intelligence Statistics
-    </h4>
-    
-    <!-- Row 1: Source Counts -->
-    <div class="row g-3 mb-3">
-        <div class="col-lg-2 col-md-4">
-            <div class="poi-stat-card stat-email">
-                <i class="bi bi-envelope-fill poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ email_count if email_count is defined else (profile.email_count or 0) }}</div>
+    <!-- Stats Grid -->
+    <div class="poi-stats-grid">
+        <div class="poi-stat-card">
+            <div class="poi-stat-icon email">
+                <i class="bi bi-envelope-fill"></i>
+            </div>
+            <div class="poi-stat-info">
+                <div class="poi-stat-value">{{ email_count if email_count is defined else (profile.email_count or 0) }}</div>
                 <div class="poi-stat-label">Emails</div>
             </div>
         </div>
         
-        <div class="col-lg-2 col-md-4">
-            <div class="poi-stat-card stat-whatsapp">
-                <i class="bi bi-whatsapp poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ whatsapp_count if whatsapp_count is defined else (profile.whatsapp_count or 0) }}</div>
+        <div class="poi-stat-card">
+            <div class="poi-stat-icon whatsapp">
+                <i class="bi bi-whatsapp"></i>
+            </div>
+            <div class="poi-stat-info">
+                <div class="poi-stat-value">{{ whatsapp_count if whatsapp_count is defined else (profile.whatsapp_count or 0) }}</div>
                 <div class="poi-stat-label">WhatsApp</div>
             </div>
         </div>
         
-        <div class="col-lg-2 col-md-4">
-            <div class="poi-stat-card stat-patrol">
-                <i class="bi bi-shield-fill-check poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ patrol_count if patrol_count is defined else (profile.patrol_count or 0) }}</div>
+        <div class="poi-stat-card">
+            <div class="poi-stat-icon patrol">
+                <i class="bi bi-shield-fill-check"></i>
+            </div>
+            <div class="poi-stat-info">
+                <div class="poi-stat-value">{{ patrol_count if patrol_count is defined else (profile.patrol_count or 0) }}</div>
                 <div class="poi-stat-label">Patrol</div>
             </div>
         </div>
         
-        <div class="col-lg-2 col-md-4">
-            <div class="poi-stat-card stat-surveillance">
-                <i class="bi bi-camera-video-fill poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ surveillance_count if surveillance_count is defined else (profile.surveillance_count or 0) }}</div>
+        <div class="poi-stat-card">
+            <div class="poi-stat-icon surveillance">
+                <i class="bi bi-camera-video-fill"></i>
+            </div>
+            <div class="poi-stat-info">
+                <div class="poi-stat-value">{{ surveillance_count if surveillance_count is defined else (profile.surveillance_count or 0) }}</div>
                 <div class="poi-stat-label">Surveillance</div>
             </div>
         </div>
         
-        <div class="col-lg-2 col-md-4">
-            <div class="poi-stat-card stat-received-by-hand">
-                <i class="bi bi-hand-index-fill poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ received_by_hand_count if received_by_hand_count is defined else 0 }}</div>
-                <div class="poi-stat-label">Received by Hand</div>
+        <div class="poi-stat-card">
+            <div class="poi-stat-icon received">
+                <i class="bi bi-hand-index-fill"></i>
+            </div>
+            <div class="poi-stat-info">
+                <div class="poi-stat-value">{{ received_by_hand_count if received_by_hand_count is defined else 0 }}</div>
+                <div class="poi-stat-label">By Hand</div>
+            </div>
+        </div>
+        
+        <div class="poi-stat-card">
+            <div class="poi-stat-icon total">
+                <i class="bi bi-collection-fill"></i>
+            </div>
+            <div class="poi-stat-info">
+                <div class="poi-stat-value">{{ total_intelligence_count if total_intelligence_count is defined else (profile.total_mentions or 0) }}</div>
+                <div class="poi-stat-label">Total</div>
             </div>
         </div>
     </div>
     
-    <!-- Row 2: Summary Stats -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-4">
-            <div class="poi-stat-card stat-total">
-                <i class="bi bi-bar-chart-fill poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ total_intelligence_count if total_intelligence_count is defined else (profile.total_mentions or 0) }}</div>
-                <div class="poi-stat-label">Total Mentions</div>
+    <!-- Main Grid -->
+    <div class="poi-main-grid">
+        
+        <!-- Sidebar -->
+        <div class="poi-sidebar">
+            <!-- Profile Details -->
+            <div class="poi-info-card">
+                <div class="poi-info-header">
+                    <i class="bi bi-person-vcard"></i>
+                    <h3>Profile Details</h3>
+                </div>
+                <div class="poi-info-body">
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">English Name</span>
+                        <span class="poi-info-value">{{ profile.name_english or "—" }}</span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Chinese Name</span>
+                        <span class="poi-info-value">{{ profile.name_chinese or "—" }}</span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">License #</span>
+                        <span class="poi-info-value">{{ profile.license_number or "—" }}</span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Company</span>
+                        <span class="poi-info-value">{{ profile.company or "—" }}</span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Role</span>
+                        <span class="poi-info-value">{{ profile.role or "—" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Info -->
+            <div class="poi-info-card">
+                <div class="poi-info-header">
+                    <i class="bi bi-gear"></i>
+                    <h3>System Info</h3>
+                </div>
+                <div class="poi-info-body">
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Status</span>
+                        <span class="poi-info-value">
+                            <span class="poi-badge {{ 'poi-badge-success' if profile.status == 'ACTIVE' else 'poi-badge-secondary' }}">
+                                {{ profile.status }}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Created By</span>
+                        <span class="poi-info-value">
+                            <span class="poi-badge poi-badge-info">{{ profile.created_by }}</span>
+                        </span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Created</span>
+                        <span class="poi-info-value">{{ profile.created_at.strftime('%Y-%m-%d') if profile.created_at else 'N/A' }}</span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Cases Involved</span>
+                        <span class="poi-info-value">{{ profile.case_count or 0 }}</span>
+                    </div>
+                    <div class="poi-info-row">
+                        <span class="poi-info-label">Last Activity</span>
+                        <span class="poi-info-value">
+                            {% if profile.last_activity_date %}
+                                {{ profile.last_activity_date.strftime('%Y-%m-%d') }}
+                            {% elif profile.last_mentioned_date %}
+                                {{ profile.last_mentioned_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div class="col-lg-4">
-            <div class="poi-stat-card stat-cases">
-                <i class="bi bi-folder-fill poi-stat-icon"></i>
-                <div class="poi-stat-number">{{ profile.case_count or 0 }}</div>
-                <div class="poi-stat-label">Cases Involved</div>
+        <!-- Timeline Section -->
+        <div class="poi-timeline-section">
+            <div class="poi-timeline-header">
+                <h2 class="poi-timeline-title">
+                    <i class="bi bi-clock-history"></i>
+                    Intelligence Timeline
+                </h2>
             </div>
-        </div>
-        
-        <div class="col-lg-4">
-            <div class="poi-stat-card stat-activity">
-                <i class="bi bi-clock-history poi-stat-icon"></i>
-                <div style="font-size: 1.8rem; font-weight: 700; margin: 1rem 0;">
-                    {% if profile.last_activity_date %}
-                        {{ profile.last_activity_date.strftime('%Y-%m-%d') }}
-                    {% elif profile.last_mentioned_date %}
-                        {{ profile.last_mentioned_date.strftime('%Y-%m-%d') }}
-                    {% else %}
-                        No Activity
-                    {% endif %}
-                </div>
-                <div class="poi-stat-label">Last Activity</div>
+            
+            <!-- Tabs -->
+            <div class="poi-tabs">
+                <button class="poi-tab active" onclick="switchTab(event, 'all')">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    All
+                    <span class="poi-tab-count">{{ total_intelligence_count or 0 }}</span>
+                </button>
+                <button class="poi-tab" onclick="switchTab(event, 'email')">
+                    <i class="bi bi-envelope"></i>
+                    Email
+                    <span class="poi-tab-count">{{ email_count or 0 }}</span>
+                </button>
+                <button class="poi-tab" onclick="switchTab(event, 'whatsapp')">
+                    <i class="bi bi-whatsapp"></i>
+                    WhatsApp
+                    <span class="poi-tab-count">{{ whatsapp_count or 0 }}</span>
+                </button>
+                <button class="poi-tab" onclick="switchTab(event, 'patrol')">
+                    <i class="bi bi-shield-check"></i>
+                    Patrol
+                    <span class="poi-tab-count">{{ patrol_count or 0 }}</span>
+                </button>
+                <button class="poi-tab" onclick="switchTab(event, 'surveillance')">
+                    <i class="bi bi-camera-video"></i>
+                    Surveillance
+                    <span class="poi-tab-count">{{ surveillance_count or 0 }}</span>
+                </button>
+                <button class="poi-tab" onclick="switchTab(event, 'received')">
+                    <i class="bi bi-hand-index"></i>
+                    By Hand
+                    <span class="poi-tab-count">{{ received_by_hand_count or 0 }}</span>
+                </button>
             </div>
-        </div>
-    </div>
-    
-    <!-- Profile Information -->
-    <div class="poi-info-card mb-4">
-        <div class="card-header bg-primary text-white" style="border-radius: 15px 15px 0 0;">
-            <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Profile Information</h5>
-        </div>
-        <div class="card-body p-4">
-            <div class="row">
-                <div class="col-md-6">
-                    <table class="table table-borderless mb-0">
+            
+            <!-- Tab Contents -->
+            <!-- All Sources -->
+            <div id="tab-all" class="poi-tab-content active">
+                {% if all_intelligence and all_intelligence|length > 0 %}
+                <table class="poi-intel-table">
+                    <thead>
                         <tr>
-                            <th width="40%" class="text-muted">English Name:</th>
-                            <td><strong>{{ profile.name_english or "N/A" }}</strong></td>
+                            <th style="width: 100px;">Date</th>
+                            <th style="width: 110px;">Source</th>
+                            <th style="width: 140px;">Reference</th>
+                            <th>Subject / Content</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
                         </tr>
+                    </thead>
+                    <tbody>
+                        {% for intel in all_intelligence %}
                         <tr>
-                            <th class="text-muted">Chinese Name:</th>
-                            <td><strong>{{ profile.name_chinese or "N/A" }}</strong></td>
-                        </tr>
-                        <tr>
-                            <th class="text-muted">License Number:</th>
-                            <td>{{ profile.license_number or "N/A" }}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-md-6">
-                    <table class="table table-borderless mb-0">
-                        <tr>
-                            <th width="40%" class="text-muted">Company:</th>
-                            <td>{{ profile.company or "N/A" }}</td>
-                        </tr>
-                        <tr>
-                            <th class="text-muted">Role:</th>
-                            <td>{{ profile.role or "N/A" }}</td>
-                        </tr>
-                        <tr>
-                            <th class="text-muted">Status:</th>
+                            <td>{{ intel.get('date').strftime('%Y-%m-%d') if intel.get('date') else '—' }}</td>
                             <td>
-                                <span class="badge {% if profile.status == 'ACTIVE' %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {{ profile.status }}
-                                </span>
+                                {% if intel.get('source_type') == 'EMAIL' %}
+                                    <span class="poi-source-badge poi-source-email"><i class="bi bi-envelope"></i> Email</span>
+                                {% elif intel.get('source_type') == 'WHATSAPP' %}
+                                    <span class="poi-source-badge poi-source-whatsapp"><i class="bi bi-whatsapp"></i> WhatsApp</span>
+                                {% elif intel.get('source_type') == 'PATROL' %}
+                                    <span class="poi-source-badge poi-source-patrol"><i class="bi bi-shield"></i> Patrol</span>
+                                {% elif intel.get('source_type') == 'SURVEILLANCE' %}
+                                    <span class="poi-source-badge poi-source-surveillance"><i class="bi bi-camera-video"></i> Surveillance</span>
+                                {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' %}
+                                    <span class="poi-source-badge poi-source-received"><i class="bi bi-hand-index"></i> By Hand</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="poi-ref-code">{{ intel.get('int_reference_number') or intel.get('reference') or (intel.get('source_type') ~ '-' ~ intel.get('id')) if intel.get('id') else '—' }}</span>
+                            </td>
+                            <td>
+                                <span class="poi-intel-subject">{{ intel.get('title') or intel.get('subject') or intel.get('summary') or intel.get('content', '')[:80] or '—' }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if intel.get('view_url') %}
+                                    <a href="{{ intel.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif intel.get('source_type') == 'EMAIL' and intel.get('id') %}
+                                    <a href="{{ url_for('int_source_email_detail', email_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif intel.get('source_type') == 'WHATSAPP' and intel.get('id') %}
+                                    <a href="{{ url_for('whatsapp_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif intel.get('source_type') == 'PATROL' and intel.get('id') %}
+                                    <a href="{{ url_for('online_patrol_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif intel.get('source_type') == 'SURVEILLANCE' and intel.get('id') %}
+                                    <a href="{{ url_for('surveillance_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' and intel.get('id') %}
+                                    <a href="{{ url_for('received_by_hand_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
                             </td>
                         </tr>
-                        <tr>
-                            <th class="text-muted">Created By:</th>
-                            <td><span class="badge bg-info">{{ profile.created_by }}</span></td>
-                        </tr>
-                    </table>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="poi-empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h4>No Intelligence Records</h4>
+                    <p>No records found for this profile yet.</p>
                 </div>
+                {% endif %}
             </div>
-        </div>
-    </div>
-    
-    <!-- Cross-Source Intelligence Timeline -->
-    <div class="poi-info-card">
-        <div class="card-header bg-dark text-white" style="border-radius: 15px 15px 0 0;">
-            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Cross-Source Intelligence Timeline</h5>
-        </div>
-        <div class="card-body p-0">
-            <ul class="nav nav-tabs border-bottom" role="tablist" style="padding: 1rem 1rem 0 1rem;">
-                <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all-sources-tab" type="button">
-                        <i class="bi bi-list-ul"></i> All Sources ({{ total_intelligence_count or 0 }})
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#email-tab" type="button">
-                        <i class="bi bi-envelope"></i> Email ({{ email_count or 0 }})
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#whatsapp-tab" type="button">
-                        <i class="bi bi-whatsapp"></i> WhatsApp ({{ whatsapp_count or 0 }})
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#patrol-tab" type="button">
-                        <i class="bi bi-shield-check"></i> Patrol ({{ patrol_count or 0 }})
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#surveillance-tab" type="button">
-                        <i class="bi bi-camera-video"></i> Surveillance ({{ surveillance_count or 0 }})
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#received-by-hand-tab" type="button">
-                        <i class="bi bi-hand-index"></i> Received by Hand ({{ received_by_hand_count or 0 }})
-                    </button>
-                </li>
-            </ul>
             
-            <div class="tab-content p-4">
-                <!-- All Sources Tab -->
-                <div class="tab-pane fade show active" id="all-sources-tab">
-                    {% if all_intelligence and all_intelligence|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Date</th>
-                                    <th width="12%">Source</th>
-                                    <th width="18%">Reference</th>
-                                    <th>Subject/Content</th>
-                                    <th width="12%" class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for intel in all_intelligence %}
-                                <tr>
-                                    <td>{{ intel.get('date').strftime('%Y-%m-%d') if intel.get('date') else 'N/A' }}</td>
-                                    <td>
-                                        {% if intel.get('source_type') == 'EMAIL' %}
-                                            <span class="badge bg-primary"><i class="bi bi-envelope"></i> Email</span>
-                                        {% elif intel.get('source_type') == 'WHATSAPP' %}
-                                            <span class="badge bg-success"><i class="bi bi-whatsapp"></i> WhatsApp</span>
-                                        {% elif intel.get('source_type') == 'PATROL' %}
-                                            <span class="badge bg-warning text-dark"><i class="bi bi-shield"></i> Patrol</span>
-                                        {% elif intel.get('source_type') == 'SURVEILLANCE' %}
-                                            <span class="badge bg-danger"><i class="bi bi-camera-video"></i> Surveillance</span>
-                                        {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' %}
-                                            <span class="badge bg-info"><i class="bi bi-hand-index"></i> Received by Hand</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if intel.get('source_type') and intel.get('id') %}
-                                            <span class="badge bg-info">{{ intel.get('source_type') }}-{{ intel.get('id') }}</span>
-                                            {% if intel.get('case_int') %}
-                                                <br><small class="text-muted">Case: {{ intel.get('case_int') }}</small>
-                                            {% endif %}
-                                        {% else %}
-                                            <code>{{ intel.get('int_reference_number') or intel.get('reference') or 'N/A' }}</code>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ intel.get('title') or intel.get('subject') or intel.get('summary') or intel.get('content', '')[:100] or 'No content' }}</td>
-                                    <td class="text-center">
-                                        {% if intel.get('view_url') %}
-                                            <a href="{{ intel.get('view_url') }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif intel.get('source_type') == 'EMAIL' and intel.get('id') %}
-                                            <a href="{{ url_for('int_source_email_detail', email_id=intel.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif intel.get('source_type') == 'WHATSAPP' and intel.get('id') %}
-                                            <a href="{{ url_for('whatsapp_detail', entry_id=intel.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif intel.get('source_type') == 'PATROL' and intel.get('id') %}
-                                            <a href="{{ url_for('online_patrol_detail', entry_id=intel.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-warning">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif intel.get('source_type') == 'SURVEILLANCE' and intel.get('id') %}
-                                            <a href="{{ url_for('surveillance_detail', entry_id=intel.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' and intel.get('id') %}
-                                            <a href="{{ url_for('received_by_hand_detail', entry_id=intel.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-info">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">—</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>No intelligence records found for this profile.
-                    </div>
-                    {% endif %}
+            <!-- Email Tab -->
+            <div id="tab-email" class="poi-tab-content">
+                {% if emails and emails|length > 0 %}
+                <table class="poi-intel-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Date</th>
+                            <th style="width: 140px;">Reference</th>
+                            <th>Subject</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for email in emails %}
+                        <tr>
+                            <td>{{ email.get('date').strftime('%Y-%m-%d') if email.get('date') else '—' }}</td>
+                            <td><span class="poi-ref-code">{{ email.get('int_reference_number') or email.get('reference') or '—' }}</span></td>
+                            <td><span class="poi-intel-subject">{{ email.get('title') or email.get('subject') or email.get('summary') or '—' }}</span></td>
+                            <td style="text-align: center;">
+                                {% if email.get('id') %}
+                                    <a href="{{ url_for('int_source_email_detail', email_id=email.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="poi-empty-state">
+                    <i class="bi bi-envelope"></i>
+                    <h4>No Email Records</h4>
+                    <p>No email intelligence for this profile.</p>
                 </div>
-                
-                <!-- Email Tab -->
-                <div class="tab-pane fade" id="email-tab">
-                    {% if emails and emails|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Date</th>
-                                    <th width="18%">Reference</th>
-                                    <th>Subject</th>
-                                    <th width="12%" class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for email in emails %}
-                                <tr>
-                                    <td>{{ email.get('date').strftime('%Y-%m-%d') if email.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ email.get('int_reference_number') or email.get('reference') }}</code></td>
-                                    <td>{{ email.get('title') or email.get('subject') or email.get('summary') or 'No subject' }}</td>
-                                    <td class="text-center">
-                                        {% if email.get('id') %}
-                                            <a href="{{ url_for('int_source_email_detail', email_id=email.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">—</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>No email records for this profile.
-                    </div>
-                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- WhatsApp Tab -->
+            <div id="tab-whatsapp" class="poi-tab-content">
+                {% if whatsapp and whatsapp|length > 0 %}
+                <table class="poi-intel-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Date</th>
+                            <th style="width: 140px;">Reference</th>
+                            <th>Content</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in whatsapp %}
+                        <tr>
+                            <td>{{ msg.get('date').strftime('%Y-%m-%d') if msg.get('date') else '—' }}</td>
+                            <td><span class="poi-ref-code">{{ msg.get('reference') or msg.get('int_reference_number') or '—' }}</span></td>
+                            <td><span class="poi-intel-subject">{{ msg.get('title') or msg.get('summary') or (msg.get('content', '')[:80] if msg.get('content') else '—') }}</span></td>
+                            <td style="text-align: center;">
+                                {% if msg.get('view_url') %}
+                                    <a href="{{ msg.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif msg.get('id') %}
+                                    <a href="{{ url_for('whatsapp_detail', entry_id=msg.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="poi-empty-state">
+                    <i class="bi bi-whatsapp"></i>
+                    <h4>No WhatsApp Records</h4>
+                    <p>No WhatsApp intelligence for this profile.</p>
                 </div>
-                
-                <!-- WhatsApp Tab -->
-                <div class="tab-pane fade" id="whatsapp-tab">
-                    {% if whatsapp and whatsapp|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Date</th>
-                                    <th width="18%">Reference</th>
-                                    <th>Content</th>
-                                    <th width="12%" class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for msg in whatsapp %}
-                                <tr>
-                                    <td>{{ msg.get('date').strftime('%Y-%m-%d') if msg.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ msg.get('reference') or msg.get('int_reference_number') or 'N/A' }}</code></td>
-                                    <td>{{ msg.get('title') or msg.get('summary') or (msg.get('content', '')[:100] if msg.get('content') else 'No content') }}</td>
-                                    <td class="text-center">
-                                        {% if msg.get('view_url') %}
-                                            <a href="{{ msg.get('view_url') }}" 
-                                               class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif msg.get('id') %}
-                                            <a href="{{ url_for('whatsapp_detail', entry_id=msg.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">—</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>No WhatsApp records for this profile.
-                    </div>
-                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Patrol Tab -->
+            <div id="tab-patrol" class="poi-tab-content">
+                {% if patrol and patrol|length > 0 %}
+                <table class="poi-intel-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Date</th>
+                            <th style="width: 140px;">Reference</th>
+                            <th>Content</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in patrol %}
+                        <tr>
+                            <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else '—' }}</td>
+                            <td><span class="poi-ref-code">{{ entry.get('reference') or entry.get('int_reference_number') or '—' }}</span></td>
+                            <td><span class="poi-intel-subject">{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:80] if entry.get('content') else '—') }}</span></td>
+                            <td style="text-align: center;">
+                                {% if entry.get('view_url') %}
+                                    <a href="{{ entry.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif entry.get('id') %}
+                                    <a href="{{ url_for('online_patrol_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="poi-empty-state">
+                    <i class="bi bi-shield-check"></i>
+                    <h4>No Patrol Records</h4>
+                    <p>No online patrol intelligence for this profile.</p>
                 </div>
-                
-                <!-- Patrol Tab -->
-                <div class="tab-pane fade" id="patrol-tab">
-                    {% if patrol and patrol|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Date</th>
-                                    <th width="18%">Reference</th>
-                                    <th>Content</th>
-                                    <th width="12%" class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for entry in patrol %}
-                                <tr>
-                                    <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ entry.get('reference') or entry.get('int_reference_number') or 'N/A' }}</code></td>
-                                    <td>{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
-                                    <td class="text-center">
-                                        {% if entry.get('view_url') %}
-                                            <a href="{{ entry.get('view_url') }}" 
-                                               class="btn btn-sm btn-outline-warning">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif entry.get('id') %}
-                                            <a href="{{ url_for('online_patrol_detail', entry_id=entry.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-warning">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">—</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>No patrol records for this profile.
-                    </div>
-                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Surveillance Tab -->
+            <div id="tab-surveillance" class="poi-tab-content">
+                {% if surveillance and surveillance|length > 0 %}
+                <table class="poi-intel-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Date</th>
+                            <th style="width: 140px;">Reference</th>
+                            <th>Content</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in surveillance %}
+                        <tr>
+                            <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else '—' }}</td>
+                            <td><span class="poi-ref-code">{{ entry.get('reference') or entry.get('int_reference_number') or '—' }}</span></td>
+                            <td><span class="poi-intel-subject">{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:80] if entry.get('content') else '—') }}</span></td>
+                            <td style="text-align: center;">
+                                {% if entry.get('view_url') %}
+                                    <a href="{{ entry.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif entry.get('id') %}
+                                    <a href="{{ url_for('surveillance_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="poi-empty-state">
+                    <i class="bi bi-camera-video"></i>
+                    <h4>No Surveillance Records</h4>
+                    <p>No surveillance intelligence for this profile.</p>
                 </div>
-                
-                <!-- Surveillance Tab -->
-                <div class="tab-pane fade" id="surveillance-tab">
-                    {% if surveillance and surveillance|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Date</th>
-                                    <th width="18%">Reference</th>
-                                    <th>Content</th>
-                                    <th width="12%" class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for entry in surveillance %}
-                                <tr>
-                                    <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ entry.get('reference') or entry.get('int_reference_number') or 'N/A' }}</code></td>
-                                    <td>{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
-                                    <td class="text-center">
-                                        {% if entry.get('view_url') %}
-                                            <a href="{{ entry.get('view_url') }}" 
-                                               class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif entry.get('id') %}
-                                            <a href="{{ url_for('surveillance_detail', entry_id=entry.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">—</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>No surveillance records for this profile.
-                    </div>
-                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Received by Hand Tab -->
+            <div id="tab-received" class="poi-tab-content">
+                {% if received_by_hand and received_by_hand|length > 0 %}
+                <table class="poi-intel-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Date</th>
+                            <th style="width: 140px;">Reference</th>
+                            <th>Content</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in received_by_hand %}
+                        <tr>
+                            <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else '—' }}</td>
+                            <td><span class="poi-ref-code">{{ entry.get('reference') or entry.get('int_reference_number') or '—' }}</span></td>
+                            <td><span class="poi-intel-subject">{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:80] if entry.get('content') else '—') }}</span></td>
+                            <td style="text-align: center;">
+                                {% if entry.get('view_url') %}
+                                    <a href="{{ entry.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% elif entry.get('id') %}
+                                    <a href="{{ url_for('received_by_hand_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="poi-empty-state">
+                    <i class="bi bi-hand-index"></i>
+                    <h4>No Received by Hand Records</h4>
+                    <p>No received by hand intelligence for this profile.</p>
                 </div>
-                
-                <!-- Received by Hand Tab -->
-                <div class="tab-pane fade" id="received-by-hand-tab">
-                    {% if received_by_hand and received_by_hand|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Date</th>
-                                    <th width="18%">Reference</th>
-                                    <th>Content</th>
-                                    <th width="12%" class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for entry in received_by_hand %}
-                                <tr>
-                                    <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else 'N/A' }}</td>
-                                    <td><code>{{ entry.get('reference') or entry.get('int_reference_number') or 'N/A' }}</code></td>
-                                    <td>{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:100] if entry.get('content') else 'No content') }}</td>
-                                    <td class="text-center">
-                                        {% if entry.get('view_url') %}
-                                            <a href="{{ entry.get('view_url') }}" 
-                                               class="btn btn-sm btn-outline-info">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% elif entry.get('id') %}
-                                            <a href="{{ url_for('received_by_hand_detail', entry_id=entry.get('id')) }}" 
-                                               class="btn btn-sm btn-outline-info">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">—</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>No received by hand records for this profile.
-                    </div>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
         </div>
     </div>
-    
 </div>
+
+<script>
+function switchTab(event, tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.poi-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.poi-tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Add active class to clicked tab and corresponding content
+    event.currentTarget.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+}
+</script>
 
 {% endblock %}
