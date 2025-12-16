@@ -1358,8 +1358,8 @@ class Target(db.Model):
     name = db.Column(db.String(255), nullable=False)
     surveillance_entry_id = db.Column(db.Integer, db.ForeignKey('surveillance_entry.id'), nullable=False)
 
-    # New licensing fields
-    license_type = db.Column(db.String(16))  # 'Agent', 'Broker', 'N/A'
+    # New licensing fields - Extended to support: Agent, Technical Representative, Insurer, Broker, Others
+    license_type = db.Column(db.String(50))  # 'Agent', 'Technical Representative', 'Insurer', 'Broker', 'Others'
     license_number = db.Column(db.String(64))
 
     content_validity = db.Column(db.Integer)
