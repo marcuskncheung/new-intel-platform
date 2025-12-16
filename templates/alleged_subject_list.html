@@ -397,6 +397,34 @@
 .poi-intel-stat.surveillance { border-bottom: 2px solid #ef4444; }
 .poi-intel-stat.total { border-bottom: 2px solid #8b5cf6; }
 
+/* Case Count Badge */
+.poi-case-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.poi-case-badge i {
+    font-size: 1rem;
+}
+
+.poi-case-badge-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.poi-case-badge-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
 /* Card Meta Info */
 .poi-card-meta {
     display: flex;
@@ -586,6 +614,13 @@
             </div>
             
             <div class="poi-card-body">
+                <!-- Case Count Badge -->
+                <div class="poi-case-badge">
+                    <i class="bi bi-folder-fill"></i>
+                    <span class="poi-case-badge-value">{{ t.case_count or 0 }}</span>
+                    <span class="poi-case-badge-label">{{ 'Case' if (t.case_count or 0) == 1 else 'Cases' }} (INT)</span>
+                </div>
+                
                 <!-- Intelligence Stats -->
                 <div class="poi-intel-stats">
                     <div class="poi-intel-stat email">

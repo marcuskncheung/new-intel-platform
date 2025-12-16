@@ -3081,6 +3081,64 @@ def alleged_subject_list():
             # Calculate total intelligence count
             total_intel = email_count + whatsapp_count + patrol_count + surveillance_count + received_by_hand_count
             
+            # Count unique cases (INT references) for this POI
+            case_count = 0
+            try:
+                # Get unique case_profile_ids from POIIntelligenceLink
+                case_ids = set()
+                if POIIntelligenceLink:
+                    links_with_cases = db.session.execute(db.text("""
+                        SELECT DISTINCT pil.case_profile_id
+                        FROM poi_intelligence_link pil
+                        WHERE pil.poi_id = :poi_id AND pil.case_profile_id IS NOT NULL
+                    """), {'poi_id': profile.poi_id}).fetchall()
+                    case_ids.update(row[0] for row in links_with_cases if row[0])
+                
+                # Also get from legacy EmailAllegedPersonLink via Email's caseprofile_id
+                old_email_cases = db.session.execute(db.text("""
+                    SELECT DISTINCT e.caseprofile_id
+                    FROM email_alleged_person_link eapl
+                    JOIN email e ON eapl.email_id = e.id
+                    WHERE eapl.alleged_person_id = :profile_id AND e.caseprofile_id IS NOT NULL
+                """), {'profile_id': profile.id}).fetchall()
+                case_ids.update(row[0] for row in old_email_cases if row[0])
+                
+                # Get from OnlinePatrolAllegedSubject
+                if profile.name_english or profile.name_chinese:
+                    patrol_case_query = """
+                        SELECT DISTINCT ope.caseprofile_id
+                        FROM online_patrol_alleged_subjects opas
+                        JOIN online_patrol_entry ope ON opas.patrol_id = ope.id
+                        WHERE ope.caseprofile_id IS NOT NULL AND (
+                            opas.english_name = :name_english OR opas.chinese_name = :name_chinese
+                        )
+                    """
+                    patrol_cases = db.session.execute(db.text(patrol_case_query), {
+                        'name_english': profile.name_english,
+                        'name_chinese': profile.name_chinese
+                    }).fetchall()
+                    case_ids.update(row[0] for row in patrol_cases if row[0])
+                    
+                    # Get from ReceivedByHandAllegedSubject
+                    rbh_case_query = """
+                        SELECT DISTINCT rbhe.caseprofile_id
+                        FROM received_by_hand_alleged_subjects rbhas
+                        JOIN received_by_hand_entry rbhe ON rbhas.received_by_hand_id = rbhe.id
+                        WHERE rbhe.caseprofile_id IS NOT NULL AND (
+                            rbhas.english_name = :name_english OR rbhas.chinese_name = :name_chinese
+                        )
+                    """
+                    rbh_cases = db.session.execute(db.text(rbh_case_query), {
+                        'name_english': profile.name_english,
+                        'name_chinese': profile.name_chinese
+                    }).fetchall()
+                    case_ids.update(row[0] for row in rbh_cases if row[0])
+                
+                case_count = len(case_ids)
+            except Exception as e:
+                print(f"[POI LIST] Case count failed for {profile.poi_id}: {e}")
+                case_count = 0
+            
             # Build subtitle with additional info
             subtitle_parts = []
             if profile.agent_number:
@@ -3118,6 +3176,7 @@ def alleged_subject_list():
                 "surveillance_count": surveillance_count,  # ✅ Surveillance count
                 "received_by_hand_count": received_by_hand_count,  # ✅ Received by Hand count
                 "total_intel": total_intel,  # ✅ Total intelligence from all sources
+                "case_count": case_count,  # ✅ Number of unique INT cases
                 "created_by": profile.created_by,
                 "agent_number": profile.agent_number,
                 "company": profile.company,
