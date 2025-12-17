@@ -218,41 +218,6 @@
                 </div>
                 
                 <div class="col-md-6">
-                  <div class="mb-3">
-                    <label class="form-label text-primary"><strong>📊 Source Reliability</strong></label>
-                    <div class="form-control-plaintext bg-light p-2 rounded">
-                      {% if email.source_reliability %}
-                        {{ email.source_reliability }}/5
-                        {% if email.source_reliability >= 4 %}
-                          <span class="badge bg-success">High</span>
-                        {% elif email.source_reliability >= 3 %}
-                          <span class="badge bg-warning">Medium</span>
-                        {% else %}
-                          <span class="badge bg-danger">Low</span>
-                        {% endif %}
-                      {% else %}
-                        Not assessed
-                      {% endif %}
-                    </div>
-                  </div>
-                  
-                  <div class="mb-3">
-                    <label class="form-label text-primary"><strong>✅ Content Validity</strong></label>
-                    <div class="form-control-plaintext bg-light p-2 rounded">
-                      {% if email.content_validity %}
-                        {{ email.content_validity }}/5
-                        {% if email.content_validity >= 4 %}
-                          <span class="badge bg-success">High</span>
-                        {% elif email.content_validity >= 3 %}
-                          <span class="badge bg-warning">Medium</span>
-                        {% else %}
-                          <span class="badge bg-danger">Low</span>
-                        {% endif %}
-                      {% else %}
-                        Not assessed
-                      {% endif %}
-                    </div>
-                  </div>
                 </div>
               </div>
               
@@ -1016,92 +981,6 @@
             <td><b>Allegation Summary</b><br><small class="text-muted">Detailed description of the allegation</small></td>
             <td>
               <textarea name="allegation_summary" class="form-control" rows="4" placeholder="Enter detailed description of the allegation/complaint...">{{ email.allegation_summary or '' }}</textarea>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Source Reliability</b></td>
-            <td>
-              <select name="source_reliability" class="form-select">
-                <option value="">Select...</option>
-                <option value="5" {% if email.source_reliability == 5 %}selected{% endif %}>5 - Completely Reliable</option>
-                <option value="4" {% if email.source_reliability == 4 %}selected{% endif %}>4 - Usually Reliable</option>
-                <option value="3" {% if email.source_reliability == 3 %}selected{% endif %}>3 - Fairly Reliable</option>
-                <option value="2" {% if email.source_reliability == 2 %}selected{% endif %}>2 - Not Usually Reliable</option>
-                <option value="1" {% if email.source_reliability == 1 %}selected{% endif %}>1 - Unreliable</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Content Validity</b></td>
-            <td>
-              <select name="content_validity" class="form-select">
-                <option value="">Select...</option>
-                <option value="5" {% if email.content_validity == 5 %}selected{% endif %}>5 - Confirmed True</option>
-                <option value="4" {% if email.content_validity == 4 %}selected{% endif %}>4 - Probably True</option>
-                <option value="3" {% if email.content_validity == 3 %}selected{% endif %}>3 - Doubtfully True</option>
-                <option value="2" {% if email.content_validity == 2 %}selected{% endif %}>2 - Probably False</option>
-                <option value="1" {% if email.content_validity == 1 %}selected{% endif %}>1 - Confirmed False</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Combined Score</b></td>
-            <td>
-              {% set reviewer_name = (email.reviewer_name or '').strip() %}
-              {% set reviewer_comment = (email.reviewer_comment or '').strip() %}
-              {% set combined_score = (email.source_reliability or 0) + (email.content_validity or 0) %}
-              {% set has_assessment = email.source_reliability is not none or email.content_validity is not none or email.alleged_nature or email.allegation_summary or email.preparer %}
-              
-              <span class="fw-bold">{{ combined_score }}</span>
-              
-              {% if email.source_reliability is none or email.content_validity is none or not reviewer_name or not reviewer_comment %}
-                {% if has_assessment %}
-                  <span class="badge bg-info ms-2">
-                    <i class="fas fa-edit"></i> Assessment Inputted
-                  </span>
-                {% else %}
-                  <span class="badge bg-light text-muted ms-2">
-                    <i class="fas fa-clock"></i> Pending
-                  </span>
-                {% endif %}
-              {% elif combined_score >= 8 and email.reviewer_decision == 'agree' %}
-                <span class="badge bg-success ms-2">
-                  <i class="fas fa-check-circle"></i> Case Opened
-                </span>
-              {% elif email.reviewer_decision == 'disagree' %}
-                <span class="badge bg-danger ms-2">
-                  <i class="fas fa-times-circle"></i> Disagreed
-                </span>
-              {% else %}
-                <span class="badge bg-secondary ms-2">
-                  <i class="fas fa-info-circle"></i> Unsubstantial
-                </span>
-              {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <td><b>Reviewer</b></td>
-            <td>
-              <input type="text" name="reviewer_name" value="{{ email.reviewer_name or '' }}" class="form-control" placeholder="Enter reviewer name">
-            </td>
-          </tr>
-          <tr>
-            <td><b>Reviewer Comment</b></td>
-            <td>
-              <textarea name="reviewer_comment" class="form-control" rows="2" placeholder="e.g. Agree with the score, or provide reasoning">{{ email.reviewer_comment or '' }}</textarea>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Reviewer Decision</b></td>
-            <td>
-              <select name="reviewer_decision" class="form-select">
-                <option value="">Select Decision...</option>
-                <option value="agree" {% if email.reviewer_decision == 'agree' %}selected{% endif %}>[AGREE] Agree</option>
-                <option value="disagree" {% if email.reviewer_decision == 'disagree' %}selected{% endif %}>[DISAGREE] Disagree</option>
-              </select>
-              <small class="text-muted">
-                This decision affects whether an intelligence case will be opened based on the combined score.
-              </small>
             </td>
           </tr>
           <tr>

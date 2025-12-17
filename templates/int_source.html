@@ -4291,9 +4291,7 @@ AI Services: ${data.ai_available ? 'Available' : 'Not Available'}`;
     html += '<div class="col-md-4"><strong>Consumer Harm Level:</strong> <span class="badge bg-danger">' + (analysis.consumer_harm_level || 'N/A') + '</span></div>';
     html += '</div>';
     html += '<div class="row mt-2">';
-    html += '<div class="col-md-4"><strong>Source Reliability:</strong> ' + (analysis.source_reliability || 'N/A') + '/5</div>';
-    html += '<div class="col-md-4"><strong>Content Validity:</strong> ' + (analysis.content_validity || 'N/A') + '/5</div>';
-    html += '<div class="col-md-4"><strong>Confidence Score:</strong> ' + Math.round((analysis.confidence_score || 0) * 100) + '%</div>';
+    html += '<div class="col-md-6"><strong>Confidence Score:</strong> ' + Math.round((analysis.confidence_score || 0) * 100) + '%</div>';
     html += '</div>';
     html += '</div>';
     

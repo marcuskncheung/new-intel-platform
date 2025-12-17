@@ -339,53 +339,6 @@
                   <textarea name="allegation_summary" class="form-control" rows="4" placeholder="Detailed description of the allegation...">{{ entry.allegation_summary or '' }}</textarea>
                 </td>
               </tr>
-              <tr>
-                <td colspan="2" class="bg-light">
-                  <h6 class="text-primary mb-0"><i class="bi bi-person-check"></i> Reviewer Section</h6>
-                </td>
-              </tr>
-              <tr>
-                <td><b>Reviewer Name:</b></td>
-                <td>
-                  <select name="reviewer_name" class="form-select">
-                    <option value="">Select Reviewer...</option>
-                    <option value="Nicola" {% if entry.reviewer_name == 'Nicola' %}selected{% endif %}>Nicola</option>
-                    <option value="Erney" {% if entry.reviewer_name == 'Erney' %}selected{% endif %}>Erney</option>
-                    <option value="Alex" {% if entry.reviewer_name == 'Alex' %}selected{% endif %}>Alex</option>
-                    <option value="Queenie" {% if entry.reviewer_name == 'Queenie' %}selected{% endif %}>Queenie</option>
-                    <option value="Charlie" {% if entry.reviewer_name == 'Charlie' %}selected{% endif %}>Charlie</option>
-                    <option value="Eunice" {% if entry.reviewer_name == 'Eunice' %}selected{% endif %}>Eunice</option>
-                    <option value="Marcus" {% if entry.reviewer_name == 'Marcus' %}selected{% endif %}>Marcus</option>
-                  </select>
-                </td>
-              </tr>
-              <tr>
-                <td><b>Reviewer Comment:</b></td>
-                <td>
-                  <textarea name="reviewer_comment" class="form-control" rows="3" placeholder="Reviewer's comments...">{{ entry.reviewer_comment or '' }}</textarea>
-                </td>
-              </tr>
-              <tr>
-                <td><b>Reviewer Decision:</b></td>
-                <td>
-                  <div class="btn-group" role="group">
-                    <input type="radio" class="btn-check" name="reviewer_decision" value="agree" id="decision_agree" {% if entry.reviewer_decision == 'agree' %}checked{% endif %}>
-                    <label class="btn btn-outline-success" for="decision_agree">
-                      <i class="bi bi-check-circle"></i> Agree
-                    </label>
-                    
-                    <input type="radio" class="btn-check" name="reviewer_decision" value="disagree" id="decision_disagree" {% if entry.reviewer_decision == 'disagree' %}checked{% endif %}>
-                    <label class="btn btn-outline-danger" for="decision_disagree">
-                      <i class="bi bi-x-circle"></i> Disagree
-                    </label>
-                    
-                    <input type="radio" class="btn-check" name="reviewer_decision" value="pending" id="decision_pending" {% if entry.reviewer_decision == 'pending' or not entry.reviewer_decision %}checked{% endif %}>
-                    <label class="btn btn-outline-warning" for="decision_pending">
-                      <i class="bi bi-clock"></i> Pending
-                    </label>
-                  </div>
-                </td>
-              </tr>
             </table>
             
             <div class="text-center mt-4">

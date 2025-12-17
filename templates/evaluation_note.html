@@ -18,14 +18,6 @@
                 <label class="form-label fw-bold">Assessment Date</label>
                 <input type="date" class="form-control" name="assessment_date" value="{{ evaluation_note.assessment_date|strftime('%Y-%m-%d') if evaluation_note and evaluation_note.assessment_date else '' }}" required>
               </div>
-              <div class="col-md-6">
-                <label class="form-label">Assessment Score</label>
-                <input type="number" class="form-control" name="score" min="0" max="10" value="{{ (email.source_reliability or 0) + (email.content_validity or 0) }}" readonly>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Reviewer Name</label>
-                <input type="text" class="form-control" name="reviewer_name" value="{{ evaluation_note.reviewer_name if evaluation_note else '' }}">
-              </div>
             </div>
             <div class="mb-3">
               <label class="form-label">Re:</label>

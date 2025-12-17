@@ -663,10 +663,10 @@
                       placeholder="Record any additional observations from the operation...">{{ entry.observation_notes or '' }}</textarea>
           </div>
 
-          <!-- Preparer / Reviewer Section -->
+          <!-- Preparer Section -->
           <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid #cbd5e1;">
             <h6 style="color: #0ea5e9; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.1rem;">
-              <i class="bi bi-person-badge"></i> Preparer & Reviewer
+              <i class="bi bi-person-badge"></i> Preparer
             </h6>
             
             <div class="row">
@@ -686,47 +686,6 @@
                   <option value="Marcus" {% if entry.preparer == 'Marcus' %}selected{% endif %}>Marcus</option>
                 </select>
               </div>
-
-              <!-- Reviewer -->
-              <div class="col-md-6" style="margin-bottom: 1rem;">
-                <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
-                  ✅ Reviewer:
-                </label>
-                <select name="reviewer_name" class="form-select" style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem;">
-                  <option value="">Select Reviewer...</option>
-                  <option value="Nicola" {% if entry.reviewer_name == 'Nicola' %}selected{% endif %}>Nicola</option>
-                  <option value="Erney" {% if entry.reviewer_name == 'Erney' %}selected{% endif %}>Erney</option>
-                  <option value="Alex" {% if entry.reviewer_name == 'Alex' %}selected{% endif %}>Alex</option>
-                  <option value="Queenie" {% if entry.reviewer_name == 'Queenie' %}selected{% endif %}>Queenie</option>
-                  <option value="Charlie" {% if entry.reviewer_name == 'Charlie' %}selected{% endif %}>Charlie</option>
-                  <option value="Eunice" {% if entry.reviewer_name == 'Eunice' %}selected{% endif %}>Eunice</option>
-                  <option value="Marcus" {% if entry.reviewer_name == 'Marcus' %}selected{% endif %}>Marcus</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Reviewer Comment -->
-            <div style="margin-bottom: 1rem;">
-              <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
-                💬 Reviewer Comment:
-              </label>
-              <textarea name="reviewer_comment" 
-                        rows="3" 
-                        class="form-control" 
-                        style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; resize: vertical;"
-                        placeholder="Reviewer's comments on the assessment...">{{ entry.reviewer_comment or '' }}</textarea>
-            </div>
-
-            <!-- Reviewer Decision -->
-            <div>
-              <label style="font-weight: 600; color: #475569; margin-bottom: 0.5rem; display: block;">
-                ⚖️ Reviewer Decision:
-              </label>
-              <select name="reviewer_decision" class="form-select" style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem;">
-                <option value="">-- Select Decision --</option>
-                <option value="agree" {% if entry.reviewer_decision == 'agree' %}selected{% endif %}>✅ Agree</option>
-                <option value="disagree" {% if entry.reviewer_decision == 'disagree' %}selected{% endif %}>❌ Disagree</option>
-              </select>
             </div>
           </div>
 

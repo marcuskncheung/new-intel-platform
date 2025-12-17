@@ -459,6 +459,7 @@
                 <div class="stat-card-icon poi">
                     <i class="bi bi-people-fill"></i>
                 </div>
+                <span class="stat-card-trend neutral">Active</span>
             </div>
             <div class="stat-card-value">{{ poi_count or 0 }}</div>
             <div class="stat-card-label">POI Profiles</div>
@@ -469,6 +470,9 @@
                 <div class="stat-card-icon email">
                     <i class="bi bi-envelope-fill"></i>
                 </div>
+                {% if pending_emails > 0 %}
+                <span class="stat-card-trend up">{{ pending_emails }} pending</span>
+                {% endif %}
             </div>
             <div class="stat-card-value">{{ email_count or 0 }}</div>
             <div class="stat-card-label">Email Intelligence</div>
