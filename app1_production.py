@@ -3002,6 +3002,7 @@ def alleged_subject_list():
             whatsapp_count = 0
             patrol_count = 0
             surveillance_count = 0
+            received_by_hand_count = 0
             
             if POIIntelligenceLink:
                 # Count by source type
@@ -3023,6 +3024,11 @@ def alleged_subject_list():
                 surveillance_count = POIIntelligenceLink.query.filter_by(
                     poi_id=profile.poi_id,
                     source_type='SURVEILLANCE'
+                ).count()
+                
+                received_by_hand_count = POIIntelligenceLink.query.filter_by(
+                    poi_id=profile.poi_id,
+                    source_type='RECEIVED_BY_HAND'
                 ).count()
             
             # Fallback: Count from legacy EmailAllegedPersonLink table
@@ -3054,9 +3060,8 @@ def alleged_subject_list():
                 except Exception as e:
                     print(f"[POI LIST] Patrol fallback failed for {profile.poi_id}: {e}")
             
-            # Fallback: Count from ReceivedByHandAllegedSubject table
-            received_by_hand_count = 0
-            if profile.name_english or profile.name_chinese:
+            # Fallback: Count from ReceivedByHandAllegedSubject table if POIIntelligenceLink had 0
+            if received_by_hand_count == 0 and (profile.name_english or profile.name_chinese):
                 try:
                     rbh_subjects = db.session.query(ReceivedByHandAllegedSubject).filter(
                         db.or_(
