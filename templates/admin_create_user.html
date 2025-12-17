@@ -1,32 +1,82 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
+<style>
+.create-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+</style>
+
+<div class="container py-4">
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5><i class="bi bi-person-plus"></i> Create New User</h5>
+    <div class="col-md-8 col-lg-6">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="mb-0"><i class="bi bi-person-plus-fill text-primary"></i> Create New User</h2>
+          <small class="text-muted">Add a new user to the system</small>
         </div>
-        <div class="card-body">
+        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+
+      <div class="card create-card">
+        <div class="card-body p-4">
           <form method="POST">
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" required>
+            <div class="mb-4">
+              <label for="username" class="form-label fw-bold">
+                <i class="bi bi-person me-1"></i>Username
+              </label>
+              <input type="text" class="form-control form-control-lg" id="username" name="username" 
+                     placeholder="Enter username" required autofocus>
+              <small class="text-muted">Username must be unique</small>
             </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" name="password" required>
+            
+            <div class="mb-4">
+              <label for="password" class="form-label fw-bold">
+                <i class="bi bi-key me-1"></i>Password
+              </label>
+              <div class="input-group">
+                <input type="password" class="form-control form-control-lg" id="password" name="password" 
+                       placeholder="Enter password" required>
+                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                  <i class="bi bi-eye" id="toggleIcon"></i>
+                </button>
+              </div>
+              <small class="text-muted">Use a strong password</small>
             </div>
-            <div class="mb-3">
-              <label for="role" class="form-label">Role</label>
-              <select class="form-select" id="role" name="role">
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
+            
+            <div class="mb-4">
+              <label for="role" class="form-label fw-bold">
+                <i class="bi bi-shield me-1"></i>User Role
+              </label>
+              <select class="form-select form-select-lg" id="role" name="role">
+                <option value="user">
+                  <i class="bi bi-person"></i> Standard User
+                </option>
+                <option value="admin">
+                  <i class="bi bi-shield-fill-check"></i> Administrator
+                </option>
               </select>
+              <small class="text-muted">Administrators have full system access</small>
             </div>
-            <div class="d-flex justify-content-between">
-              <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Cancel</a>
-              <button type="submit" class="btn btn-primary">Create User</button>
+
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+              <i class="bi bi-info-circle-fill me-2"></i>
+              <div>
+                <strong>Note:</strong> New users will be active by default and can log in immediately.
+              </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+              <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-x-lg me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus me-1"></i>Create User
+              </button>
             </div>
           </form>
         </div>
@@ -34,4 +84,21 @@
     </div>
   </div>
 </div>
+
+<script>
+function togglePassword() {
+  const passwordInput = document.getElementById('password');
+  const toggleIcon = document.getElementById('toggleIcon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.classList.remove('bi-eye');
+    toggleIcon.classList.add('bi-eye-slash');
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.classList.remove('bi-eye-slash');
+    toggleIcon.classList.add('bi-eye');
+  }
+}
+</script>
 {% endblock %}

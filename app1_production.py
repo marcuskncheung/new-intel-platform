@@ -6171,6 +6171,49 @@ def admin_dashboard():
     active_users = User.query.filter_by(is_active=True).count()
     admin_users = User.query.filter_by(role='admin').count()
     
+    # Get database statistics
+    try:
+        poi_count = AllegedPersonProfile.query.count() if AllegedPersonProfile else 0
+    except:
+        poi_count = 0
+    
+    try:
+        email_count = Email.query.count() if Email else 0
+    except:
+        email_count = 0
+    
+    try:
+        whatsapp_count = WhatsAppEntry.query.count() if WhatsAppEntry else 0
+    except:
+        whatsapp_count = 0
+    
+    try:
+        rbh_count = ReceivedByHandEntry.query.count() if ReceivedByHandEntry else 0
+    except:
+        rbh_count = 0
+    
+    try:
+        patrol_count = OnlinePatrolEntry.query.count() if OnlinePatrolEntry else 0
+    except:
+        patrol_count = 0
+    
+    try:
+        surveillance_count = SurveillanceEntry.query.count() if SurveillanceEntry else 0
+    except:
+        surveillance_count = 0
+    
+    total_intel = email_count + whatsapp_count + rbh_count + patrol_count + surveillance_count
+    
+    db_stats = {
+        'poi_count': poi_count,
+        'email_count': email_count,
+        'whatsapp_count': whatsapp_count,
+        'rbh_count': rbh_count,
+        'patrol_count': patrol_count,
+        'surveillance_count': surveillance_count,
+        'total_intel': total_intel
+    }
+    
     # Get recent activity
     recent_logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(10).all()
     
@@ -6207,6 +6250,7 @@ def admin_dashboard():
                          total_users=total_users,
                          active_users=active_users, 
                          admin_users=admin_users,
+                         db_stats=db_stats,
                          recent_logs=recent_logs,
                          system_info=system_info)
 
@@ -6301,6 +6345,162 @@ def admin_delete_user(user_id):
     AuditLog.log_action('User deleted', f'Deleted user {username} (ID: {user_id})', current_user)
     flash(f"User '{username}' deleted successfully", "success")
     return redirect(url_for("admin_users"))
+
+# Database Overview
+@app.route("/admin/database")
+@login_required
+@admin_required
+def admin_database():
+    """Comprehensive database overview for admins"""
+    # Collect all table statistics
+    db_tables = []
+    
+    # POI Profiles
+    try:
+        poi_count = AllegedPersonProfile.query.count() if AllegedPersonProfile else 0
+        db_tables.append({
+            'name': 'POI Profiles',
+            'icon': 'bi-person-badge-fill',
+            'color': 'danger',
+            'count': poi_count,
+            'link': url_for('alleged_person_list')
+        })
+    except:
+        pass
+    
+    # Email Records
+    try:
+        email_count = Email.query.count() if Email else 0
+        db_tables.append({
+            'name': 'Email Records',
+            'icon': 'bi-envelope-fill',
+            'color': 'info',
+            'count': email_count,
+            'link': url_for('list_int_source_email')
+        })
+    except:
+        pass
+    
+    # WhatsApp Records
+    try:
+        whatsapp_count = WhatsAppEntry.query.count() if WhatsAppEntry else 0
+        db_tables.append({
+            'name': 'WhatsApp Records',
+            'icon': 'bi-chat-fill',
+            'color': 'success',
+            'count': whatsapp_count,
+            'link': url_for('list_whatsapp_entries_aligned')
+        })
+    except:
+        pass
+    
+    # Received By Hand
+    try:
+        rbh_count = ReceivedByHandEntry.query.count() if ReceivedByHandEntry else 0
+        db_tables.append({
+            'name': 'Received By Hand',
+            'icon': 'bi-hand-index-fill',
+            'color': 'warning',
+            'count': rbh_count,
+            'link': url_for('received_by_hand_list')
+        })
+    except:
+        pass
+    
+    # Online Patrol
+    try:
+        patrol_count = OnlinePatrolEntry.query.count() if OnlinePatrolEntry else 0
+        db_tables.append({
+            'name': 'Online Patrol',
+            'icon': 'bi-globe',
+            'color': 'primary',
+            'count': patrol_count,
+            'link': url_for('list_int_source_online_patrol_aligned')
+        })
+    except:
+        pass
+    
+    # Surveillance
+    try:
+        surveillance_count = SurveillanceEntry.query.count() if SurveillanceEntry else 0
+        db_tables.append({
+            'name': 'Surveillance',
+            'icon': 'bi-camera-video-fill',
+            'color': 'secondary',
+            'count': surveillance_count,
+            'link': url_for('surveillance_list')
+        })
+    except:
+        pass
+    
+    # Case Profiles
+    try:
+        case_count = CaseProfile.query.count() if CaseProfile else 0
+        db_tables.append({
+            'name': 'Case Profiles',
+            'icon': 'bi-folder-fill',
+            'color': 'dark',
+            'count': case_count,
+            'link': url_for('case_profile_list')
+        })
+    except:
+        pass
+    
+    # Users
+    try:
+        user_count = User.query.count()
+        db_tables.append({
+            'name': 'Users',
+            'icon': 'bi-people-fill',
+            'color': 'primary',
+            'count': user_count,
+            'link': url_for('admin_users')
+        })
+    except:
+        pass
+    
+    # Audit Logs
+    try:
+        log_count = AuditLog.query.count()
+        db_tables.append({
+            'name': 'Audit Logs',
+            'icon': 'bi-journal-text',
+            'color': 'info',
+            'count': log_count,
+            'link': url_for('admin_logs')
+        })
+    except:
+        pass
+    
+    # POI Intelligence Links
+    try:
+        poi_link_count = POIIntelligenceLink.query.count() if POIIntelligenceLink else 0
+        db_tables.append({
+            'name': 'POI-Intel Links',
+            'icon': 'bi-link-45deg',
+            'color': 'warning',
+            'count': poi_link_count,
+            'link': None
+        })
+    except:
+        pass
+    
+    # Attachments
+    try:
+        attachment_count = Attachment.query.count() if Attachment else 0
+        db_tables.append({
+            'name': 'Attachments',
+            'icon': 'bi-paperclip',
+            'color': 'secondary',
+            'count': attachment_count,
+            'link': None
+        })
+    except:
+        pass
+    
+    AuditLog.log_action('Admin database overview accessed', None, current_user)
+    
+    return render_template('admin_database.html', db_tables=db_tables)
 
 # Activity Logs
 @app.route("/admin/logs")

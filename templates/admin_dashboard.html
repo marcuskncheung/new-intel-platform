@@ -1,207 +1,379 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-shield-lock-fill"></i> Admin Dashboard</h2>
-        <div class="btn-group" role="group">
-          <a href="{{ url_for('admin_users') }}" class="btn btn-primary">
-            <i class="bi bi-people-fill"></i> Manage Users
-          </a>
-          <a href="{{ url_for('admin_logs') }}" class="btn btn-info">
-            <i class="bi bi-file-text"></i> Activity Logs
-          </a>
-          <a href="{{ url_for('security_admin') }}" class="btn btn-warning">
-            <i class="bi bi-shield-lock-fill"></i> Security Admin
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
+<style>
+.admin-nav-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  height: 100%;
+}
+.admin-nav-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.stat-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.quick-action-btn {
+  padding: 1rem;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+.quick-action-btn:hover {
+  transform: scale(1.02);
+}
+.data-table-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+</style>
 
-  <!-- Stats Cards -->
+<div class="container-fluid px-4">
+  <!-- Header -->
   <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+        <div>
+          <h2 class="mb-0"><i class="bi bi-speedometer2 text-primary"></i> Admin Control Panel</h2>
+          <small class="text-muted">Welcome, {{ current_user.username }} - Full system control and monitoring</small>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Navigation Cards -->
+  <div class="row mb-4 g-3">
     <div class="col-md-3">
-      <div class="card bg-primary text-white">
+      <a href="{{ url_for('admin_users') }}" class="text-decoration-none">
+        <div class="card admin-nav-card bg-primary text-white">
+          <div class="card-body text-center py-4">
+            <i class="bi bi-people-fill" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-2 mb-0">User Management</h5>
+            <small>Create, Edit, Delete Users</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{{ url_for('admin_database') }}" class="text-decoration-none">
+        <div class="card admin-nav-card bg-success text-white">
+          <div class="card-body text-center py-4">
+            <i class="bi bi-database-fill" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-2 mb-0">Database Overview</h5>
+            <small>View All Data Statistics</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{{ url_for('admin_logs') }}" class="text-decoration-none">
+        <div class="card admin-nav-card bg-info text-white">
+          <div class="card-body text-center py-4">
+            <i class="bi bi-journal-text" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-2 mb-0">Activity Logs</h5>
+            <small>View All System Activity</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{{ url_for('security_admin') }}" class="text-decoration-none">
+        <div class="card admin-nav-card bg-warning text-dark">
+          <div class="card-body text-center py-4">
+            <i class="bi bi-shield-lock-fill" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-2 mb-0">Security Center</h5>
+            <small>Audit & Encryption Status</small>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- User Statistics Row -->
+  <div class="row mb-4 g-3">
+    <div class="col-md-4">
+      <div class="card stat-card">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4>{{ total_users }}</h4>
-              <p class="mb-0">Total Users</p>
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+              <i class="bi bi-people-fill"></i>
             </div>
-            <div class="align-self-center">
-              <i class="bi bi-people-fill" style="font-size: 2rem;"></i>
+            <div>
+              <h3 class="mb-0">{{ total_users }}</h3>
+              <span class="text-muted">Total Users</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card bg-success text-white">
+    <div class="col-md-4">
+      <div class="card stat-card">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4>{{ active_users }}</h4>
-              <p class="mb-0">Active Users</p>
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+              <i class="bi bi-person-check-fill"></i>
             </div>
-            <div class="align-self-center">
-              <i class="bi bi-person-check-fill" style="font-size: 2rem;"></i>
+            <div>
+              <h3 class="mb-0">{{ active_users }}</h3>
+              <span class="text-muted">Active Users</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card bg-warning text-dark">
+    <div class="col-md-4">
+      <div class="card stat-card">
         <div class="card-body">
-          <div class="d-flex justify-content-between">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+              <i class="bi bi-shield-fill-check"></i>
+            </div>
             <div>
-              <h4>{{ admin_users }}</h4>
-              <p class="mb-0">Admin Users</p>
+              <h3 class="mb-0">{{ admin_users }}</h3>
+              <span class="text-muted">Admin Users</span>
             </div>
-            <div class="align-self-center">
-              <i class="bi bi-shield-fill-check" style="font-size: 2rem;"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-warning text-white">
-        <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h4><i class="bi bi-check-circle-fill"></i></h4>
-              <p class="mb-0">Security Enabled</p>
-              <small>Encryption & Audit Trail</small>
-            </div>
-            <div class="align-self-center">
-              <i class="bi bi-shield-lock-fill" style="font-size: 2rem;"></i>
-            </div>
-          </div>
-          <div class="mt-2">
-            <a href="{{ url_for('security_admin') }}" class="btn btn-outline-light btn-sm">
-              <i class="bi bi-gear-fill"></i> Security Admin
-            </a>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row">
-    <!-- System Information -->
+  <!-- Database Statistics Row -->
+  <div class="row mb-4 g-3">
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3">
+              <i class="bi bi-person-badge-fill"></i>
+            </div>
+            <div>
+              <h3 class="mb-0">{{ db_stats.poi_count }}</h3>
+              <span class="text-muted">POI Profiles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+              <i class="bi bi-envelope-fill"></i>
+            </div>
+            <div>
+              <h3 class="mb-0">{{ db_stats.email_count }}</h3>
+              <span class="text-muted">Email Records</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+              <i class="bi bi-chat-fill"></i>
+            </div>
+            <div>
+              <h3 class="mb-0">{{ db_stats.whatsapp_count }}</h3>
+              <span class="text-muted">WhatsApp Records</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-secondary bg-opacity-10 text-secondary me-3">
+              <i class="bi bi-collection-fill"></i>
+            </div>
+            <div>
+              <h3 class="mb-0">{{ db_stats.total_intel }}</h3>
+              <span class="text-muted">Total Intelligence</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- System & Server Section -->
     <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5><i class="bi bi-cpu"></i> System Information</h5>
+      <div class="card data-table-card">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-0"><i class="bi bi-cpu text-primary me-2"></i>System Information</h5>
         </div>
         <div class="card-body">
-          <table class="table table-sm">
+          <table class="table table-sm mb-0">
             <tr>
-              <td><strong>Platform:</strong></td>
-              <td>{{ system_info.platform }}</td>
+              <td class="text-muted" style="width: 40%;"><i class="bi bi-pc-display me-2"></i>Platform</td>
+              <td><code>{{ system_info.platform }}</code></td>
             </tr>
             <tr>
-              <td><strong>Python Version:</strong></td>
-              <td>{{ system_info.python_version }}</td>
+              <td class="text-muted"><i class="bi bi-code-slash me-2"></i>Python Version</td>
+              <td><code>{{ system_info.python_version }}</code></td>
             </tr>
             <tr>
-              <td><strong>CPU Usage:</strong></td>
+              <td class="text-muted"><i class="bi bi-cpu me-2"></i>CPU Usage</td>
               <td>
                 {% if system_info.cpu_percent != 'N/A' and 'psutil' not in system_info.cpu_percent|string %}
-                  <div class="progress" style="height: 20px;">
+                  <div class="progress" style="height: 22px;">
                     <div class="progress-bar {% if system_info.cpu_percent > 80 %}bg-danger{% elif system_info.cpu_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
                          role="progressbar" style="width: {{ system_info.cpu_percent }}%">
                       {{ system_info.cpu_percent }}%
                     </div>
                   </div>
                 {% else %}
-                  {{ system_info.cpu_percent }}
+                  <span class="text-muted">{{ system_info.cpu_percent }}</span>
                 {% endif %}
               </td>
             </tr>
             <tr>
-              <td><strong>Memory Usage:</strong></td>
+              <td class="text-muted"><i class="bi bi-memory me-2"></i>Memory Usage</td>
               <td>
                 {% if system_info.memory_percent != 'N/A' and 'psutil' not in system_info.memory_percent|string %}
-                  <div class="progress" style="height: 20px;">
+                  <div class="progress" style="height: 22px;">
                     <div class="progress-bar {% if system_info.memory_percent > 80 %}bg-danger{% elif system_info.memory_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
                          role="progressbar" style="width: {{ system_info.memory_percent }}%">
                       {{ system_info.memory_percent }}%
                     </div>
                   </div>
                 {% else %}
-                  {{ system_info.memory_percent }}
+                  <span class="text-muted">{{ system_info.memory_percent }}</span>
                 {% endif %}
               </td>
             </tr>
             <tr>
-              <td><strong>Disk Usage:</strong></td>
+              <td class="text-muted"><i class="bi bi-hdd me-2"></i>Disk Usage</td>
               <td>
                 {% if system_info.disk_percent != 'N/A' and 'psutil' not in system_info.disk_percent|string %}
-                  <div class="progress" style="height: 20px;">
+                  <div class="progress" style="height: 22px;">
                     <div class="progress-bar {% if system_info.disk_percent > 90 %}bg-danger{% elif system_info.disk_percent > 70 %}bg-warning{% else %}bg-success{% endif %}" 
                          role="progressbar" style="width: {{ system_info.disk_percent }}%">
                       {{ system_info.disk_percent }}%
                     </div>
                   </div>
                 {% else %}
-                  {{ system_info.disk_percent }}
+                  <span class="text-muted">{{ system_info.disk_percent }}</span>
                 {% endif %}
               </td>
             </tr>
           </table>
         </div>
-      </div>
-
-      <!-- Server Controls -->
-      <div class="card mt-3">
-        <div class="card-header">
-          <h5><i class="bi bi-gear-fill"></i> Server Controls</h5>
-        </div>
-        <div class="card-body">
-          <div class="d-grid gap-2">
-            <button class="btn btn-warning" onclick="adminRestartServer()">
-              <i class="bi bi-arrow-clockwise"></i> Restart Server
+        <div class="card-footer bg-white border-top">
+          <div class="d-flex gap-2">
+            <button class="btn btn-warning flex-fill quick-action-btn" onclick="adminRestartServer()">
+              <i class="bi bi-arrow-clockwise me-1"></i> Restart Server
             </button>
-            <button class="btn btn-danger" onclick="adminShutdownServer()">
-              <i class="bi bi-power"></i> Shutdown Server
+            <button class="btn btn-outline-danger flex-fill quick-action-btn" onclick="adminShutdownServer()">
+              <i class="bi bi-power me-1"></i> Shutdown
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Recent Activity -->
+    <!-- Recent Activity Section -->
     <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5><i class="bi bi-clock-history"></i> Recent Activity</h5>
+      <div class="card data-table-card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-clock-history text-info me-2"></i>Recent Activity</h5>
+          <a href="{{ url_for('admin_logs') }}" class="btn btn-sm btn-outline-primary">View All</a>
         </div>
-        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+        <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
           {% if recent_logs %}
-            {% for log in recent_logs %}
-              <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
-                <div class="flex-grow-1">
-                  <div class="fw-bold">{{ log.action }}</div>
-                  <small class="text-muted">
-                    {{ log.username }} - {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                  </small>
-                  {% if log.details %}
-                    <div class="small mt-1">{{ log.details }}</div>
-                  {% endif %}
+            <div class="list-group list-group-flush">
+              {% for log in recent_logs %}
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center">
+                        <span class="badge 
+                          {% if 'login' in log.action.lower() %}bg-success
+                          {% elif 'logout' in log.action.lower() %}bg-info
+                          {% elif 'failed' in log.action.lower() or 'unauthorized' in log.action.lower() %}bg-danger
+                          {% elif 'admin' in log.action.lower() %}bg-warning
+                          {% elif 'created' in log.action.lower() or 'updated' in log.action.lower() %}bg-primary
+                          {% elif 'deleted' in log.action.lower() %}bg-danger
+                          {% else %}bg-secondary
+                          {% endif %} me-2">
+                          {{ log.action[:30] }}{% if log.action|length > 30 %}...{% endif %}
+                        </span>
+                      </div>
+                      <small class="text-muted d-block mt-1">
+                        <i class="bi bi-person me-1"></i>{{ log.username }} 
+                        <span class="mx-1">•</span>
+                        <i class="bi bi-clock me-1"></i>{{ log.timestamp.strftime('%m/%d %H:%M') }}
+                      </small>
+                    </div>
+                    <span class="badge bg-light text-dark border">{{ log.ip_address or 'N/A' }}</span>
+                  </div>
                 </div>
-                <span class="badge bg-secondary ms-2">{{ log.ip_address or 'N/A' }}</span>
-              </div>
-            {% endfor %}
-            <div class="text-center">
-              <a href="{{ url_for('admin_logs') }}" class="btn btn-sm btn-outline-primary">View All Logs</a>
+              {% endfor %}
             </div>
           {% else %}
-            <p class="text-muted text-center">No recent activity</p>
+            <div class="text-center py-5">
+              <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+              <p class="text-muted mt-2">No recent activity</p>
+            </div>
           {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions Row -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card data-table-card">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-0"><i class="bi bi-lightning-fill text-warning me-2"></i>Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <a href="{{ url_for('admin_create_user') }}" class="btn btn-outline-primary w-100 quick-action-btn">
+                <i class="bi bi-person-plus-fill me-2"></i>Create New User
+              </a>
+            </div>
+            <div class="col-md-3">
+              <a href="{{ url_for('admin_logs_export') }}" class="btn btn-outline-success w-100 quick-action-btn">
+                <i class="bi bi-download me-2"></i>Export Activity Logs
+              </a>
+            </div>
+            <div class="col-md-3">
+              <a href="{{ url_for('security_admin') }}" class="btn btn-outline-warning w-100 quick-action-btn">
+                <i class="bi bi-shield-check me-2"></i>Security Audit
+              </a>
+            </div>
+            <div class="col-md-3">
+              <a href="{{ url_for('alleged_person_list') }}" class="btn btn-outline-info w-100 quick-action-btn">
+                <i class="bi bi-people me-2"></i>View POI List
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -210,74 +382,24 @@
 
 <script>
 function adminRestartServer() {
-    if (confirm('Are you sure you want to restart the server? This will temporarily disconnect all users.')) {
-        showAdminMessage('Restarting server...', 'warning');
-        
-        fetch('/admin/server/restart', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAdminMessage('Server is restarting. Page will reload automatically...', 'info');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 5000);
-            } else {
-                showAdminMessage('Failed to restart server: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAdminMessage('Error communicating with server', 'danger');
-        });
-    }
+  if (confirm('Are you sure you want to restart the server? This will temporarily disconnect all users.')) {
+    fetch('/admin/server/restart', { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        setTimeout(() => location.reload(), 3000);
+      })
+      .catch(err => alert('Error restarting server: ' + err));
+  }
 }
 
 function adminShutdownServer() {
-    if (confirm('Are you sure you want to shutdown the server? This will stop the application completely.')) {
-        showAdminMessage('Shutting down server...', 'warning');
-        
-        fetch('/admin/server/shutdown', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAdminMessage('Server is shutting down...', 'info');
-            } else {
-                showAdminMessage('Failed to shutdown server: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAdminMessage('Server may have shut down successfully', 'info');
-        });
-    }
-}
-
-function showAdminMessage(message, type) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; max-width: 400px;';
-    alertDiv.innerHTML = `
-        <i class="bi bi-info-circle"></i> ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
+  if (confirm('⚠️ WARNING: Are you absolutely sure you want to SHUTDOWN the server? This will stop all services!')) {
+    fetch('/admin/server/shutdown', { method: 'POST' })
+      .then(response => response.json())
+      .then(data => alert(data.message))
+      .catch(err => alert('Error shutting down server: ' + err));
+  }
 }
 </script>
 {% endblock %}

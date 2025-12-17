@@ -1,40 +1,137 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
+<style>
+.edit-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.user-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px 12px 0 0;
+  padding: 2rem;
+  color: white;
+}
+.user-avatar-lg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  background: rgba(255,255,255,0.2);
+  border: 3px solid rgba(255,255,255,0.5);
+}
+</style>
+
+<div class="container py-4">
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5><i class="bi bi-pencil"></i> Edit User: {{ user.username }}</h5>
+    <div class="col-md-8 col-lg-6">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="mb-0"><i class="bi bi-pencil-fill text-primary"></i> Edit User</h2>
+          <small class="text-muted">Modify user account settings</small>
         </div>
-        <div class="card-body">
-          <form method="POST">
-            <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+
+      <div class="card edit-card">
+        <!-- User Header -->
+        <div class="user-header">
+          <div class="d-flex align-items-center">
+            <div class="user-avatar-lg me-3">
+              {{ user.username[:1].upper() }}
             </div>
-            <div class="mb-3">
-              <label for="role" class="form-label">Role</label>
-              <select class="form-select" id="role" name="role">
-                <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
-                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+            <div>
+              <h4 class="mb-0">{{ user.username }}</h4>
+              <span class="badge {% if user.role == 'admin' %}bg-warning text-dark{% else %}bg-light text-dark{% endif %}">
+                {{ user.role.title() }}
+              </span>
+              <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %} ms-1">
+                {{ 'Active' if user.is_active else 'Disabled' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-4">
+          <form method="POST">
+            <div class="mb-4">
+              <label for="username" class="form-label fw-bold">
+                <i class="bi bi-person me-1"></i>Username
+              </label>
+              <input type="text" class="form-control form-control-lg" id="username" name="username" 
+                     value="{{ user.username }}" required>
+            </div>
+            
+            <div class="mb-4">
+              <label for="role" class="form-label fw-bold">
+                <i class="bi bi-shield me-1"></i>User Role
+              </label>
+              <select class="form-select form-select-lg" id="role" name="role">
+                <option value="user" {% if user.role == 'user' %}selected{% endif %}>
+                  Standard User
+                </option>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>
+                  Administrator
+                </option>
               </select>
             </div>
-            <div class="mb-3">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if user.is_active %}checked{% endif %}>
-                <label class="form-check-label" for="is_active">
+            
+            <div class="mb-4">
+              <label class="form-label fw-bold">
+                <i class="bi bi-toggle-on me-1"></i>Account Status
+              </label>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" 
+                       {% if user.is_active %}checked{% endif %} style="transform: scale(1.5);">
+                <label class="form-check-label ms-2" for="is_active">
                   Account Active
                 </label>
               </div>
+              <small class="text-muted">Disabled users cannot log in</small>
             </div>
-            <div class="mb-3">
-              <label for="new_password" class="form-label">New Password (leave blank to keep current)</label>
-              <input type="password" class="form-control" id="new_password" name="new_password">
+            
+            <hr class="my-4">
+            
+            <div class="mb-4">
+              <label for="new_password" class="form-label fw-bold">
+                <i class="bi bi-key me-1"></i>New Password
+              </label>
+              <div class="input-group">
+                <input type="password" class="form-control form-control-lg" id="new_password" name="new_password" 
+                       placeholder="Leave blank to keep current">
+                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                  <i class="bi bi-eye" id="toggleIcon"></i>
+                </button>
+              </div>
+              <small class="text-muted">Only fill if you want to change the password</small>
             </div>
-            <div class="d-flex justify-content-between">
-              <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Cancel</a>
-              <button type="submit" class="btn btn-primary">Update User</button>
+
+            <!-- User Info Section -->
+            <div class="alert alert-secondary d-flex flex-column" role="alert">
+              <div class="d-flex justify-content-between mb-2">
+                <span><i class="bi bi-calendar me-1"></i><strong>Created:</strong></span>
+                <span>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span><i class="bi bi-clock me-1"></i><strong>Last Login:</strong></span>
+                <span>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</span>
+              </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+              <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-x-lg me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-check-lg me-1"></i>Save Changes
+              </button>
             </div>
           </form>
         </div>
@@ -42,4 +139,21 @@
     </div>
   </div>
 </div>
+
+<script>
+function togglePassword() {
+  const passwordInput = document.getElementById('new_password');
+  const toggleIcon = document.getElementById('toggleIcon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.classList.remove('bi-eye');
+    toggleIcon.classList.add('bi-eye-slash');
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.classList.remove('bi-eye-slash');
+    toggleIcon.classList.add('bi-eye');
+  }
+}
+</script>
 {% endblock %}
