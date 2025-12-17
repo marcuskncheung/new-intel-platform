@@ -11047,6 +11047,28 @@ def update_received_by_hand_assessment(entry_id):
         entry.reviewer_comment = request.form.get("reviewer_comment", "").strip() or None
         entry.reviewer_decision = request.form.get("reviewer_decision", "").strip() or None
         
+        # ✅ CRITICAL FIX: Save to ReceivedByHandAllegedSubject relational table for fallback queries
+        # Clear existing subjects first
+        ReceivedByHandAllegedSubject.query.filter_by(received_by_hand_id=entry.id).delete()
+        
+        # Save new subjects
+        for i in range(max(len(processed_english), len(processed_chinese))):
+            eng_name = processed_english[i] if i < len(processed_english) else None
+            chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+            lic_type = processed_license_types[i] if i < len(processed_license_types) else None
+            lic_num = processed_license_numbers[i] if i < len(processed_license_numbers) else None
+            
+            if eng_name or chi_name:
+                alleged_subject = ReceivedByHandAllegedSubject(
+                    received_by_hand_id=entry.id,
+                    english_name=eng_name.strip() if eng_name else None,
+                    chinese_name=chi_name.strip() if chi_name else None,
+                    license_type=lic_type.strip() if lic_type else None,
+                    license_number=lic_num.strip() if lic_num else None,
+                    sequence_order=i
+                )
+                db.session.add(alleged_subject)
+        
         entry.assessment_updated_at = get_hk_time()
         db.session.commit()
         
