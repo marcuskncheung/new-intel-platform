@@ -7733,8 +7733,7 @@ def add_whatsapp():
                                     source_type='WHATSAPP',
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
-                                    confidence_score=0.90,
-                                    created_by=f"USER-{current_user.username}"
+                                    confidence_score=0.90
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
@@ -7925,8 +7924,7 @@ def add_online_patrol():
                                     source_type='PATROL',
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
-                                    confidence_score=0.90,
-                                    created_by=f"USER-{current_user.username}"
+                                    confidence_score=0.90
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
@@ -8065,8 +8063,7 @@ def online_patrol_detail(entry_id):
                                             source_type='PATROL',
                                             source_id=entry.id,
                                             case_profile_id=entry.caseprofile_id,
-                                            confidence_score=0.90,
-                                            created_by=f"USER-{current_user.username}"
+                                            confidence_score=0.90
                                         )
                                         db.session.add(universal_link)
                                         db.session.commit()
@@ -8552,8 +8549,7 @@ def add_surveillance():
                                         source_type='SURVEILLANCE',
                                         source_id=entry.id,
                                         case_profile_id=None,  # Surveillance doesn't have case_profile_id
-                                        confidence_score=0.95,  # High confidence - physical surveillance
-                                        created_by=f"USER-{current_user.username}"
+                                        confidence_score=0.95  # High confidence - physical surveillance
                                     )
                                     db.session.add(universal_link)
                                     db.session.commit()
@@ -9261,8 +9257,7 @@ def whatsapp_detail(entry_id):
                                             source_type='WHATSAPP',
                                             source_id=entry.id,
                                             case_profile_id=entry.caseprofile_id,
-                                            confidence_score=0.90,
-                                            created_by=f"USER-{current_user.username}"
+                                            confidence_score=0.90
                                         )
                                         db.session.add(universal_link)
                                         db.session.commit()
@@ -10555,8 +10550,7 @@ def received_by_hand_detail(entry_id):
                                         source_type='RECEIVED_BY_HAND',
                                         source_id=entry.id,
                                         case_profile_id=entry.caseprofile_id,
-                                        confidence_score=0.90,
-                                        created_by=f"USER-{current_user.username}"
+                                        confidence_score=0.90
                                     )
                                     db.session.add(universal_link)
                                     db.session.commit()
@@ -11096,8 +11090,7 @@ def update_received_by_hand_assessment(entry_id):
                                     source_type='RECEIVED_BY_HAND',
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
-                                    confidence_score=0.90,
-                                    created_by=f"USER-{current_user.username}"
+                                    confidence_score=0.90
                                 )
                                 db.session.add(universal_link)
                                 db.session.commit()
