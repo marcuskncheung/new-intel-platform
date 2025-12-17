@@ -3040,46 +3040,48 @@ def alleged_subject_list():
             # Fallback: Count from OnlinePatrolAllegedSubject table
             if patrol_count == 0 and (profile.name_english or profile.name_chinese):
                 try:
-                    patrol_subjects = db.session.query(OnlinePatrolAllegedSubject).filter(
-                        db.or_(
-                            OnlinePatrolAllegedSubject.english_name == profile.name_english,
-                            OnlinePatrolAllegedSubject.chinese_name == profile.name_chinese,
-                            db.and_(
-                                profile.name_english.isnot(None),
-                                OnlinePatrolAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
-                            ),
-                            db.and_(
-                                profile.name_chinese.isnot(None),
-                                OnlinePatrolAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
-                            )
-                        )
-                    ).all() if (profile.name_english or profile.name_chinese) else []
-                    # Count unique patrol entries
-                    patrol_ids = set(subj.patrol_id for subj in patrol_subjects)
-                    patrol_count = len(patrol_ids)
+                    # Build filter conditions based on which names are available
+                    filter_conditions = []
+                    
+                    if profile.name_english:
+                        filter_conditions.append(OnlinePatrolAllegedSubject.english_name == profile.name_english)
+                        filter_conditions.append(OnlinePatrolAllegedSubject.english_name.ilike(f"%{profile.name_english}%"))
+                    
+                    if profile.name_chinese:
+                        filter_conditions.append(OnlinePatrolAllegedSubject.chinese_name == profile.name_chinese)
+                        filter_conditions.append(OnlinePatrolAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%"))
+                    
+                    if filter_conditions:
+                        patrol_subjects = db.session.query(OnlinePatrolAllegedSubject).filter(
+                            db.or_(*filter_conditions)
+                        ).all()
+                        # Count unique patrol entries
+                        patrol_ids = set(subj.patrol_id for subj in patrol_subjects)
+                        patrol_count = len(patrol_ids)
                 except Exception as e:
                     print(f"[POI LIST] Patrol fallback failed for {profile.poi_id}: {e}")
             
             # Fallback: Count from ReceivedByHandAllegedSubject table if POIIntelligenceLink had 0
             if received_by_hand_count == 0 and (profile.name_english or profile.name_chinese):
                 try:
-                    rbh_subjects = db.session.query(ReceivedByHandAllegedSubject).filter(
-                        db.or_(
-                            ReceivedByHandAllegedSubject.english_name == profile.name_english,
-                            ReceivedByHandAllegedSubject.chinese_name == profile.name_chinese,
-                            db.and_(
-                                profile.name_english.isnot(None),
-                                ReceivedByHandAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
-                            ),
-                            db.and_(
-                                profile.name_chinese.isnot(None),
-                                ReceivedByHandAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
-                            )
-                        )
-                    ).all() if (profile.name_english or profile.name_chinese) else []
-                    # Count unique RBH entries
-                    rbh_ids = set(subj.received_by_hand_id for subj in rbh_subjects)
-                    received_by_hand_count = len(rbh_ids)
+                    # Build filter conditions based on which names are available
+                    filter_conditions = []
+                    
+                    if profile.name_english:
+                        filter_conditions.append(ReceivedByHandAllegedSubject.english_name == profile.name_english)
+                        filter_conditions.append(ReceivedByHandAllegedSubject.english_name.ilike(f"%{profile.name_english}%"))
+                    
+                    if profile.name_chinese:
+                        filter_conditions.append(ReceivedByHandAllegedSubject.chinese_name == profile.name_chinese)
+                        filter_conditions.append(ReceivedByHandAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%"))
+                    
+                    if filter_conditions:
+                        rbh_subjects = db.session.query(ReceivedByHandAllegedSubject).filter(
+                            db.or_(*filter_conditions)
+                        ).all()
+                        # Count unique RBH entries
+                        rbh_ids = set(subj.received_by_hand_id for subj in rbh_subjects)
+                        received_by_hand_count = len(rbh_ids)
                 except Exception as e:
                     print(f"[POI LIST] RBH fallback failed for {profile.poi_id}: {e}")
             
@@ -3806,20 +3808,18 @@ def alleged_subject_profile_detail(poi_id):
             rbh_ids_already_added = {r['id'] for r in received_by_hand}
             
             # Search by English or Chinese name match in ReceivedByHandAllegedSubject
+            # Build conditions list - only add LIKE conditions if name is not None
+            rbh_conditions = []
+            if profile.name_english:
+                rbh_conditions.append(ReceivedByHandAllegedSubject.english_name == profile.name_english)
+                rbh_conditions.append(ReceivedByHandAllegedSubject.english_name.ilike(f"%{profile.name_english}%"))
+            if profile.name_chinese:
+                rbh_conditions.append(ReceivedByHandAllegedSubject.chinese_name == profile.name_chinese)
+                rbh_conditions.append(ReceivedByHandAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%"))
+            
             rbh_subjects = db.session.query(ReceivedByHandAllegedSubject).filter(
-                db.or_(
-                    ReceivedByHandAllegedSubject.english_name == profile.name_english,
-                    ReceivedByHandAllegedSubject.chinese_name == profile.name_chinese,
-                    db.and_(
-                        profile.name_english.isnot(None),
-                        ReceivedByHandAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
-                    ),
-                    db.and_(
-                        profile.name_chinese.isnot(None),
-                        ReceivedByHandAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
-                    )
-                )
-            ).all() if (profile.name_english or profile.name_chinese) else []
+                db.or_(*rbh_conditions)
+            ).all() if rbh_conditions else []
             
             for subj in rbh_subjects:
                 if subj.received_by_hand_id not in rbh_ids_already_added:
@@ -3888,20 +3888,18 @@ def alleged_subject_profile_detail(poi_id):
             patrol_ids_already_added = {p['id'] for p in patrol}
             
             # Search by English or Chinese name match in OnlinePatrolAllegedSubject
+            # Build conditions list - only add LIKE conditions if name is not None
+            patrol_conditions = []
+            if profile.name_english:
+                patrol_conditions.append(OnlinePatrolAllegedSubject.english_name == profile.name_english)
+                patrol_conditions.append(OnlinePatrolAllegedSubject.english_name.ilike(f"%{profile.name_english}%"))
+            if profile.name_chinese:
+                patrol_conditions.append(OnlinePatrolAllegedSubject.chinese_name == profile.name_chinese)
+                patrol_conditions.append(OnlinePatrolAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%"))
+            
             patrol_subjects = db.session.query(OnlinePatrolAllegedSubject).filter(
-                db.or_(
-                    OnlinePatrolAllegedSubject.english_name == profile.name_english,
-                    OnlinePatrolAllegedSubject.chinese_name == profile.name_chinese,
-                    db.and_(
-                        profile.name_english.isnot(None),
-                        OnlinePatrolAllegedSubject.english_name.ilike(f"%{profile.name_english}%")
-                    ),
-                    db.and_(
-                        profile.name_chinese.isnot(None),
-                        OnlinePatrolAllegedSubject.chinese_name.ilike(f"%{profile.name_chinese}%")
-                    )
-                )
-            ).all() if (profile.name_english or profile.name_chinese) else []
+                db.or_(*patrol_conditions)
+            ).all() if patrol_conditions else []
             
             for subj in patrol_subjects:
                 if subj.patrol_id not in patrol_ids_already_added:
