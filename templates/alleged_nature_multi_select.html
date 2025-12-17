@@ -1,0 +1,260 @@
+<!-- Alleged Nature Multi-Select Component -->
+<!-- Usage: {# include 'alleged_nature_multi_select.html' with context #} -->
+<!-- Variables needed: field_name (default: 'alleged_nature'), current_value, field_id (default: field_name + '_input') -->
+
+{% set field_name = field_name or 'alleged_nature' %}
+{% set field_id = field_id or (field_name + '_input') %}
+{% set search_id = field_name + '_search' %}
+{% set selected_id = 'selected_' + field_name.replace('_', '') %}
+{% set accordion_id = field_name.replace('_', '') + 'Accordion' %}
+
+<!-- Hidden input to store JSON array -->
+<input type="hidden" name="{{ field_name }}" id="{{ field_id }}" value="{{ current_value or '[]' }}">
+
+<!-- Search Box -->
+<div class="mb-2">
+  <input type="text" 
+         id="{{ search_id }}" 
+         class="form-control" 
+         placeholder="🔍 Search categories... (e.g., MPF, Conduct, F&P)"
+         onkeyup="filterAllegedNature('{{ search_id }}', '{{ accordion_id }}')">
+</div>
+
+<!-- Selected Items Display -->
+<div id="{{ selected_id }}" class="mb-2" style="min-height: 40px; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem; background-color: #f8f9fa;">
+  <small class="text-muted">Selected: <span id="{{ selected_id }}_count">0</span> categories</small>
+  <div id="{{ selected_id }}_badges" class="mt-2"></div>
+</div>
+
+<!-- Dropdown with Categories -->
+<div class="accordion" id="{{ accordion_id }}" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+  
+  <!-- Part 1 - AMLO -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_amlo">
+        Part 1 - AMLO
+      </button>
+    </h2>
+    <div id="{{ field_name }}_amlo" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check">
+          <input class="form-check-input alleged-nature-checkbox" type="checkbox" value="1.1 AMLO relates Breaches and Offences on Insurer, Broker company or Insurance agency" id="{{ field_name }}_amlo_1_1" data-field="{{ field_name }}">
+          <label class="form-check-label" for="{{ field_name }}_amlo_1_1">1.1 AMLO relates Breaches and Offences on Insurer, Broker company or Insurance agency</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 2 - MPF -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_mpf">
+        Part 2 - MPF
+      </button>
+    </h2>
+    <div id="{{ field_name }}_mpf" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.1 MPF - Unauthorised Transfer" id="{{ field_name }}_mpf_2_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_1">2.1 MPF - Unauthorised Transfer</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.2 MPF - Forgery, Forged signature, Use of Forged Documents" id="{{ field_name }}_mpf_2_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_2">2.2 MPF - Forgery, Forged signature, Use of Forged Documents</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.3 MPF - Impersonation / Other Fraudulent Acts" id="{{ field_name }}_mpf_2_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_3">2.3 MPF - Impersonation / Other Fraudulent Acts</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.4 MPF - Misrepresentation / Make False Declaration / Misleading statement (S.43E)" id="{{ field_name }}_mpf_2_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_4">2.4 MPF - Misrepresentation / Make False Declaration / Misleading statement (S.43E)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.5 MPF cases - Prohibition (s.34L) / Unregistered Selling or Advising" id="{{ field_name }}_mpf_2_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_5">2.5 MPF cases - Prohibition (s.34L) / Unregistered Selling or Advising</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.6 MPF - Other Misconduct / Breach on Selling / Advising / Applications / After Service" id="{{ field_name }}_mpf_2_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_6">2.6 MPF - Other Misconduct / Breach on Selling / Advising / Applications / After Service</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.7 MPF - Principal Intermediary's Duties, Control and Monitoring, etc." id="{{ field_name }}_mpf_2_7" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_7">2.7 MPF - Principal Intermediary's Duties, Control and Monitoring, etc.</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="2.8 MPF - Others" id="{{ field_name }}_mpf_2_8" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_mpf_2_8">2.8 MPF - Others</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 3 - CPD -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_cpd">
+        Part 3 - CPD
+      </button>
+    </h2>
+    <div id="{{ field_name }}_cpd" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="3.1 CPD Non-Compliance(Failing to fulfill CPD hour requirements)" id="{{ field_name }}_cpd_3_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cpd_3_1">3.1 CPD Non-Compliance(Failing to fulfill CPD hour requirements)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="3.2 CPD Non-Compliance (Principal's Duty /Obligations)" id="{{ field_name }}_cpd_3_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cpd_3_2">3.2 CPD Non-Compliance (Principal's Duty /Obligations)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="3.3 CPD Non-Compliance (Others)" id="{{ field_name }}_cpd_3_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cpd_3_3">3.3 CPD Non-Compliance (Others)</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 4 - Miscellaneous -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_misc">
+        Part 4 - Miscellaneous
+      </button>
+    </h2>
+    <div id="{{ field_name }}_misc" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="4.1 Others" id="{{ field_name }}_misc_4_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_misc_4_1">4.1 Others</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="4.2 SRO Cases (Misconduct)" id="{{ field_name }}_misc_4_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_misc_4_2">4.2 SRO Cases (Misconduct)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="4.3 SRO Cases (Contravention of SRO Rules and Requirement)" id="{{ field_name }}_misc_4_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_misc_4_3">4.3 SRO Cases (Contravention of SRO Rules and Requirement)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="4.4 SRO Cases (F&P)" id="{{ field_name }}_misc_4_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_misc_4_4">4.4 SRO Cases (F&P)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="4.5 SRO Cases (Appeal)" id="{{ field_name }}_misc_4_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_misc_4_5">4.5 SRO Cases (Appeal)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="4.6 Request Information / Assistance from Stakeholders" id="{{ field_name }}_misc_4_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_misc_4_6">4.6 Request Information / Assistance from Stakeholders</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 5 - Conduct -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_conduct">
+        Part 5 - Conduct
+      </button>
+    </h2>
+    <div id="{{ field_name }}_conduct" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.1 Conduct - Misappropriation / Fraud" id="{{ field_name }}_conduct_5_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_1">5.1 Conduct - Misappropriation / Fraud</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.2 Conduct - Handling of Clients Premium or Money" id="{{ field_name }}_conduct_5_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_2">5.2 Conduct - Handling of Clients Premium or Money</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.3 Conduct - Misrepresentation / Mis-selling (e.g. policy terms and condition, premium features, payment terms, returns on investment/ dividend / bonus, etc.)" id="{{ field_name }}_conduct_5_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_3">5.3 Conduct - Misrepresentation / Mis-selling</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.4 Conduct - Forgery, Forged signature, Use of Forged Documents (insurance related documents)" id="{{ field_name }}_conduct_5_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_4">5.4 Conduct - Forgery, Forged signature, Use of Forged Documents</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.5 Conduct - Impersonation / other Fraudulent Acts" id="{{ field_name }}_conduct_5_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_5">5.5 Conduct - Impersonation / other Fraudulent Acts</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.6 Conduct - Concealment of Policyholders Information (e.g. on policy application form)" id="{{ field_name }}_conduct_5_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_6">5.6 Conduct - Concealment of Policyholders Information</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.7 Conduct - Unauthorized Policy Application / Change" id="{{ field_name }}_conduct_5_7" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_7">5.7 Conduct - Unauthorized Policy Application / Change</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.8 Conduct - Twisting/ Policy Replacement" id="{{ field_name }}_conduct_5_8" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_8">5.8 Conduct - Twisting/ Policy Replacement</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.9 Conduct - Cross-border Selling" id="{{ field_name }}_conduct_5_9" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_9">5.9 Conduct - Cross-border Selling</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.10 Conduct - Inappropriate Advice" id="{{ field_name }}_conduct_5_10" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_10">5.10 Conduct - Inappropriate Advice</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.11 Conduct - Suitability (e.g. FNA) / Affordability" id="{{ field_name }}_conduct_5_11" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_11">5.11 Conduct - Suitability (e.g. FNA) / Affordability</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.12 Conduct - Due Care, Skill & Diligence" id="{{ field_name }}_conduct_5_12" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_12">5.12 Conduct - Due Care, Skill & Diligence</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.13 Conduct - Prompt Execution" id="{{ field_name }}_conduct_5_13" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_13">5.13 Conduct - Prompt Execution</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.14 Conduct - Use of Unauthorized Marketing Materials" id="{{ field_name }}_conduct_5_14" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_14">5.14 Conduct - Use of Unauthorized Marketing Materials</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.15 Conduct - Commission Rebate" id="{{ field_name }}_conduct_5_15" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_15">5.15 Conduct - Commission Rebate</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.16 Conduct - Request Client to Sign on Blank / Incomplete Form(s)" id="{{ field_name }}_conduct_5_16" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_16">5.16 Conduct - Request Client to Sign on Blank / Incomplete Form(s)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.17 Conduct - Delivery of Policy Contract Within Cooling-off Period" id="{{ field_name }}_conduct_5_17" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_17">5.17 Conduct - Delivery of Policy Contract Within Cooling-off Period</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.18 Conduct - Handling of Customer Personal Data" id="{{ field_name }}_conduct_5_18" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_18">5.18 Conduct - Handling of Customer Personal Data</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="5.19 Conduct - Others (e.g. failing to act honestly, fairly, in the best interests of the client, conflict of interest, etc.)" id="{{ field_name }}_conduct_5_19" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_conduct_5_19">5.19 Conduct - Others</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 6 - Firm's control and deficiency -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_firm">
+        Part 6 - Firm's control and deficiency
+      </button>
+    </h2>
+    <div id="{{ field_name }}_firm" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="6.1 Internal Control / Corporate Governance" id="{{ field_name }}_firm_6_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_firm_6_1">6.1 Internal Control / Corporate Governance</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="6.2 Deficiency in Business, Operations and Claims" id="{{ field_name }}_firm_6_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_firm_6_2">6.2 Deficiency in Business, Operations and Claims</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="6.3 Deficiency in Service (Individual and firm) / Complaint Handling" id="{{ field_name }}_firm_6_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_firm_6_3">6.3 Deficiency in Service (Individual and firm) / Complaint Handling</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="6.4 Deficiency in Others Aspects" id="{{ field_name }}_firm_6_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_firm_6_4">6.4 Deficiency in Others Aspects</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 7 - F&P -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_fp">
+        Part 7 - F&P
+      </button>
+    </h2>
+    <div id="{{ field_name }}_fp" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.1 F&P - False Academic Certificates" id="{{ field_name }}_fp_7_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_1">7.1 F&P - False Academic Certificates</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.2 F&P - False Declaration / Forgery / Use of Forged Documents (e.g. license application)" id="{{ field_name }}_fp_7_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_2">7.2 F&P - False Declaration / Forgery / Use of Forged Documents (e.g. license application)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.3 F&P - False Declaration / Forgery / Use of Forged Documents (e.g. unauthorised policy application)" id="{{ field_name }}_fp_7_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_3">7.3 F&P - False Declaration / Forgery / Use of Forged Documents (e.g. unauthorised policy application)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.4 F&P - Impersonation / Other Fraudulent Acts" id="{{ field_name }}_fp_7_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_4">7.4 F&P - Impersonation / Other Fraudulent Acts</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.5 F&P - Disciplinary imposed by Other Regulators / LEAs (e.g. MPFA, SFC, HKMA, etc.)" id="{{ field_name }}_fp_7_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_5">7.5 F&P - Disciplinary imposed by Other Regulators / LEAs</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.6 F&P - Criminal Conviction" id="{{ field_name }}_fp_7_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_6">7.6 F&P - Criminal Conviction</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.7 F&P - Bankruptcy" id="{{ field_name }}_fp_7_7" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_7">7.7 F&P - Bankruptcy</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.8 F&P - Non-Compliance with Guidelines and Rules issued by IA / SROs" id="{{ field_name }}_fp_7_8" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_8">7.8 F&P - Non-Compliance with Guidelines and Rules issued by IA / SROs</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.9 F&P - Failure to Comply with Internal Guidelines of insurer" id="{{ field_name }}_fp_7_9" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_9">7.9 F&P - Failure to Comply with Internal Guidelines of insurer</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.10 F&P - Failure to Comply with Internal Guidelines of Insurance Agency / Broker Company" id="{{ field_name }}_fp_7_10" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_10">7.10 F&P - Failure to Comply with Internal Guidelines of Insurance Agency / Broker Company</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.11 F&P - Failure / Late Submission of Non Statutory Returns / Report" id="{{ field_name }}_fp_7_11" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_11">7.11 F&P - Failure / Late Submission of Non Statutory Returns / Report</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.12 F&P - Others (e.g. due to the misconduct / breach under the IO)" id="{{ field_name }}_fp_7_12" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_12">7.12 F&P - Others (e.g. due to the misconduct / breach under the IO)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.13 F&P - Others (e.g. due to the misconduct / breach under subsidiary legislation (e.g. 41LA-41S))" id="{{ field_name }}_fp_7_13" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_13">7.13 F&P - Others (e.g. due to the misconduct / breach under subsidiary legislation)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="7.14 F&P - Others (e.g. due to the misconduct / breach under the AMLO)" id="{{ field_name }}_fp_7_14" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_7_14">7.14 F&P - Others (e.g. due to the misconduct / breach under the AMLO)</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 8 - F&P (MPF) -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_fp_mpf">
+        Part 8 - F&P (investigate under IO on MPF cases)
+      </button>
+    </h2>
+    <div id="{{ field_name }}_fp_mpf" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.1 F&P - (MPF without RA) Unauthorized Transfer" id="{{ field_name }}_fp_mpf_8_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_1">8.1 F&P - (MPF without RA) Unauthorized Transfer</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.2 F&P - (MPF without RA) Forgery, Forged signature, Use of Forged Documents" id="{{ field_name }}_fp_mpf_8_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_2">8.2 F&P - (MPF without RA) Forgery, Forged signature, Use of Forged Documents</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.3 F&P - (MPF without RA) Impersonation / Other Fraudulent Acts" id="{{ field_name }}_fp_mpf_8_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_3">8.3 F&P - (MPF without RA) Impersonation / Other Fraudulent Acts</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.4 F&P - (MPF without RA) Misrepresentation / Make False Declaration / Misleading Statement (s.43E)" id="{{ field_name }}_fp_mpf_8_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_4">8.4 F&P - (MPF without RA) Misrepresentation / Make False Declaration / Misleading Statement (s.43E)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.5 F&P (MPF) Prohibition (s.34L) / Unregistered Selling or Advising" id="{{ field_name }}_fp_mpf_8_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_5">8.5 F&P (MPF) Prohibition (s.34L) / Unregistered Selling or Advising</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.6 F&P (MPF without RA) Other MPF breach and Misconduct Issues" id="{{ field_name }}_fp_mpf_8_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_6">8.6 F&P (MPF without RA) Other MPF breach and Misconduct Issues</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.7 F&P (MPF without RA) Principal Intermediary's Duties, Control and Monitoring, etc." id="{{ field_name }}_fp_mpf_8_7" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_7">8.7 F&P (MPF without RA) Principal Intermediary's Duties, Control and Monitoring, etc.</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="8.8 F&P (MPF without RA)- Others" id="{{ field_name }}_fp_mpf_8_8" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_fp_mpf_8_8">8.8 F&P (MPF without RA)- Others</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 9 - Contravention under IO (Cap. 41) -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_cap41">
+        Part 9 - Contravention under IO (Cap. 41)
+      </button>
+    </h2>
+    <div id="{{ field_name }}_cap41" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.1 (Cap. 41) Contravention of Capital Requirements and Related Reporting Requirements (s13AA)" id="{{ field_name }}_cap41_9_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_1">9.1 (Cap. 41) Contravention of Capital Requirements</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.2 (Cap. 41) Contravention on Approval of Controllers of Authorized Insurers (s13A) / Persons Proposing to Become Shareholder Controllers (s.13B)" id="{{ field_name }}_cap41_9_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_2">9.2 (Cap. 41) Contravention on Approval of Controllers</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.3 (Cap.41) Provide False information in Connection with Application for Approval (s.13AH)" id="{{ field_name }}_cap41_9_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_3">9.3 (Cap.41) Provide False information in Connection with Application</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.4 (Cap. 41) Notification of Change of Particulars of Insurer / Directors, Controllers or KPIC (s.14(1)&(2))" id="{{ field_name }}_cap41_9_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_4">9.4 (Cap. 41) Notification of Change of Particulars</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.5 (Cap. 41) Notification for Appointment / Cessation of Appointment of Director, Controller, KPIC (s.14(3))" id="{{ field_name }}_cap41_9_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_5">9.5 (Cap. 41) Notification for Appointment / Cessation</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.6 (Cap. 41) Non-compliance on Submission of Statements, Reports as Required by Rule made under s.129 (s.17) / Rule 88 (Cap. 41R)" id="{{ field_name }}_cap41_9_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_6">9.6 (Cap. 41) Non-compliance on Submission of Statements, Reports</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.7 (Cap. 41) Non-compliance with requirements imposed by IA under s.27-32, 32A, 33, 34, 35(1) or 35AA (e.g. fail to comply with Intervention Notice) (s.41)" id="{{ field_name }}_cap41_9_7" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_7">9.7 (Cap. 41) Non-compliance with requirements imposed by IA</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.8 (Cap. 41) Restriction on Carrying on Regulated Activities (s64G), e.g. holding out as insurance agent" id="{{ field_name }}_cap41_9_8" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_8">9.8 (Cap. 41) Restriction on Carrying on Regulated Activities</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.9 (Cap. 41) Contravention of the Restrictions in relation to Personnel of Licensed Insurance Agencies (s. 64J(2)(b), (c) and (d))" id="{{ field_name }}_cap41_9_9" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_9">9.9 (Cap. 41) Contravention of the Restrictions in relation to Personnel of Licensed Insurance Agencies</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.10 (Cap. 41) Contravention of the Restrictions in relation to Personnel of Licensed Insurance Broker Companies (s. 64K(2))" id="{{ field_name }}_cap41_9_10" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_10">9.10 (Cap. 41) Contravention of the Restrictions in relation to Personnel of Licensed Insurance Broker Companies</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.11 (Cap. 41) Failure to Notify IA for Changes of Personal Particulars of a Licensed Insurance intermediary within Specified Time (s.64P)" id="{{ field_name }}_cap41_9_11" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_11">9.11 (Cap. 41) Failure to Notify IA for Changes of Personal Particulars</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.12 (Cap. 41) Failure to Notify IA of Termination of Appointment of a Licensed Insurance Intermediary (s. 64R(2) to (4))" id="{{ field_name }}_cap41_9_12" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_12">9.12 (Cap. 41) Failure to Notify IA of Termination of Appointment</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.13 (Cap. 41) Failure to notify IA of Appointment of a Licensed Insurance Intermediary (s. 64Q(3) to (4))" id="{{ field_name }}_cap41_9_13" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_13">9.13 (Cap. 41) Failure to notify IA of Appointment</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.14 (Cap. 41) Failure to notify IA of Cessation of Carrying on of Regulated Activities by a Licensed Insurance Broker Company (s. 64T)" id="{{ field_name }}_cap41_9_14" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_14">9.14 (Cap. 41) Failure to notify IA of Cessation of Carrying on of Regulated Activities</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.15 (Cap. 41) Failure to Notify IA of Change in a Partner, Director or Controller of a Licensed Insurance Agency (s. 64ZZD(1))" id="{{ field_name }}_cap41_9_15" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_15">9.15 (Cap. 41) Failure to Notify IA of Change in a Partner, Director or Controller</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.16 (Cap. 41) Failure to Notify IA of Change in a director or controller of a licensed insurance broker company (s. 64ZZD(2))" id="{{ field_name }}_cap41_9_16" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_16">9.16 (Cap. 41) Failure to Notify IA of Change in a director or controller</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.17 (Cap. 41) Provision of False and Misleading Information in relation to License/Approval Application (s64ZZE)" id="{{ field_name }}_cap41_9_17" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_17">9.17 (Cap. 41) Provision of False and Misleading Information</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.18 (Cap. 41) Failure to Comply with Requirement (e.g. PN / IN) in relation to Investigation (s64ZZL)" id="{{ field_name }}_cap41_9_18" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_18">9.18 (Cap. 41) Failure to Comply with Requirement in relation to Investigation</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.19 (Cap. 41) Destroy, Falsify, Conceal, Dispose of Records and Documents (s.64ZZN)" id="{{ field_name }}_cap41_9_19" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_19">9.19 (Cap. 41) Destroy, Falsify, Conceal, Dispose of Records and Documents</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.20 (Cap. 41) Contravention of the Requirement to Appoint Auditor by an Insurance Broker Company (s. 72(1), (3) and (4))" id="{{ field_name }}_cap41_9_20" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_20">9.20 (Cap. 41) Contravention of the Requirement to Appoint Auditor</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="9.21 (Cap. 41) Broker's failure to submit audited Financial Statements to IA without 6 months after the end of financial year (s. 73)" id="{{ field_name }}_cap41_9_21" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41_9_21">9.21 (Cap. 41) Broker's failure to submit audited Financial Statements</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 10 - Contravention under Broker Rules (Cap. 41L) -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ field_name }}_cap41l">
+        Part 10 - Contravention under Broker Rules (Cap. 41L)
+      </button>
+    </h2>
+    <div id="{{ field_name }}_cap41l" class="accordion-collapse collapse" data-bs-parent="#{{ accordion_id }}">
+      <div class="accordion-body">
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.1 (Cap. 41L) Failure to Maintain Minimum Net Assets (Rule 4)" id="{{ field_name }}_cap41l_10_1" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_1">10.1 (Cap. 41L) Failure to Maintain Minimum Net Assets</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.2 (Cap. 41L) Failure to Maintain Professional Indemnity Insurance (PII) (Rule 5(1), (2) and (3))" id="{{ field_name }}_cap41l_10_2" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_2">10.2 (Cap. 41L) Failure to Maintain Professional Indemnity Insurance (PII)</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.3 (Cap. 41L) Failure to Include a Provision for at least One Automatic Reinstatement (Rule 5(4))" id="{{ field_name }}_cap41l_10_3" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_3">10.3 (Cap. 41L) Failure to Include a Provision for at least One Automatic Reinstatement</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.4 (Cap. 41L) Deductible Amount under the PII is more than 50% of the Company's Net Assets (Rule 5(5) and (6))" id="{{ field_name }}_cap41l_10_4" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_4">10.4 (Cap. 41L) Deductible Amount under the PII is more than 50%</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.5 (Cap. 41L) Failure to Keep Separate Client Account (Rule 6(1), (2), (3) or (4))" id="{{ field_name }}_cap41l_10_5" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_5">10.5 (Cap. 41L) Failure to Keep Separate Client Account</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.6 (Cap. 41L) Failure to pay monies into client account (Rule 6(5))" id="{{ field_name }}_cap41l_10_6" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_6">10.6 (Cap. 41L) Failure to pay monies into client account</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.7 (Cap. 41L) Monies other than those Described under Rule 6(5) and (6) Paid into Client Account (Rule 6(7))" id="{{ field_name }}_cap41l_10_7" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_7">10.7 (Cap. 41L) Monies other than those Described Paid into Client Account</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.8 (Cap. 41L) Improper Withdrawal of Funds from Client Account (Rule 6(8))" id="{{ field_name }}_cap41l_10_8" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_8">10.8 (Cap. 41L) Improper Withdrawal of Funds from Client Account</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.9 (Cap. 41L) Failure to Compare Total Ledger Balances and Prepare Reconciliation Statement (Rule 6(11))" id="{{ field_name }}_cap41l_10_9" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_9">10.9 (Cap. 41L) Failure to Compare Total Ledger Balances</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.10 (Cap. 41L) Failure to Keep Proper Books and Accounts (Rule 7)" id="{{ field_name }}_cap41l_10_10" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_10">10.10 (Cap. 41L) Failure to Keep Proper Books and Accounts</label></div>
+        <div class="form-check"><input class="form-check-input alleged-nature-checkbox" type="checkbox" value="10.11 (Cap. 41L) Failure to Submit Audited Financial Statements and/or Auditor's Compliance Report (Rules 8 and 9)" id="{{ field_name }}_cap41l_10_11" data-field="{{ field_name }}"><label class="form-check-label" for="{{ field_name }}_cap41l_10_11">10.11 (Cap. 41L) Failure to Submit Audited Financial Statements</label></div>
+      </div>
+    </div>
+  </div>
+
+</div>

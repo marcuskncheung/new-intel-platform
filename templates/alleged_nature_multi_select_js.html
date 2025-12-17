@@ -1,0 +1,226 @@
+<!-- Alleged Nature Multi-Select JavaScript Functions -->
+<!-- Usage: {# include 'alleged_nature_multi_select_js.html' with context #} -->
+<!-- Variables needed: field_name (default: 'alleged_nature') -->
+
+{% set field_name = field_name or 'alleged_nature' %}
+{% set field_id = field_id or (field_name + '_input') %}
+{% set search_id = field_name + '_search' %}
+{% set selected_id = 'selected_' + field_name.replace('_', '') %}
+{% set accordion_id = field_name.replace('_', '') + 'Accordion' %}
+
+<script>
+// Initialize alleged nature multi-select functionality
+function initializeAllegedNature(fieldName = '{{ field_name }}') {
+    const fieldId = fieldName + '_input';
+    const selectedId = 'selected_' + fieldName.replace('_', '');
+    
+    try {
+        const hiddenInput = document.getElementById(fieldId);
+        if (!hiddenInput) {
+            console.warn('Hidden input not found:', fieldId);
+            return;
+        }
+
+        let currentData = hiddenInput.value;
+        if (!currentData || currentData.trim() === '') {
+            currentData = '[]';
+        }
+
+        let selectedCategories = [];
+        if (currentData && currentData !== '[]') {
+            try {
+                selectedCategories = JSON.parse(currentData);
+                if (!Array.isArray(selectedCategories)) {
+                    // Handle single string value (old format)
+                    selectedCategories = currentData ? [currentData] : [];
+                }
+            } catch (e) {
+                console.warn('Failed to parse alleged nature data:', currentData);
+                // Treat as single string value
+                selectedCategories = currentData ? [currentData] : [];
+            }
+        }
+
+        // Check corresponding checkboxes
+        document.querySelectorAll(`.alleged-nature-checkbox[data-field="${fieldName}"]`).forEach(checkbox => {
+            checkbox.checked = selectedCategories.includes(checkbox.value);
+        });
+
+        // Add event listeners to checkboxes
+        document.querySelectorAll(`.alleged-nature-checkbox[data-field="${fieldName}"]`).forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedAllegedNature(fieldName);
+            });
+        });
+
+        updateSelectedDisplay(fieldName);
+    } catch (error) {
+        console.error('Error initializing alleged nature:', error);
+    }
+}
+
+// Update selected alleged nature based on checkboxes
+function updateSelectedAllegedNature(fieldName = '{{ field_name }}') {
+    const fieldId = fieldName + '_input';
+    const selectedCategories = [];
+    
+    document.querySelectorAll(`.alleged-nature-checkbox[data-field="${fieldName}"]:checked`).forEach(checkbox => {
+        selectedCategories.push(checkbox.value);
+    });
+
+    const hiddenInput = document.getElementById(fieldId);
+    if (hiddenInput) {
+        hiddenInput.value = JSON.stringify(selectedCategories);
+    }
+
+    updateSelectedDisplay(fieldName);
+}
+
+// Update the display of selected items
+function updateSelectedDisplay(fieldName = '{{ field_name }}') {
+    const selectedId = 'selected_' + fieldName.replace('_', '');
+    const fieldId = fieldName + '_input';
+    
+    const selectedContainer = document.getElementById(selectedId + '_badges');
+    const countContainer = document.getElementById(selectedId + '_count');
+    
+    if (!selectedContainer || !countContainer) return;
+
+    const hiddenInput = document.getElementById(fieldId);
+    if (!hiddenInput) return;
+
+    let selectedCategories = [];
+    if (hiddenInput.value && hiddenInput.value !== '[]') {
+        try {
+            selectedCategories = JSON.parse(hiddenInput.value);
+            if (!Array.isArray(selectedCategories)) {
+                selectedCategories = hiddenInput.value ? [hiddenInput.value] : [];
+            }
+        } catch (e) {
+            selectedCategories = hiddenInput.value ? [hiddenInput.value] : [];
+        }
+    }
+
+    countContainer.textContent = selectedCategories.length;
+
+    if (selectedCategories.length === 0) {
+        selectedContainer.innerHTML = '<em class="text-muted">No categories selected</em>';
+        return;
+    }
+
+    const badgesHTML = selectedCategories.map((category, index) => {
+        const shortLabel = category.length > 60 ? category.substring(0, 60) + '...' : category;
+        return `
+            <span class="badge bg-primary me-1 mb-1" style="font-size: 0.8em;">
+                ${escapeHtml(shortLabel)}
+                <button type="button" class="btn-close btn-close-white ms-1" 
+                        style="font-size: 0.6em;" 
+                        onclick="removeAllegedNature('${fieldName}', ${index})"
+                        title="Remove ${escapeHtml(category)}"></button>
+            </span>
+        `;
+    }).join('');
+
+    selectedContainer.innerHTML = badgesHTML;
+}
+
+// Remove a specific alleged nature category
+function removeAllegedNature(fieldName = '{{ field_name }}', index) {
+    const fieldId = fieldName + '_input';
+    const hiddenInput = document.getElementById(fieldId);
+    if (!hiddenInput) return;
+
+    let selectedCategories = [];
+    if (hiddenInput.value && hiddenInput.value !== '[]') {
+        try {
+            selectedCategories = JSON.parse(hiddenInput.value);
+            if (!Array.isArray(selectedCategories)) {
+                selectedCategories = hiddenInput.value ? [hiddenInput.value] : [];
+            }
+        } catch (e) {
+            selectedCategories = hiddenInput.value ? [hiddenInput.value] : [];
+        }
+    }
+
+    if (index >= 0 && index < selectedCategories.length) {
+        const removedCategory = selectedCategories[index];
+        selectedCategories.splice(index, 1);
+        
+        // Update hidden input
+        hiddenInput.value = JSON.stringify(selectedCategories);
+        
+        // Uncheck corresponding checkbox
+        document.querySelectorAll(`.alleged-nature-checkbox[data-field="${fieldName}"]`).forEach(checkbox => {
+            if (checkbox.value === removedCategory) {
+                checkbox.checked = false;
+            }
+        });
+        
+        updateSelectedDisplay(fieldName);
+    }
+}
+
+// Filter alleged nature categories based on search
+function filterAllegedNature(searchId = '{{ search_id }}', accordionId = '{{ accordion_id }}') {
+    const searchInput = document.getElementById(searchId);
+    const accordion = document.getElementById(accordionId);
+    
+    if (!searchInput || !accordion) return;
+    
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    // Get all form-check containers
+    const checkContainers = accordion.querySelectorAll('.form-check');
+    let visibleCount = 0;
+    
+    checkContainers.forEach(container => {
+        const label = container.querySelector('.form-check-label');
+        if (label) {
+            const text = label.textContent.toLowerCase();
+            const isVisible = text.includes(searchTerm);
+            container.style.display = isVisible ? 'block' : 'none';
+            if (isVisible) visibleCount++;
+        }
+    });
+    
+    // Show/hide accordion sections based on whether they have visible items
+    accordion.querySelectorAll('.accordion-item').forEach(item => {
+        const visibleChecks = item.querySelectorAll('.form-check:not([style*="display: none"])');
+        const accordionBody = item.querySelector('.accordion-body');
+        
+        if (visibleChecks.length > 0) {
+            item.style.display = 'block';
+            // Auto-expand if searching and has results
+            if (searchTerm && !item.querySelector('.accordion-collapse.show')) {
+                const collapseElement = item.querySelector('.accordion-collapse');
+                const buttonElement = item.querySelector('.accordion-button');
+                if (collapseElement && buttonElement) {
+                    collapseElement.classList.add('show');
+                    buttonElement.classList.remove('collapsed');
+                    buttonElement.setAttribute('aria-expanded', 'true');
+                }
+            }
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize with default field name, but allow override
+    initializeAllegedNature('{{ field_name }}');
+});
+</script>
