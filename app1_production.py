@@ -10233,6 +10233,63 @@ def add_received_by_hand():
             db.session.add(entry)
             db.session.flush()
             
+            # ✅ CRITICAL FIX: Save to ReceivedByHandAllegedSubject relational table
+            # Handle multiple alleged subjects if provided
+            english_names = request.form.getlist("alleged_subjects_en[]")
+            chinese_names = request.form.getlist("alleged_subjects_cn[]")
+            license_types = request.form.getlist("intermediary_type[]")
+            license_numbers_list = request.form.getlist("license_numbers[]")
+            
+            # Process alleged subjects from array fields
+            processed_english = []
+            processed_chinese = []
+            
+            max_len = max(len(english_names), len(chinese_names)) if english_names or chinese_names else 0
+            
+            for i in range(max_len):
+                english_name = english_names[i].strip() if i < len(english_names) else ""
+                chinese_name = chinese_names[i].strip() if i < len(chinese_names) else ""
+                
+                if english_name or chinese_name:
+                    processed_english.append(english_name)
+                    processed_chinese.append(chinese_name)
+            
+            # Save to ReceivedByHandAllegedSubject table
+            for i in range(max(len(processed_english), len(processed_chinese))):
+                eng_name = processed_english[i] if i < len(processed_english) else None
+                chi_name = processed_chinese[i] if i < len(processed_chinese) else None
+                lic_type = license_types[i] if i < len(license_types) else None
+                lic_num = license_numbers_list[i] if i < len(license_numbers_list) else None
+                
+                if eng_name or chi_name:
+                    alleged_subject = ReceivedByHandAllegedSubject(
+                        received_by_hand_id=entry.id,
+                        english_name=eng_name.strip() if eng_name else None,
+                        chinese_name=chi_name.strip() if chi_name else None,
+                        license_type=lic_type.strip() if lic_type else None,
+                        license_number=lic_num.strip() if lic_num else None,
+                        sequence_order=i
+                    )
+                    db.session.add(alleged_subject)
+            
+            # Fallback: If no multi-subjects, save the simple alleged_person field
+            if not processed_english and not processed_chinese and alleged_person:
+                # Parse simple field - could be "Name (中文名)" format
+                alleged_subject = ReceivedByHandAllegedSubject(
+                    received_by_hand_id=entry.id,
+                    english_name=alleged_person if not alleged_person.startswith('(') else None,
+                    chinese_name=None,
+                    sequence_order=0
+                )
+                db.session.add(alleged_subject)
+                print(f"[RBH] Saved simple alleged_person '{alleged_person}' to ReceivedByHandAllegedSubject")
+            
+            # Update standardized fields for backward compatibility
+            if processed_english:
+                entry.alleged_subject_english = ', '.join(processed_english)
+            if processed_chinese:
+                entry.alleged_subject_chinese = ', '.join(processed_chinese)
+            
             # 🔗 STAGE 2: Auto-generate unified INT reference
             try:
                 case_profile = create_unified_intelligence_entry(

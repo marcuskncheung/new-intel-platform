@@ -88,11 +88,55 @@
       <!-- Allegation Details -->
       <div class="section-title">🎯 Allegation Details</div>
       
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Alleged Person</label>
-          <input type="text" class="form-control" name="alleged_person" placeholder="Name of alleged person">
+      <!-- Alleged Subjects Section (Multi-Subject Support) -->
+      <div class="mb-3">
+        <label class="form-label d-flex align-items-center justify-content-between">
+          <span>Alleged Subject(s)</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addAllegedSubject()">
+            <i class="bi bi-plus-circle"></i> Add Another Person
+          </button>
+        </label>
+        <div id="allegedSubjectsContainer">
+          <div class="alleged-subject-row border rounded p-3 mb-2 bg-light">
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="form-label small text-muted">English Name</label>
+                <input type="text" class="form-control form-control-sm" name="alleged_subjects_en[]" placeholder="English Name">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small text-muted">Chinese Name</label>
+                <input type="text" class="form-control form-control-sm" name="alleged_subjects_cn[]" placeholder="中文名">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small text-muted">License Type</label>
+                <select class="form-select form-select-sm" name="intermediary_type[]">
+                  <option value="">-- Select --</option>
+                  <option value="Licensed Individual Agent">Licensed Individual Agent</option>
+                  <option value="Licensed Agency">Licensed Agency</option>
+                  <option value="Licensed Technical Representative">Licensed Technical Representative</option>
+                  <option value="Responsible Officer">Responsible Officer</option>
+                  <option value="Chief Executive">Chief Executive</option>
+                  <option value="Not Licensed">Not Licensed</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex align-items-end">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAllegedSubject(this)" title="Remove">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="row g-2 mt-1">
+              <div class="col-md-4">
+                <label class="form-label small text-muted">License Number</label>
+                <input type="text" class="form-control form-control-sm" name="license_numbers[]" placeholder="License #">
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+      
+      <div class="row mb-3">
         <div class="col-md-6">
           <label class="form-label">Alleged Nature/Type</label>
           <select class="form-select" name="alleged_type">
@@ -159,4 +203,58 @@
     </form>
   </div>
 </div>
+
+<script>
+function addAllegedSubject() {
+    const container = document.getElementById('allegedSubjectsContainer');
+    const newRow = document.createElement('div');
+    newRow.className = 'alleged-subject-row border rounded p-3 mb-2 bg-light';
+    newRow.innerHTML = `
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">English Name</label>
+                <input type="text" class="form-control form-control-sm" name="alleged_subjects_en[]" placeholder="English Name">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Chinese Name</label>
+                <input type="text" class="form-control form-control-sm" name="alleged_subjects_cn[]" placeholder="中文名">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">License Type</label>
+                <select class="form-select form-select-sm" name="intermediary_type[]">
+                    <option value="">-- Select --</option>
+                    <option value="Licensed Individual Agent">Licensed Individual Agent</option>
+                    <option value="Licensed Agency">Licensed Agency</option>
+                    <option value="Licensed Technical Representative">Licensed Technical Representative</option>
+                    <option value="Responsible Officer">Responsible Officer</option>
+                    <option value="Chief Executive">Chief Executive</option>
+                    <option value="Not Licensed">Not Licensed</option>
+                    <option value="Unknown">Unknown</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAllegedSubject(this)" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="row g-2 mt-1">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">License Number</label>
+                <input type="text" class="form-control form-control-sm" name="license_numbers[]" placeholder="License #">
+            </div>
+        </div>
+    `;
+    container.appendChild(newRow);
+}
+
+function removeAllegedSubject(button) {
+    const rows = document.querySelectorAll('.alleged-subject-row');
+    if (rows.length > 1) {
+        button.closest('.alleged-subject-row').remove();
+    } else {
+        alert('At least one alleged subject is required.');
+    }
+}
+</script>
 {% endblock %}
