@@ -1691,9 +1691,6 @@
               <th class="sortable" data-column="5">
                 Received <i class="fas fa-sort sort-icon"></i>
               </th>
-              <th class="sortable" data-column="6">
-                Status <i class="fas fa-sort sort-icon"></i>
-              </th>
               <th>Action</th>
             </tr>
           </thead>
@@ -1746,17 +1743,6 @@
                 {% endif %}
               </td>
               <td>{{ email.received }}</td>
-              <td>
-                {% set reviewer_name = (email.reviewer_name or '').strip() %}
-                {% set reviewer_decision = (email.reviewer_decision or '').strip() %}
-                {% if (email.source_reliability is none or email.content_validity is none or not reviewer_name or not reviewer_decision) %}
-                  <span class="badge bg-light text-muted status-pending">Pending</span>
-                {% elif email.intelligence_case_opened %}
-                  <span class="badge bg-success status-case-opened">Case Opened</span>
-                {% else %}
-                  <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
-                {% endif %}
-              </td>
               <td>
                 <div class="pro-action-btns">
                   <a href="{{ url_for('int_source_email_detail', email_id=email.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
@@ -1915,7 +1901,6 @@
               <th>Complaint Name</th>
               <th>Alleged Person</th>
               <th>Alleged Nature</th>
-              <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -1973,17 +1958,6 @@
                   {% endif %}
                 {% else %}
                   <span class="text-muted">{{ w.alleged_type or '-' }}</span>
-                {% endif %}
-              </td>
-              <td>
-                {% set reviewer_name = (w.reviewer_name or '').strip() %}
-                {% set reviewer_comment = (w.reviewer_comment or '').strip() %}
-                {% if w.source_reliability is none or w.content_validity is none or not reviewer_name or not reviewer_comment %}
-                  <span class="badge bg-light text-muted status-pending">Pending</span>
-                {% elif combined_score >= 8 %}
-                  <span class="badge bg-success status-case-opened">Case Opened</span>
-                {% else %}
-                  <span class="badge bg-secondary status-unsubstantial">Unsubstantial</span>
                 {% endif %}
               </td>
               <td>
@@ -2122,7 +2096,6 @@
               <th>Post Time</th>
               <th>Alleged Person</th>
               <th>Alleged Nature</th>
-              <th>Threats</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -2188,15 +2161,6 @@
                   {% else %}
                     <span class="text-muted">-</span>
                   {% endif %}
-                {% else %}
-                  <span class="text-muted">-</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if o.threats %}
-                  <span class="badge bg-danger text-white" style="font-size: 0.7em;" title="{{ o.threats }}">
-                    <i class="bi bi-exclamation-triangle"></i> {{ o.threats[:30] }}{% if o.threats|length > 30 %}...{% endif %}
-                  </span>
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
@@ -2882,13 +2846,6 @@
           isVisible = searchText.includes(activeFilters.search);
         }
         
-        // Apply status filter
-        if (activeFilters.status && isVisible) {
-          var statusCell = row.cells[7]; // Status column
-          var statusText = statusCell ? statusCell.textContent.trim() : '';
-          isVisible = statusText === activeFilters.status;
-        }
-        
         // Apply sender filter
         if (activeFilters.sender && isVisible) {
           var senderCell = row.cells[2]; // Sender column
@@ -3520,31 +3477,7 @@
 </script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Function to apply color-coding to status cells
-    function applyStatusColorCoding() {
-      var statusCells = document.querySelectorAll('#inbox-table tbody tr td:nth-child(7)'); // Status column (7th column)
-      
-      statusCells.forEach(function(cell) {
-        var statusText = cell.textContent.trim().toLowerCase();
-        var statusSpan = cell.querySelector('span');
-        
-        if (statusSpan) {
-          // Remove existing status classes
-          statusSpan.classList.remove('status-pending', 'status-reviewed', 'status-unsubstantial', 'status-case-opened');
-          
-          // Apply appropriate class based on status
-          if (statusText.includes('pending')) {
-            statusSpan.classList.add('status-pending');
-          } else if (statusText.includes('reviewed')) {
-            statusSpan.classList.add('status-reviewed');
-          } else if (statusText.includes('unsubstantial')) {
-            statusSpan.classList.add('status-unsubstantial');
-          } else if (statusText.includes('case opened')) {
-            statusSpan.classList.add('status-case-opened');
-          }
-        }
-      });
-    }
+    // Status column removed - no color coding needed
     
     function applyAllFilters() {
       var visibleCount = 0;
@@ -3556,13 +3489,6 @@
         if (activeFilters.search && isVisible) {
           var searchText = row.textContent.toLowerCase();
           isVisible = searchText.includes(activeFilters.search);
-        }
-        
-        // Apply status filter
-        if (activeFilters.status && isVisible) {
-          var statusCell = row.cells[7]; // Status column
-          var statusText = statusCell ? statusCell.textContent.trim() : '';
-          isVisible = statusText === activeFilters.status;
         }
         
         // Apply sender filter
