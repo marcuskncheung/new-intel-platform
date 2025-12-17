@@ -6363,7 +6363,7 @@ def admin_database():
             'icon': 'bi-person-badge-fill',
             'color': 'danger',
             'count': poi_count,
-            'link': url_for('alleged_person_list')
+            'link': url_for('alleged_subject_list')
         })
     except:
         pass
