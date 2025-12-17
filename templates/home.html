@@ -1,409 +1,792 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-/* Hero Section with 3D Background */
-.hero-section {
-  background: linear-gradient(120deg, #1669d2 0%, #4f8cff 100%);
-  color: #fff;
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(22,105,210,0.18);
-  padding: 3.5rem 2.5rem 2.5rem 2.5rem;
-  margin-bottom: 3rem;
-  position: relative;
-  overflow: hidden;
-  min-height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Dashboard - Modern Professional Design */
+:root {
+    --home-primary: #4f46e5;
+    --home-primary-dark: #3730a3;
+    --home-success: #10b981;
+    --home-warning: #f59e0b;
+    --home-danger: #ef4444;
+    --home-info: #06b6d4;
+    --home-purple: #8b5cf6;
+    --home-gray-50: #f9fafb;
+    --home-gray-100: #f3f4f6;
+    --home-gray-200: #e5e7eb;
+    --home-gray-300: #d1d5db;
+    --home-gray-500: #6b7280;
+    --home-gray-600: #4b5563;
+    --home-gray-700: #374151;
+    --home-gray-900: #111827;
 }
 
-/* Three.js Canvas Background */
-#hero-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  opacity: 0.3;
+.dashboard-home {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background: var(--home-gray-50);
+    min-height: 100vh;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Hero Welcome Section */
+.welcome-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    border-radius: 24px;
+    padding: 2.5rem 3rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    color: white;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.welcome-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -5%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.8s ease-out forwards;
-  opacity: 0;
+.welcome-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
 }
 
-.animate-slide-in {
-  animation: slideIn 0.6s ease-out forwards;
-  opacity: 0;
+.welcome-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
 }
 
-.hero-section .hero-content {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  text-align: center;
-  z-index: 2;
-}
-.hero-section h1 {
-  font-size: 2.8rem;
-  font-weight: 900;
-  letter-spacing: -1.5px;
-  margin-bottom: 1.1rem;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  background: linear-gradient(90deg, #fff 10%, #eaf2ff 90%);
-  color: #1669d2;
-  border-radius: 0.7rem;
-  display: inline-block;
-  padding: 0.3em 1.2em;
-}
-.hero-section .lead {
-  font-size: 1.35rem;
-  margin-bottom: 2rem;
-  font-weight: 400;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.07);
-}
-.hero-section .feature-list {
-  margin-bottom: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.2rem;
-}
-.hero-section .feature-list li {
-  margin-bottom: 0;
-  font-size: 1.13rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  background: rgba(255,255,255,0.13);
-  border-radius: 2em;
-  padding: 0.5em 1.3em;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(22,105,210,0.07);
-  color: #fff;
-  transition: background 0.2s;
-}
-.hero-section .feature-list li:hover {
-  background: rgba(255,255,255,0.22);
-}
-.icon-badge {
-  display: inline-block;
-  background: #eaf2ff;
-  color: #1669d2;
-  border-radius: 50%;
-  width: 2.2rem;
-  height: 2.2rem;
-  text-align: center;
-  line-height: 2.2rem;
-  font-size: 1.3rem;
-  margin-right: 0.7rem;
-  vertical-align: middle;
-  box-shadow: 0 2px 8px rgba(22,105,210,0.07);
+.welcome-text h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
 }
 
-/* Cards */
-.feature-card {
-  border: none;
-  border-radius: 1.2rem;
-  box-shadow: 0 2px 18px rgba(22,105,210,0.10);
-  margin-bottom: 2.2rem;
-  transition: all 0.3s ease;
-  background: #fff;
-  opacity: 0;
-  transform: translateY(30px);
-  animation: cardFadeIn 0.6s ease-out forwards;
+.welcome-text p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
 }
 
-.feature-card:nth-child(1) {
-  animation-delay: 0.2s;
+.welcome-time {
+    text-align: right;
 }
 
-.feature-card:nth-child(2) {
-  animation-delay: 0.4s;
+.welcome-time .time {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
 }
 
-.feature-card:nth-child(3) {
-  animation-delay: 0.6s;
+.welcome-time .date {
+    font-size: 0.95rem;
+    opacity: 0.8;
 }
 
-@keyframes cardFadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Quick Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
 }
 
-.feature-card:hover {
-  box-shadow: 0 12px 40px rgba(22,105,210,0.25);
-  transform: translateY(-8px) scale(1.02);
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid var(--home-gray-100);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
 }
-.feature-card .card-header {
-  background: linear-gradient(90deg, #eaf2ff 0%, #f5f8ff 100%);
-  border-bottom: none;
-  font-weight: 700;
-  font-size: 1.18rem;
-  color: #1669d2;
-  border-radius: 1.2rem 1.2rem 0 0;
-  padding-top: 1.1rem;
-  padding-bottom: 1.1rem;
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+    border-color: var(--home-primary);
+    color: inherit;
+    text-decoration: none;
 }
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.stat-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-card-icon.poi { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; }
+.stat-card-icon.email { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); color: white; }
+.stat-card-icon.whatsapp { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; }
+.stat-card-icon.patrol { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); color: white; }
+.stat-card-icon.surveillance { background: linear-gradient(135deg, #ef4444 0%, #f87171 100%); color: white; }
+.stat-card-icon.rbh { background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%); color: white; }
+.stat-card-icon.cases { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); color: white; }
+.stat-card-icon.total { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: white; }
+
+.stat-card-trend {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.stat-card-trend.up { background: #ecfdf5; color: #059669; }
+.stat-card-trend.neutral { background: #f3f4f6; color: #6b7280; }
+
+.stat-card-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--home-gray-900);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card-label {
+    font-size: 0.875rem;
+    color: var(--home-gray-500);
+    font-weight: 500;
+}
+
+/* Quick Actions Section */
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--home-gray-900);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title i {
+    color: var(--home-primary);
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.action-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid var(--home-gray-100);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    border-color: var(--home-primary);
+    color: inherit;
+}
+
+.action-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.action-icon.search { background: #eef2ff; color: #4f46e5; }
+.action-icon.add { background: #ecfdf5; color: #059669; }
+.action-icon.inbox { background: #fef3c7; color: #d97706; }
+.action-icon.export { background: #fce7f3; color: #db2777; }
+.action-icon.admin { background: #fee2e2; color: #dc2626; }
+.action-icon.poi { background: #e0e7ff; color: #4338ca; }
+
+.action-content h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--home-gray-900);
+    margin: 0 0 0.25rem 0;
+}
+
+.action-content p {
+    font-size: 0.85rem;
+    color: var(--home-gray-500);
+    margin: 0;
+}
+
+/* Recent Activity Section */
+.activity-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.activity-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid var(--home-gray-100);
+    overflow: hidden;
+}
+
+.activity-card-header {
+    background: linear-gradient(90deg, var(--home-gray-50) 0%, white 100%);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--home-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.activity-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--home-gray-900);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activity-card-title i {
+    color: var(--home-primary);
+}
+
+.activity-view-all {
+    font-size: 0.8rem;
+    color: var(--home-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.activity-view-all:hover {
+    text-decoration: underline;
+}
+
+.activity-list {
+    padding: 0.5rem 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 0.875rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--home-gray-50);
+    transition: background 0.2s ease;
+}
+
+.activity-item:hover {
+    background: var(--home-gray-50);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.activity-icon.email { background: #dbeafe; color: #2563eb; }
+.activity-icon.whatsapp { background: #d1fae5; color: #059669; }
+.activity-icon.patrol { background: #fef3c7; color: #d97706; }
+
+.activity-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--home-gray-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activity-meta {
+    font-size: 0.75rem;
+    color: var(--home-gray-500);
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--home-gray-400);
+    white-space: nowrap;
+}
+
+.activity-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--home-gray-400);
+}
+
+.activity-empty i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Platform Features Grid */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.25rem;
+    margin-top: 2rem;
+}
+
+.feature-box {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid var(--home-gray-100);
+}
+
+.feature-box h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--home-gray-900);
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature-box h4 i {
+    color: var(--home-primary);
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
 .feature-list li {
-  margin-bottom: 0.7rem;
-  font-size: 1.08rem;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    color: var(--home-gray-600);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-@media (max-width: 900px) {
-  .hero-section { flex-direction: column; min-height: unset; padding: 2.2rem 1rem 1.5rem 1rem;}
-  .hero-section .hero-content { max-width: 100%; }
+
+.feature-list li i {
+    color: var(--home-success);
+    font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-home { padding: 1rem; }
+    .welcome-hero { padding: 1.5rem; border-radius: 16px; }
+    .welcome-content { flex-direction: column; text-align: center; }
+    .welcome-time { text-align: center; }
+    .welcome-text h1 { font-size: 1.5rem; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat-card-value { font-size: 1.75rem; }
+    .activity-section { grid-template-columns: 1fr; }
 }
 </style>
-<div class="hero-section position-relative mb-5">
-  <!-- Three.js canvas will be inserted here by JavaScript -->
-  <div class="hero-content">
-    <h1 class="animate-fade-in">Intelligence Management Platform</h1>
-    <p class="lead animate-fade-in" style="animation-delay: 0.2s;">
-      The all-in-one solution for secure, efficient, and professional intelligence case management.
-    </p>
-    <ul class="list-unstyled feature-list">
-      <li class="animate-slide-in" style="animation-delay: 0.3s;"><i class="bi bi-shield-lock-fill icon-badge"></i> Secure, role-based access for team</li>
-      <li class="animate-slide-in" style="animation-delay: 0.4s;"><i class="bi bi-diagram-3-fill icon-badge"></i> Multi-source intelligence: Email, WhatsApp, Patrol, Surveillance</li>
-      <li class="animate-slide-in" style="animation-delay: 0.5s;"><i class="bi bi-search icon-badge"></i> Fast search, smart dashboard, and profile management</li>
-      <li class="animate-slide-in" style="animation-delay: 0.6s;"><i class="bi bi-bar-chart-fill icon-badge"></i> Assessment, scoring, and export for reporting</li>
-      <li class="animate-slide-in" style="animation-delay: 0.7s;"><i class="bi bi-paperclip icon-badge"></i> Attachments, files, and case documentation</li>
-      <li class="animate-slide-in" style="animation-delay: 0.8s;"><i class="bi bi-clock-history icon-badge"></i> 24/7 automated monitoring of the intelligence inbox</li>
-    </ul>
-    <div class="mt-4 animate-fade-in" style="animation-delay: 0.9s;">
-      <a href="{{ url_for('global_search_page') }}" class="btn btn-light btn-lg px-5 py-3 shadow-lg">
-        <i class="bi bi-search"></i> Start Searching Now
-      </a>
-    </div>
-  </div>
-</div>
-<div class="row">
-  <div class="col-md-4">
-    <div class="card feature-card h-100">
-      <div class="card-header"><i class="bi bi-grid"></i> Main Features</div>
-      <div class="card-body">
-        <ul>
-          <li><b>Alleged Subject List:</b> Visualize and manage all alleged subjects and their cases.</li>
-          <li><b>Search:</b> Instantly find cases or subjects by name or agent number.</li>
-          <li><b>Intel Source:</b> Centralize intelligence from Email, WhatsApp, Patrol, and Surveillance.</li>
-          <li><b>Profile Management:</b> Create/edit profiles, upload files, and manage attachments.</li>
-          <li><b>Export:</b> Download data to Excel (.xlsx) for reporting and analysis.</li>
-          <li><b>Authentication:</b> Secure login and signup for authorized access.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card feature-card h-100">
-      <div class="card-header"><i class="bi bi-lightbulb"></i> How to Use</div>
-      <div class="card-body">
-        <ol>
-          <li>Log in or sign up for an account.</li>
-          <li>Use the <b>Alleged Subject List</b> or <b>Search</b> to find or create profiles.</li>
-          <li>Go to <b>Intel Source</b> to manage intelligence from all channels.</li>
-          <li>Assess intelligence entries using the provided forms and save your assessments.</li>
-          <li>Export data as needed for further processing.</li>
-        </ol>
-        <div class="alert alert-primary mt-3" style="font-size:0.98em;">
-          <i class="bi bi-info-circle"></i>
-          <b>Tip:</b> Use the navigation bar to quickly access all platform features.
+
+<div class="dashboard-home">
+    <!-- Welcome Hero -->
+    <div class="welcome-hero">
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1>👋 Welcome back, {{ current_user.username }}!</h1>
+                <p>Intelligence Management Platform Dashboard</p>
+            </div>
+            <div class="welcome-time">
+                <div class="time" id="currentTime">--:--</div>
+                <div class="date" id="currentDate">Loading...</div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card feature-card h-100">
-      <div class="card-header"><i class="bi bi-info-circle"></i> Platform Overview</div>
-      <div class="card-body">
-        <p>
-          <b>Intelligence Management Platform</b> is built for professionals who need to handle sensitive intelligence from multiple sources in a secure, organized, and efficient way.
-        </p>
-        <ul>
-          <li>All data is securely stored and accessible only to authorized users.</li>
-          <li>Assessment forms and scoring help you prioritize and track cases.</li>
-          <li>Attachments and files are managed per case for easy reference.</li>
-          <li>Export options let you generate reports for further analysis.</li>
-        </ul>
-        <div class="alert alert-info mt-3" style="font-size:0.98em;">
-          <i class="bi bi-person-lines-fill"></i>
-          <b>Support:</b> If you encounter any issues or need help, please contact Marcus Cheung.
+    
+    <!-- Quick Stats Grid -->
+    <div class="stats-grid">
+        <a href="{{ url_for('alleged_subject_list') }}" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon poi">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <span class="stat-card-trend neutral">Active</span>
+            </div>
+            <div class="stat-card-value">{{ poi_count or 0 }}</div>
+            <div class="stat-card-label">POI Profiles</div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon email">
+                    <i class="bi bi-envelope-fill"></i>
+                </div>
+                {% if pending_emails > 0 %}
+                <span class="stat-card-trend up">{{ pending_emails }} pending</span>
+                {% endif %}
+            </div>
+            <div class="stat-card-value">{{ email_count or 0 }}</div>
+            <div class="stat-card-label">Email Intelligence</div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}#whatsapp-tab" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon whatsapp">
+                    <i class="bi bi-whatsapp"></i>
+                </div>
+            </div>
+            <div class="stat-card-value">{{ whatsapp_count or 0 }}</div>
+            <div class="stat-card-label">WhatsApp Entries</div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}#patrol-tab" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon patrol">
+                    <i class="bi bi-globe"></i>
+                </div>
+            </div>
+            <div class="stat-card-value">{{ patrol_count or 0 }}</div>
+            <div class="stat-card-label">Online Patrol</div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}#surveillance-tab" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon surveillance">
+                    <i class="bi bi-camera-video-fill"></i>
+                </div>
+            </div>
+            <div class="stat-card-value">{{ surveillance_count or 0 }}</div>
+            <div class="stat-card-label">Surveillance</div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}#rbh-tab" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon rbh">
+                    <i class="bi bi-hand-index-fill"></i>
+                </div>
+            </div>
+            <div class="stat-card-value">{{ received_by_hand_count or 0 }}</div>
+            <div class="stat-card-label">Received by Hand</div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}" class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon cases">
+                    <i class="bi bi-folder-fill"></i>
+                </div>
+            </div>
+            <div class="stat-card-value">{{ case_count or 0 }}</div>
+            <div class="stat-card-label">INT Cases</div>
+        </a>
+        
+        <div class="stat-card" style="cursor: default;">
+            <div class="stat-card-header">
+                <div class="stat-card-icon total">
+                    <i class="bi bi-database-fill"></i>
+                </div>
+            </div>
+            <div class="stat-card-value">{{ total_intelligence or 0 }}</div>
+            <div class="stat-card-label">Total Intelligence</div>
         </div>
-      </div>
     </div>
-  </div>
+    
+    <!-- Quick Actions -->
+    <h2 class="section-title"><i class="bi bi-lightning-fill"></i> Quick Actions</h2>
+    <div class="quick-actions">
+        <a href="{{ url_for('global_search_page') }}" class="action-card">
+            <div class="action-icon search">
+                <i class="bi bi-search"></i>
+            </div>
+            <div class="action-content">
+                <h3>Global Search</h3>
+                <p>Search across all intelligence sources</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('int_source') }}" class="action-card">
+            <div class="action-icon inbox">
+                <i class="bi bi-inbox-fill"></i>
+            </div>
+            <div class="action-content">
+                <h3>INT Source Inbox</h3>
+                <p>Manage all intelligence entries</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('alleged_subject_list') }}" class="action-card">
+            <div class="action-icon poi">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div class="action-content">
+                <h3>POI Profiles</h3>
+                <p>View & manage Person of Interest profiles</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('add_whatsapp') }}" class="action-card">
+            <div class="action-icon add">
+                <i class="bi bi-plus-circle-fill"></i>
+            </div>
+            <div class="action-content">
+                <h3>Add WhatsApp Entry</h3>
+                <p>Log new WhatsApp intelligence</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('add_online_patrol') }}" class="action-card">
+            <div class="action-icon add">
+                <i class="bi bi-globe"></i>
+            </div>
+            <div class="action-content">
+                <h3>Add Online Patrol</h3>
+                <p>Log suspicious online activity</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('add_received_by_hand') }}" class="action-card">
+            <div class="action-icon add">
+                <i class="bi bi-hand-index-fill"></i>
+            </div>
+            <div class="action-content">
+                <h3>Add Received by Hand</h3>
+                <p>Log hand-delivered documents</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('int_source_master_export') }}" class="action-card">
+            <div class="action-icon export">
+                <i class="bi bi-file-earmark-excel-fill"></i>
+            </div>
+            <div class="action-content">
+                <h3>Export Data</h3>
+                <p>Download master intelligence report</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('admin_dashboard') }}" class="action-card">
+            <div class="action-icon admin">
+                <i class="bi bi-gear-fill"></i>
+            </div>
+            <div class="action-content">
+                <h3>Admin Panel</h3>
+                <p>System settings & user management</p>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Recent Activity -->
+    <h2 class="section-title"><i class="bi bi-clock-history"></i> Recent Activity</h2>
+    <div class="activity-section">
+        <!-- Recent Emails -->
+        <div class="activity-card">
+            <div class="activity-card-header">
+                <span class="activity-card-title">
+                    <i class="bi bi-envelope-fill"></i> Recent Emails
+                </span>
+                <a href="{{ url_for('int_source') }}" class="activity-view-all">View All →</a>
+            </div>
+            <div class="activity-list">
+                {% if recent_emails and recent_emails|length > 0 %}
+                    {% for email in recent_emails %}
+                    <div class="activity-item">
+                        <div class="activity-icon email">
+                            <i class="bi bi-envelope"></i>
+                        </div>
+                        <div class="activity-info">
+                            <div class="activity-title">{{ email.subject or 'No Subject' }}</div>
+                            <div class="activity-meta">{{ email.sender or 'Unknown' }}</div>
+                        </div>
+                        <div class="activity-time">
+                            {% if email.received %}
+                                {{ email.received.strftime('%m/%d %H:%M') if email.received.strftime else email.received[:10] }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="activity-empty">
+                        <i class="bi bi-inbox"></i>
+                        No recent emails
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent WhatsApp -->
+        <div class="activity-card">
+            <div class="activity-card-header">
+                <span class="activity-card-title">
+                    <i class="bi bi-whatsapp"></i> Recent WhatsApp
+                </span>
+                <a href="{{ url_for('int_source') }}#whatsapp-tab" class="activity-view-all">View All →</a>
+            </div>
+            <div class="activity-list">
+                {% if recent_whatsapp and recent_whatsapp|length > 0 %}
+                    {% for wa in recent_whatsapp %}
+                    <div class="activity-item">
+                        <div class="activity-icon whatsapp">
+                            <i class="bi bi-whatsapp"></i>
+                        </div>
+                        <div class="activity-info">
+                            <div class="activity-title">{{ wa.complaint_name or wa.phone_number or 'Unknown' }}</div>
+                            <div class="activity-meta">{{ wa.alleged_person or 'No subject' }}</div>
+                        </div>
+                        <div class="activity-time">
+                            {% if wa.received_time %}
+                                {{ wa.received_time.strftime('%m/%d %H:%M') }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="activity-empty">
+                        <i class="bi bi-chat-dots"></i>
+                        No recent WhatsApp entries
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Online Patrol -->
+        <div class="activity-card">
+            <div class="activity-card-header">
+                <span class="activity-card-title">
+                    <i class="bi bi-globe"></i> Recent Online Patrol
+                </span>
+                <a href="{{ url_for('int_source') }}#patrol-tab" class="activity-view-all">View All →</a>
+            </div>
+            <div class="activity-list">
+                {% if recent_patrol and recent_patrol|length > 0 %}
+                    {% for pt in recent_patrol %}
+                    <div class="activity-item">
+                        <div class="activity-icon patrol">
+                            <i class="bi bi-globe"></i>
+                        </div>
+                        <div class="activity-info">
+                            <div class="activity-title">{{ pt.source or 'Unknown Platform' }}</div>
+                            <div class="activity-meta">{{ pt.discovered_by or pt.sender or 'Unknown' }}</div>
+                        </div>
+                        <div class="activity-time">
+                            {% if pt.discovery_time %}
+                                {{ pt.discovery_time.strftime('%m/%d %H:%M') }}
+                            {% elif pt.complaint_time %}
+                                {{ pt.complaint_time.strftime('%m/%d %H:%M') }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="activity-empty">
+                        <i class="bi bi-search"></i>
+                        No recent patrol entries
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Platform Features -->
+    <div class="features-grid">
+        <div class="feature-box">
+            <h4><i class="bi bi-shield-check"></i> Intelligence Sources</h4>
+            <ul class="feature-list">
+                <li><i class="bi bi-check-circle-fill"></i> Email Intelligence (Auto-sync)</li>
+                <li><i class="bi bi-check-circle-fill"></i> WhatsApp Reports</li>
+                <li><i class="bi bi-check-circle-fill"></i> Online Patrol Findings</li>
+                <li><i class="bi bi-check-circle-fill"></i> Surveillance Operations</li>
+                <li><i class="bi bi-check-circle-fill"></i> Received by Hand Documents</li>
+            </ul>
+        </div>
+        
+        <div class="feature-box">
+            <h4><i class="bi bi-graph-up"></i> Assessment & Scoring</h4>
+            <ul class="feature-list">
+                <li><i class="bi bi-check-circle-fill"></i> Source Reliability Rating (A-F)</li>
+                <li><i class="bi bi-check-circle-fill"></i> Content Validity Scoring</li>
+                <li><i class="bi bi-check-circle-fill"></i> AI-Powered Analysis</li>
+                <li><i class="bi bi-check-circle-fill"></i> Reviewer Approval Workflow</li>
+            </ul>
+        </div>
+        
+        <div class="feature-box">
+            <h4><i class="bi bi-people"></i> POI Management</h4>
+            <ul class="feature-list">
+                <li><i class="bi bi-check-circle-fill"></i> Automated Profile Creation</li>
+                <li><i class="bi bi-check-circle-fill"></i> Cross-Source Intelligence Linking</li>
+                <li><i class="bi bi-check-circle-fill"></i> Duplicate Detection & Merge</li>
+                <li><i class="bi bi-check-circle-fill"></i> Case Count Tracking</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
-<!-- Three.js Library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<!-- Three.js Animation Script -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Create Three.js scene for hero section
-    const heroSection = document.querySelector('.hero-section');
-    const canvas = document.createElement('canvas');
-    canvas.id = 'hero-canvas';
-    heroSection.insertBefore(canvas, heroSection.firstChild);
+// Update time every second
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     
-    // Scene setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-    
-    renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
-    renderer.setClearColor(0x000000, 0);
-    
-    // Create network visualization (nodes and connections)
-    const geometry = new THREE.SphereGeometry(0.1, 16, 16);
-    const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-    
-    const nodes = [];
-    const connections = [];
-    const nodeCount = 30;
-    
-    // Create nodes
-    for (let i = 0; i < nodeCount; i++) {
-        const node = new THREE.Mesh(geometry, material);
-        node.position.x = (Math.random() - 0.5) * 10;
-        node.position.y = (Math.random() - 0.5) * 8;
-        node.position.z = (Math.random() - 0.5) * 8;
-        node.velocity = {
-            x: (Math.random() - 0.5) * 0.02,
-            y: (Math.random() - 0.5) * 0.02,
-            z: (Math.random() - 0.5) * 0.02
-        };
-        scene.add(node);
-        nodes.push(node);
-    }
-    
-    // Create connections between nearby nodes
-    function updateConnections() {
-        // Remove old connections
-        connections.forEach(line => scene.remove(line));
-        connections.length = 0;
-        
-        // Create new connections
-        const lineMaterial = new THREE.LineBasicMaterial({ 
-            color: 0xffffff, 
-            transparent: true, 
-            opacity: 0.2 
-        });
-        
-        for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-                const distance = nodes[i].position.distanceTo(nodes[j].position);
-                if (distance < 3) {
-                    const points = [];
-                    points.push(nodes[i].position);
-                    points.push(nodes[j].position);
-                    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-                    const line = new THREE.Line(lineGeometry, lineMaterial);
-                    scene.add(line);
-                    connections.push(line);
-                }
-            }
-        }
-    }
-    
-    camera.position.z = 8;
-    
-    // Animation loop
-    let frame = 0;
-    function animate() {
-        requestAnimationFrame(animate);
-        
-        // Move nodes
-        nodes.forEach(node => {
-            node.position.x += node.velocity.x;
-            node.position.y += node.velocity.y;
-            node.position.z += node.velocity.z;
-            
-            // Bounce off boundaries
-            if (Math.abs(node.position.x) > 5) node.velocity.x *= -1;
-            if (Math.abs(node.position.y) > 4) node.velocity.y *= -1;
-            if (Math.abs(node.position.z) > 4) node.velocity.z *= -1;
-            
-            // Pulse effect
-            const scale = 1 + Math.sin(frame * 0.05 + node.position.x) * 0.2;
-            node.scale.set(scale, scale, scale);
-        });
-        
-        // Update connections every 10 frames (performance optimization)
-        if (frame % 10 === 0) {
-            updateConnections();
-        }
-        
-        // Rotate camera slowly
-        camera.position.x = Math.sin(frame * 0.001) * 8;
-        camera.position.z = Math.cos(frame * 0.001) * 8;
-        camera.lookAt(0, 0, 0);
-        
-        renderer.render(scene, camera);
-        frame++;
-    }
-    
-    animate();
-    
-    // Handle window resize
-    window.addEventListener('resize', function() {
-        const width = canvas.offsetWidth;
-        const height = canvas.offsetHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
-    });
-    
-    // Add interactive particles on mouse move
-    let mouseX = 0;
-    let mouseY = 0;
-    
-    heroSection.addEventListener('mousemove', function(event) {
-        const rect = heroSection.getBoundingClientRect();
-        mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        
-        // Attract nearby nodes to mouse
-        nodes.forEach(node => {
-            const screenPos = node.position.clone().project(camera);
-            const distance = Math.sqrt(
-                Math.pow(screenPos.x - mouseX, 2) + 
-                Math.pow(screenPos.y - mouseY, 2)
-            );
-            
-            if (distance < 0.5) {
-                node.velocity.x += (mouseX - screenPos.x) * 0.001;
-                node.velocity.y += (mouseY - screenPos.y) * 0.001;
-            }
-        });
-    });
-});
-</script>
+    document.getElementById('currentTime').textContent = timeStr;
+    document.getElementById('currentDate').textContent = dateStr;
+}
 
-<!-- Bootstrap Icons (if not already in base.html) -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+updateTime();
+setInterval(updateTime, 1000);
+</script>
 {% endblock %}

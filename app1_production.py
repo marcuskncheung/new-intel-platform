@@ -4292,16 +4292,73 @@ def root():
 
 @app.route('/home')
 @app.route('/welcome')
-@app.route('/about')
+@app.route('/dashboard')
 @login_required
 def home():
     """
-    📖 WELCOME/ABOUT PAGE: Platform introduction and help
+    🏠 DASHBOARD HOME PAGE: Platform overview with real-time statistics
     
-    Shows platform features, usage guide, and support information.
-    Accessible via navbar dropdown or direct URL.
+    Shows key metrics, quick access to features, and recent activity.
     """
-    return render_template('home.html')
+    try:
+        # Get statistics
+        poi_count = AllegedPersonProfile.query.filter_by(status='ACTIVE').count()
+        email_count = Email.query.count()
+        whatsapp_count = WhatsAppEntry.query.count()
+        patrol_count = OnlinePatrolEntry.query.count()
+        surveillance_count = SurveillanceEntry.query.count()
+        received_by_hand_count = ReceivedByHandEntry.query.count()
+        case_count = CaseProfile.query.count()
+        
+        # Get recent entries (last 5 of each type)
+        recent_emails = Email.query.order_by(Email.received.desc()).limit(5).all()
+        recent_whatsapp = WhatsAppEntry.query.order_by(WhatsAppEntry.received_time.desc()).limit(5).all()
+        recent_patrol = OnlinePatrolEntry.query.order_by(OnlinePatrolEntry.discovery_time.desc()).limit(5).all()
+        
+        # Calculate total intelligence
+        total_intelligence = email_count + whatsapp_count + patrol_count + surveillance_count + received_by_hand_count
+        
+        # Get pending reviews (entries without assessment)
+        pending_emails = Email.query.filter(
+            db.or_(Email.source_reliability == None, Email.content_validity == None)
+        ).count()
+        
+        return render_template('home.html',
+                             poi_count=poi_count,
+                             email_count=email_count,
+                             whatsapp_count=whatsapp_count,
+                             patrol_count=patrol_count,
+                             surveillance_count=surveillance_count,
+                             received_by_hand_count=received_by_hand_count,
+                             case_count=case_count,
+                             total_intelligence=total_intelligence,
+                             pending_emails=pending_emails,
+                             recent_emails=recent_emails,
+                             recent_whatsapp=recent_whatsapp,
+                             recent_patrol=recent_patrol)
+    except Exception as e:
+        print(f"[HOME] Error loading dashboard: {e}")
+        return render_template('home.html',
+                             poi_count=0,
+                             email_count=0,
+                             whatsapp_count=0,
+                             patrol_count=0,
+                             surveillance_count=0,
+                             received_by_hand_count=0,
+                             case_count=0,
+                             total_intelligence=0,
+                             pending_emails=0,
+                             recent_emails=[],
+                             recent_whatsapp=[],
+                             recent_patrol=[])
+
+@app.route('/about')
+@login_required
+def about():
+    """
+    📖 ABOUT PAGE: Platform introduction and help
+    """
+    return render_template('about.html')
 
 # Debug API route to check database status
 @app.route('/api/debug/db-status')
