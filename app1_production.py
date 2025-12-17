@@ -7722,14 +7722,14 @@ def add_whatsapp():
                             from app1_production import POIIntelligenceLink
                             
                             existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                poi_id=result['profile_id'],
+                                poi_id=result['poi_id'],
                                 source_type='WHATSAPP',
                                 source_id=entry.id
                             ).first()
                             
                             if not existing_link:
                                 universal_link = POIIntelligenceLink(
-                                    poi_id=result['profile_id'],
+                                    poi_id=result['poi_id'],
                                     source_type='WHATSAPP',
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
@@ -7914,14 +7914,14 @@ def add_online_patrol():
                             from app1_production import POIIntelligenceLink
                             
                             existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                poi_id=result['profile_id'],
+                                poi_id=result['poi_id'],
                                 source_type='PATROL',
                                 source_id=entry.id
                             ).first()
                             
                             if not existing_link:
                                 universal_link = POIIntelligenceLink(
-                                    poi_id=result['profile_id'],
+                                    poi_id=result['poi_id'],
                                     source_type='PATROL',
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
@@ -8054,14 +8054,14 @@ def online_patrol_detail(entry_id):
                                     from app1_production import POIIntelligenceLink
                                     
                                     existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                        poi_id=result['profile_id'],
+                                        poi_id=result['poi_id'],
                                         source_type='PATROL',
                                         source_id=entry.id
                                     ).first()
                                     
                                     if not existing_link:
                                         universal_link = POIIntelligenceLink(
-                                            poi_id=result['profile_id'],
+                                            poi_id=result['poi_id'],
                                             source_type='PATROL',
                                             source_id=entry.id,
                                             case_profile_id=entry.caseprofile_id,
@@ -8541,14 +8541,14 @@ def add_surveillance():
                                 from app1_production import POIIntelligenceLink
                                 
                                 existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                    poi_id=result['profile_id'],
+                                    poi_id=result['poi_id'],
                                     source_type='SURVEILLANCE',
                                     source_id=entry.id
                                 ).first()
                                 
                                 if not existing_link:
                                     universal_link = POIIntelligenceLink(
-                                        poi_id=result['profile_id'],
+                                        poi_id=result['poi_id'],
                                         source_type='SURVEILLANCE',
                                         source_id=entry.id,
                                         case_profile_id=None,  # Surveillance doesn't have case_profile_id
@@ -9250,14 +9250,14 @@ def whatsapp_detail(entry_id):
                                     from app1_production import POIIntelligenceLink
                                     
                                     existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                        poi_id=result['profile_id'],
+                                        poi_id=result['poi_id'],
                                         source_type='WHATSAPP',
                                         source_id=entry.id
                                     ).first()
                                     
                                     if not existing_link:
                                         universal_link = POIIntelligenceLink(
-                                            poi_id=result['profile_id'],
+                                            poi_id=result['poi_id'],
                                             source_type='WHATSAPP',
                                             source_id=entry.id,
                                             case_profile_id=entry.caseprofile_id,
@@ -11085,14 +11085,14 @@ def update_received_by_hand_assessment(entry_id):
                         # Create universal link in POI v2.0 table
                         try:
                             existing_link = db.session.query(POIIntelligenceLink).filter_by(
-                                poi_id=result['profile_id'],
+                                poi_id=result['poi_id'],
                                 source_type='RECEIVED_BY_HAND',
                                 source_id=entry.id
                             ).first()
                             
                             if not existing_link:
                                 universal_link = POIIntelligenceLink(
-                                    poi_id=result['profile_id'],
+                                    poi_id=result['poi_id'],
                                     source_type='RECEIVED_BY_HAND',
                                     source_id=entry.id,
                                     case_profile_id=entry.caseprofile_id,
