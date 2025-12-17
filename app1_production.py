@@ -4315,8 +4315,8 @@ def home():
         recent_whatsapp = WhatsAppEntry.query.order_by(WhatsAppEntry.received_time.desc()).limit(5).all()
         recent_patrol = OnlinePatrolEntry.query.order_by(OnlinePatrolEntry.discovery_time.desc()).limit(5).all()
         
-        # Calculate total intelligence
-        total_intelligence = email_count + whatsapp_count + patrol_count + surveillance_count + received_by_hand_count
+        # Calculate total intelligence (Email + WhatsApp + Online Patrol + Received by Hand)
+        total_intelligence = email_count + whatsapp_count + patrol_count + received_by_hand_count
         
         # Get pending reviews (entries without assessment)
         pending_emails = Email.query.filter(
