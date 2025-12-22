@@ -3058,6 +3058,20 @@ def alleged_subject_list():
                         # Count unique patrol entries
                         patrol_ids = set(subj.patrol_id for subj in patrol_subjects)
                         patrol_count = len(patrol_ids)
+                    
+                    # ADDITIONAL FALLBACK: Direct search on OnlinePatrolEntry.alleged_subject_english/chinese fields
+                    if patrol_count == 0:
+                        direct_patrol_conditions = []
+                        if profile.name_english:
+                            direct_patrol_conditions.append(OnlinePatrolEntry.alleged_subject_english.ilike(f"%{profile.name_english}%"))
+                        if profile.name_chinese:
+                            direct_patrol_conditions.append(OnlinePatrolEntry.alleged_subject_chinese.ilike(f"%{profile.name_chinese}%"))
+                        
+                        if direct_patrol_conditions:
+                            direct_patrol_matches = db.session.query(OnlinePatrolEntry.id).filter(
+                                db.or_(*direct_patrol_conditions)
+                            ).distinct().all()
+                            patrol_count = len(direct_patrol_matches)
                 except Exception as e:
                     print(f"[POI LIST] Patrol fallback failed for {profile.poi_id}: {e}")
             
@@ -3082,6 +3096,22 @@ def alleged_subject_list():
                         # Count unique RBH entries
                         rbh_ids = set(subj.received_by_hand_id for subj in rbh_subjects)
                         received_by_hand_count = len(rbh_ids)
+                    
+                    # ADDITIONAL FALLBACK: Direct search on ReceivedByHandEntry fields
+                    if received_by_hand_count == 0:
+                        direct_rbh_conditions = []
+                        if profile.name_english:
+                            direct_rbh_conditions.append(ReceivedByHandEntry.alleged_person.ilike(f"%{profile.name_english}%"))
+                            direct_rbh_conditions.append(ReceivedByHandEntry.alleged_subject_english.ilike(f"%{profile.name_english}%"))
+                        if profile.name_chinese:
+                            direct_rbh_conditions.append(ReceivedByHandEntry.alleged_person.ilike(f"%{profile.name_chinese}%"))
+                            direct_rbh_conditions.append(ReceivedByHandEntry.alleged_subject_chinese.ilike(f"%{profile.name_chinese}%"))
+                        
+                        if direct_rbh_conditions:
+                            direct_rbh_matches = db.session.query(ReceivedByHandEntry.id).filter(
+                                db.or_(*direct_rbh_conditions)
+                            ).distinct().all()
+                            received_by_hand_count = len(direct_rbh_matches)
                 except Exception as e:
                     print(f"[POI LIST] RBH fallback failed for {profile.poi_id}: {e}")
             
@@ -3126,6 +3156,21 @@ def alleged_subject_list():
                     }).fetchall()
                     case_ids.update(row[0] for row in patrol_cases if row[0])
                     
+                    # FALLBACK: Direct search on OnlinePatrolEntry.alleged_subject_english/chinese fields
+                    patrol_direct_query = """
+                        SELECT DISTINCT caseprofile_id
+                        FROM online_patrol_entry
+                        WHERE caseprofile_id IS NOT NULL AND (
+                            (:name_english IS NOT NULL AND alleged_subject_english ILIKE '%' || :name_english || '%')
+                            OR (:name_chinese IS NOT NULL AND alleged_subject_chinese ILIKE '%' || :name_chinese || '%')
+                        )
+                    """
+                    patrol_direct_cases = db.session.execute(db.text(patrol_direct_query), {
+                        'name_english': profile.name_english,
+                        'name_chinese': profile.name_chinese
+                    }).fetchall()
+                    case_ids.update(row[0] for row in patrol_direct_cases if row[0])
+                    
                     # Get from ReceivedByHandAllegedSubject
                     rbh_case_query = """
                         SELECT DISTINCT rbhe.caseprofile_id
@@ -3140,6 +3185,27 @@ def alleged_subject_list():
                         'name_chinese': profile.name_chinese
                     }).fetchall()
                     case_ids.update(row[0] for row in rbh_cases if row[0])
+                    
+                    # FALLBACK: Direct search on ReceivedByHandEntry fields
+                    rbh_direct_query = """
+                        SELECT DISTINCT caseprofile_id
+                        FROM received_by_hand_entry
+                        WHERE caseprofile_id IS NOT NULL AND (
+                            (:name_english IS NOT NULL AND (
+                                alleged_person ILIKE '%' || :name_english || '%'
+                                OR alleged_subject_english ILIKE '%' || :name_english || '%'
+                            ))
+                            OR (:name_chinese IS NOT NULL AND (
+                                alleged_person ILIKE '%' || :name_chinese || '%'
+                                OR alleged_subject_chinese ILIKE '%' || :name_chinese || '%'
+                            ))
+                        )
+                    """
+                    rbh_direct_cases = db.session.execute(db.text(rbh_direct_query), {
+                        'name_english': profile.name_english,
+                        'name_chinese': profile.name_chinese
+                    }).fetchall()
+                    case_ids.update(row[0] for row in rbh_direct_cases if row[0])
                 
                 case_count = len(case_ids)
             except Exception as e:
@@ -3591,6 +3657,235 @@ def delete_alleged_person_profile(profile_id):
         import traceback
         traceback.print_exc()
         flash(f"Error deleting profile: {str(e)}", "error")
+    
+    return redirect(url_for("alleged_subject_list"))
+
+@app.route("/rebuild_poi_list", methods=["POST"])
+@login_required
+def rebuild_poi_list():
+    """
+    🔄 ADMIN ONLY: Rebuild entire POI list from all intelligence sources
+    
+    This function will:
+    1. Delete ALL existing POI profiles and links
+    2. Scan all Email, WhatsApp, Online Patrol, Received By Hand entries
+    3. Re-create POI profiles from alleged subjects in each source
+    
+    Useful when POI profiles are missing or out of sync with intelligence records.
+    """
+    # Check admin permission
+    if not current_user.is_admin:
+        flash("Admin access required for this action", "error")
+        return redirect(url_for("alleged_subject_list"))
+    
+    try:
+        print("\n" + "="*80)
+        print("🔄 REBUILD POI LIST: Starting full rebuild process...")
+        print("="*80)
+        
+        # Step 1: Delete all existing POI data
+        print("[REBUILD] Step 1: Deleting all existing POI data...")
+        
+        # Delete POI intelligence links first (foreign key)
+        poi_links_deleted = POIIntelligenceLink.query.delete()
+        print(f"[REBUILD] Deleted {poi_links_deleted} POI intelligence links")
+        
+        # Delete email-alleged-person links
+        email_links_deleted = EmailAllegedPersonLink.query.delete()
+        print(f"[REBUILD] Deleted {email_links_deleted} email-person links")
+        
+        # Delete all POI profiles
+        poi_profiles_deleted = AllegedPersonProfile.query.delete()
+        print(f"[REBUILD] Deleted {poi_profiles_deleted} POI profiles")
+        
+        db.session.commit()
+        print("[REBUILD] ✅ Step 1 complete: All POI data cleared")
+        
+        # Step 2: Collect all alleged subjects from all sources
+        print("[REBUILD] Step 2: Scanning all intelligence sources...")
+        
+        created_profiles = {}  # Track created profiles by normalized name
+        total_created = 0
+        
+        # Helper function to normalize names for matching
+        def normalize_name(name):
+            if not name:
+                return None
+            return name.strip().lower().replace(" ", "")
+        
+        # Helper function to create or get POI profile
+        def get_or_create_poi(name_english=None, name_chinese=None, agent_number=None, 
+                              license_number=None, company=None, source_type=None, source_id=None):
+            nonlocal total_created
+            
+            if not name_english and not name_chinese:
+                return None
+            
+            # Create normalized key for matching
+            key_parts = []
+            if name_english:
+                key_parts.append(normalize_name(name_english))
+            if name_chinese:
+                key_parts.append(normalize_name(name_chinese))
+            key = "|".join(sorted(key_parts))
+            
+            if key in created_profiles:
+                # Return existing profile
+                return created_profiles[key]
+            
+            # Create new POI profile
+            total_created += 1
+            poi_id = f"POI-{total_created:03d}"
+            
+            profile = AllegedPersonProfile(
+                poi_id=poi_id,
+                name_english=name_english.strip() if name_english else None,
+                name_chinese=name_chinese.strip() if name_chinese else None,
+                name_normalized=key,
+                agent_number=agent_number.strip() if agent_number else None,
+                license_number=license_number.strip() if license_number else None,
+                company=company.strip() if company else None,
+                status='ACTIVE',
+                created_by=f'REBUILD_{source_type}',
+                created_at=datetime.utcnow(),
+                email_count=0
+            )
+            
+            db.session.add(profile)
+            db.session.flush()  # Get ID
+            
+            created_profiles[key] = profile
+            print(f"[REBUILD] Created {poi_id}: {name_english or ''} {name_chinese or ''}")
+            
+            return profile
+        
+        # Helper to create POI intelligence link
+        def create_poi_link(profile, source_type, source_id, case_profile_id=None):
+            if not profile:
+                return
+            
+            # Check if link already exists
+            existing = POIIntelligenceLink.query.filter_by(
+                poi_id=profile.poi_id,
+                source_type=source_type,
+                source_id=source_id
+            ).first()
+            
+            if not existing:
+                link = POIIntelligenceLink(
+                    poi_id=profile.poi_id,
+                    source_type=source_type,
+                    source_id=source_id,
+                    case_profile_id=case_profile_id,
+                    confidence_score=1.0,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(link)
+        
+        # 2a: Scan EMAIL alleged subjects
+        print("[REBUILD] Scanning Email alleged subjects...")
+        email_subjects = EmailAllegedSubject.query.all()
+        email_count = 0
+        for subj in email_subjects:
+            email = db.session.get(Email, subj.email_id)
+            if email:
+                profile = get_or_create_poi(
+                    name_english=subj.english_name,
+                    name_chinese=subj.chinese_name,
+                    license_number=subj.license_number,
+                    source_type='EMAIL',
+                    source_id=email.id
+                )
+                if profile:
+                    create_poi_link(profile, 'EMAIL', email.id, email.caseprofile_id)
+                    
+                    # Also create legacy email-person link
+                    legacy_link = EmailAllegedPersonLink(
+                        email_id=email.id,
+                        alleged_person_id=profile.id,
+                        confidence=1.0,
+                        created_at=datetime.utcnow()
+                    )
+                    db.session.add(legacy_link)
+                    email_count += 1
+        print(f"[REBUILD] Processed {email_count} email alleged subjects")
+        
+        # 2b: Scan WHATSAPP alleged subjects
+        print("[REBUILD] Scanning WhatsApp alleged subjects...")
+        whatsapp_subjects = WhatsAppAllegedSubject.query.all()
+        whatsapp_count = 0
+        for subj in whatsapp_subjects:
+            wa = db.session.get(WhatsAppEntry, subj.whatsapp_id)
+            if wa:
+                profile = get_or_create_poi(
+                    name_english=subj.english_name,
+                    name_chinese=subj.chinese_name,
+                    license_number=subj.license_number,
+                    source_type='WHATSAPP',
+                    source_id=wa.id
+                )
+                if profile:
+                    create_poi_link(profile, 'WHATSAPP', wa.id, wa.caseprofile_id)
+                    whatsapp_count += 1
+        print(f"[REBUILD] Processed {whatsapp_count} WhatsApp alleged subjects")
+        
+        # 2c: Scan ONLINE PATROL alleged subjects
+        print("[REBUILD] Scanning Online Patrol alleged subjects...")
+        patrol_subjects = OnlinePatrolAllegedSubject.query.all()
+        patrol_count = 0
+        for subj in patrol_subjects:
+            patrol = db.session.get(OnlinePatrolEntry, subj.patrol_id)
+            if patrol:
+                profile = get_or_create_poi(
+                    name_english=subj.english_name,
+                    name_chinese=subj.chinese_name,
+                    license_number=subj.license_number,
+                    source_type='PATROL',
+                    source_id=patrol.id
+                )
+                if profile:
+                    create_poi_link(profile, 'PATROL', patrol.id, patrol.caseprofile_id)
+                    patrol_count += 1
+        print(f"[REBUILD] Processed {patrol_count} Online Patrol alleged subjects")
+        
+        # 2d: Scan RECEIVED BY HAND alleged subjects
+        print("[REBUILD] Scanning Received By Hand alleged subjects...")
+        rbh_subjects = ReceivedByHandAllegedSubject.query.all()
+        rbh_count = 0
+        for subj in rbh_subjects:
+            rbh = db.session.get(ReceivedByHandEntry, subj.received_by_hand_id)
+            if rbh:
+                profile = get_or_create_poi(
+                    name_english=subj.english_name,
+                    name_chinese=subj.chinese_name,
+                    license_number=subj.license_number,
+                    source_type='RECEIVED_BY_HAND',
+                    source_id=rbh.id
+                )
+                if profile:
+                    create_poi_link(profile, 'RECEIVED_BY_HAND', rbh.id, rbh.caseprofile_id)
+                    rbh_count += 1
+        print(f"[REBUILD] Processed {rbh_count} Received By Hand alleged subjects")
+        
+        # Step 3: Commit all changes
+        print("[REBUILD] Step 3: Committing changes...")
+        db.session.commit()
+        
+        print("\n" + "="*80)
+        print(f"✅ REBUILD COMPLETE!")
+        print(f"   - Deleted: {poi_profiles_deleted} old profiles")
+        print(f"   - Created: {total_created} new POI profiles")
+        print(f"   - Sources: Email={email_count}, WhatsApp={whatsapp_count}, Patrol={patrol_count}, RBH={rbh_count}")
+        print("="*80 + "\n")
+        
+        flash(f"✅ POI List rebuilt successfully! Created {total_created} profiles from {email_count + whatsapp_count + patrol_count + rbh_count} alleged subjects.", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[REBUILD] ❌ Error rebuilding POI list: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error rebuilding POI list: {str(e)}", "error")
     
     return redirect(url_for("alleged_subject_list"))
 
