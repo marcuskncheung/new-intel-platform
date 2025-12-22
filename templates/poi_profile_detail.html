@@ -212,6 +212,114 @@
     color: #d1d5db;
 }
 
+/* INT Cases Section - Prominent Display */
+.poi-int-section {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.25);
+}
+
+.poi-int-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.poi-int-icon {
+    width: 64px;
+    height: 64px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+}
+
+.poi-int-info {
+    flex: 1;
+}
+
+.poi-int-count {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.poi-int-label {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.85);
+    font-weight: 500;
+}
+
+.poi-int-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.poi-int-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.poi-int-tag i {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.poi-int-more {
+    background: rgba(255,255,255,0.1);
+    font-style: italic;
+    font-family: inherit;
+}
+
+.poi-int-empty {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+/* Intelligence Sources Header */
+.poi-sources-header {
+    margin-bottom: 1rem;
+}
+
+.poi-sources-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--poi-gray-700);
+    margin: 0 0 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.poi-sources-header h3 i {
+    color: var(--poi-primary);
+}
+
+.poi-sources-header p {
+    font-size: 0.8rem;
+    color: var(--poi-gray-600);
+    margin: 0;
+}
+
 /* Stats Grid */
 .poi-stats-grid {
     display: grid;
@@ -691,6 +799,40 @@
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- INT Cases Section - Prominent Display -->
+    <div class="poi-int-section">
+        <div class="poi-int-header">
+            <div class="poi-int-icon">
+                <i class="bi bi-folder-fill"></i>
+            </div>
+            <div class="poi-int-info">
+                <div class="poi-int-count">{{ int_case_count if int_case_count is defined else 0 }}</div>
+                <div class="poi-int-label">Cases (INT References)</div>
+            </div>
+        </div>
+        {% if unique_cases and unique_cases|length > 0 %}
+        <div class="poi-int-list">
+            {% for case in unique_cases[:10] %}
+            <span class="poi-int-tag">
+                <i class="bi bi-file-earmark-text"></i>
+                {{ case.int_reference }}
+            </span>
+            {% endfor %}
+            {% if unique_cases|length > 10 %}
+            <span class="poi-int-tag poi-int-more">+{{ unique_cases|length - 10 }} more</span>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="poi-int-empty">No cases linked to this POI</div>
+        {% endif %}
+    </div>
+    
+    <!-- Intelligence Sources Section Header -->
+    <div class="poi-sources-header">
+        <h3><i class="bi bi-collection"></i> Intelligence Sources Breakdown</h3>
+        <p>Individual entries from each intelligence channel</p>
     </div>
     
     <!-- Stats Grid -->

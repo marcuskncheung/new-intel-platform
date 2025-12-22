@@ -4308,7 +4308,32 @@ def alleged_subject_profile_detail(poi_id):
         surveillance_count = len(surveillance)
         received_by_hand_count = len(received_by_hand)
         
+        # Calculate unique INT (Case) references from all intelligence
+        unique_int_references = set()
+        unique_cases = []  # List of unique case info for display
+        
+        for intel in all_intelligence:
+            case_int = intel.get('case_int') or intel.get('reference')
+            case_name = intel.get('case_name')
+            case_id = intel.get('case_id')
+            
+            # Use INT reference as unique identifier
+            if case_int and case_int not in unique_int_references:
+                unique_int_references.add(case_int)
+                unique_cases.append({
+                    'int_reference': case_int,
+                    'case_name': case_name,
+                    'case_id': case_id,
+                    'source_type': intel.get('source_type'),
+                    'date': intel.get('date')
+                })
+        
+        # Sort cases by date (most recent first)
+        unique_cases.sort(key=lambda x: x.get('date') or datetime.min, reverse=True)
+        int_case_count = len(unique_int_references)
+        
         print(f"[PROFILE DETAIL] Intelligence breakdown: Email={email_count}, WhatsApp={whatsapp_count}, Patrol={patrol_count}, Surveillance={surveillance_count}, ReceivedByHand={received_by_hand_count}")
+        print(f"[PROFILE DETAIL] Unique INT References: {int_case_count}")
         
         # For backward compatibility, also keep related_emails for old template parts
         related_emails = emails  # Alias for compatibility
@@ -4327,6 +4352,8 @@ def alleged_subject_profile_detail(poi_id):
                              patrol_count=patrol_count,
                              surveillance_count=surveillance_count,
                              received_by_hand_count=received_by_hand_count,
+                             int_case_count=int_case_count,
+                             unique_cases=unique_cases,
                              related_emails=related_emails,  # Backward compatibility
                              total_emails=len(related_emails))  # Backward compatibility
     
