@@ -3705,6 +3705,9 @@ def rebuild_poi_list():
         print("[REBUILD] Step 2: Scanning all intelligence sources...")
         
         created_profiles = {}  # Track created profiles by normalized name
+        # Additional lookup indexes for smarter matching
+        profiles_by_english = {}  # Lookup by English name only
+        profiles_by_chinese = {}  # Lookup by Chinese name only
         total_created = 0
         
         # Helper function to normalize names for matching
@@ -3714,6 +3717,7 @@ def rebuild_poi_list():
             return name.strip().lower().replace(" ", "")
         
         # Helper function to create or get POI profile
+        # FIXED: Match by EITHER English OR Chinese name to prevent duplicates
         def get_or_create_poi(name_english=None, name_chinese=None, agent_number=None, 
                               license_number=None, company=None, source_type=None, source_id=None):
             nonlocal total_created
@@ -3721,21 +3725,56 @@ def rebuild_poi_list():
             if not name_english and not name_chinese:
                 return None
             
-            # Create normalized key for matching
-            key_parts = []
-            if name_english:
-                key_parts.append(normalize_name(name_english))
-            if name_chinese:
-                key_parts.append(normalize_name(name_chinese))
-            key = "|".join(sorted(key_parts))
+            norm_english = normalize_name(name_english)
+            norm_chinese = normalize_name(name_chinese)
             
-            if key in created_profiles:
-                # Return existing profile
-                return created_profiles[key]
+            # SMART MATCHING: Check if we already have a profile with matching name
+            existing_profile = None
+            
+            # First, try to find by English name
+            if norm_english and norm_english in profiles_by_english:
+                existing_profile = profiles_by_english[norm_english]
+                print(f"[REBUILD] Found existing profile by English name: {existing_profile.poi_id}")
+            
+            # If not found, try by Chinese name
+            if not existing_profile and norm_chinese and norm_chinese in profiles_by_chinese:
+                existing_profile = profiles_by_chinese[norm_chinese]
+                print(f"[REBUILD] Found existing profile by Chinese name: {existing_profile.poi_id}")
+            
+            if existing_profile:
+                # Update existing profile with any missing information
+                if norm_english and not existing_profile.name_english:
+                    existing_profile.name_english = name_english.strip()
+                    profiles_by_english[norm_english] = existing_profile
+                    print(f"[REBUILD] Updated {existing_profile.poi_id} with English name: {name_english}")
+                
+                if norm_chinese and not existing_profile.name_chinese:
+                    existing_profile.name_chinese = name_chinese.strip()
+                    profiles_by_chinese[norm_chinese] = existing_profile
+                    print(f"[REBUILD] Updated {existing_profile.poi_id} with Chinese name: {name_chinese}")
+                
+                if agent_number and not existing_profile.agent_number:
+                    existing_profile.agent_number = agent_number.strip()
+                
+                if license_number and not existing_profile.license_number:
+                    existing_profile.license_number = license_number.strip()
+                
+                if company and not existing_profile.company:
+                    existing_profile.company = company.strip()
+                
+                return existing_profile
             
             # Create new POI profile
             total_created += 1
             poi_id = f"POI-{total_created:03d}"
+            
+            # Create normalized key for storage
+            key_parts = []
+            if norm_english:
+                key_parts.append(norm_english)
+            if norm_chinese:
+                key_parts.append(norm_chinese)
+            key = "|".join(sorted(key_parts))
             
             profile = AllegedPersonProfile(
                 poi_id=poi_id,
@@ -3754,7 +3793,13 @@ def rebuild_poi_list():
             db.session.add(profile)
             db.session.flush()  # Get ID
             
+            # Index by both names for future lookups
             created_profiles[key] = profile
+            if norm_english:
+                profiles_by_english[norm_english] = profile
+            if norm_chinese:
+                profiles_by_chinese[norm_chinese] = profile
+            
             print(f"[REBUILD] Created {poi_id}: {name_english or ''} {name_chinese or ''}")
             
             return profile
