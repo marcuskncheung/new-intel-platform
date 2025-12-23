@@ -363,7 +363,7 @@
 /* Intelligence Stats in Card */
 .poi-intel-stats {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.5rem;
     margin-bottom: 1rem;
 }
@@ -646,12 +646,8 @@
                         <div class="poi-intel-stat-value">{{ t.received_by_hand_count or 0 }}</div>
                         <div class="poi-intel-stat-label">RBH</div>
                     </div>
-                    <div class="poi-intel-stat surveillance">
-                        <div class="poi-intel-stat-value">{{ t.surveillance_count or 0 }}</div>
-                        <div class="poi-intel-stat-label">Surv.</div>
-                    </div>
                     <div class="poi-intel-stat total">
-                        <div class="poi-intel-stat-value">{{ t.total_intel or (t.email_count or 0) + (t.whatsapp_count or 0) + (t.patrol_count or 0) + (t.received_by_hand_count or 0) + (t.surveillance_count or 0) }}</div>
+                        <div class="poi-intel-stat-value">{{ t.total_intel or (t.email_count or 0) + (t.whatsapp_count or 0) + (t.patrol_count or 0) + (t.received_by_hand_count or 0) }}</div>
                         <div class="poi-intel-stat-label">Total</div>
                     </div>
                 </div>

@@ -323,7 +323,7 @@
 /* Stats Grid */
 .poi-stats-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
@@ -868,16 +868,6 @@
         </div>
         
         <div class="poi-stat-card">
-            <div class="poi-stat-icon surveillance">
-                <i class="bi bi-camera-video-fill"></i>
-            </div>
-            <div class="poi-stat-info">
-                <div class="poi-stat-value">{{ surveillance_count if surveillance_count is defined else (profile.surveillance_count or 0) }}</div>
-                <div class="poi-stat-label">Surveillance</div>
-            </div>
-        </div>
-        
-        <div class="poi-stat-card">
             <div class="poi-stat-icon received">
                 <i class="bi bi-hand-index-fill"></i>
             </div>
@@ -1008,11 +998,6 @@
                     <i class="bi bi-shield-check"></i>
                     Patrol
                     <span class="poi-tab-count">{{ patrol_count or 0 }}</span>
-                </button>
-                <button class="poi-tab" onclick="switchTab(event, 'surveillance')">
-                    <i class="bi bi-camera-video"></i>
-                    Surveillance
-                    <span class="poi-tab-count">{{ surveillance_count or 0 }}</span>
                 </button>
                 <button class="poi-tab" onclick="switchTab(event, 'received')">
                     <i class="bi bi-hand-index"></i>
@@ -1196,44 +1181,6 @@
                     <i class="bi bi-shield-check"></i>
                     <h4>No Patrol Records</h4>
                     <p>No online patrol intelligence for this profile.</p>
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Surveillance Tab -->
-            <div id="tab-surveillance" class="poi-tab-content">
-                {% if surveillance and surveillance|length > 0 %}
-                <table class="poi-intel-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th style="width: 140px;">Reference</th>
-                            <th>Content</th>
-                            <th style="width: 80px; text-align: center;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in surveillance %}
-                        <tr>
-                            <td>{{ entry.get('date').strftime('%Y-%m-%d') if entry.get('date') else '—' }}</td>
-                            <td><span class="poi-ref-code">{{ entry.get('reference') or entry.get('int_reference_number') or '—' }}</span></td>
-                            <td><span class="poi-intel-subject">{{ entry.get('title') or entry.get('summary') or (entry.get('content', '')[:80] if entry.get('content') else '—') }}</span></td>
-                            <td style="text-align: center;">
-                                {% if entry.get('view_url') %}
-                                    <a href="{{ entry.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
-                                {% elif entry.get('id') %}
-                                    <a href="{{ url_for('surveillance_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
-                                {% else %}<span class="text-muted">—</span>{% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="poi-empty-state">
-                    <i class="bi bi-camera-video"></i>
-                    <h4>No Surveillance Records</h4>
-                    <p>No surveillance intelligence for this profile.</p>
                 </div>
                 {% endif %}
             </div>

@@ -4001,13 +4001,27 @@ def alleged_subject_profile_detail(poi_id):
                 'confidence': link.confidence_score,
                 'case_name': link.case_name,
                 'case_id': link.case_id,
-                'date': link.link_created_at,
-                'date_str': link.link_created_at.strftime('%Y-%m-%d %H:%M') if link.link_created_at else 'N/A'
+                'date': None,  # Will be set based on source type
+                'date_str': 'N/A'  # Will be set based on source type
             }
             
             if link.source_type == 'EMAIL':
                 email = db.session.get(Email, link.source_id)
                 if email:
+                    # Use email received time, not link creation time
+                    email_date = email.received
+                    if email_date:
+                        if hasattr(email_date, 'strftime'):
+                            intel_data['date'] = email_date
+                            intel_data['date_str'] = email_date.strftime('%Y-%m-%d %H:%M')
+                        else:
+                            # It's a string, try to parse
+                            intel_data['date_str'] = str(email_date)[:16]
+                            try:
+                                intel_data['date'] = datetime.strptime(str(email_date)[:16], "%Y-%m-%d %H:%M")
+                            except:
+                                intel_data['date'] = None
+                    
                     intel_data.update({
                         'id': email.id,
                         'reference': email.int_reference_number or f'EMAIL-{email.id}',
@@ -4026,14 +4040,29 @@ def alleged_subject_profile_detail(poi_id):
         email_ids_already_added = {email['id'] for email in emails}
         for old_link, email in old_email_links:
             if email.id not in email_ids_already_added:
+                # Use email received time, not link creation time
+                email_date = email.received
+                email_date_str = 'N/A'
+                email_date_obj = None
+                if email_date:
+                    if hasattr(email_date, 'strftime'):
+                        email_date_obj = email_date
+                        email_date_str = email_date.strftime('%Y-%m-%d %H:%M')
+                    else:
+                        email_date_str = str(email_date)[:16]
+                        try:
+                            email_date_obj = datetime.strptime(str(email_date)[:16], "%Y-%m-%d %H:%M")
+                        except:
+                            email_date_obj = None
+                
                 intel_data = {
                     'link_id': old_link.id,
                     'source_type': 'EMAIL',
                     'confidence': old_link.confidence or 1.0,
                     'case_name': email.case_profile.case_name if email.case_profile else None,
                     'case_id': email.caseprofile_id,
-                    'date': old_link.created_at,
-                    'date_str': old_link.created_at.strftime('%Y-%m-%d %H:%M') if old_link.created_at else 'N/A',
+                    'date': email_date_obj,
+                    'date_str': email_date_str,
                     'id': email.id,
                     'reference': email.int_reference_number or f'EMAIL-{email.id}',
                     'case_int': get_case_int_reference(email),
@@ -4059,8 +4088,8 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or wa.received_time,
-                        'date_str': (link.link_created_at or wa.received_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or wa.received_time) else 'N/A',
+                        'date': wa.received_time,  # Use actual received time
+                        'date_str': wa.received_time.strftime('%Y-%m-%d %H:%M') if wa.received_time else 'N/A',
                         'id': wa.id,
                         'reference': wa.int_reference or f'WHATSAPP-{wa.id}',
                         'case_int': get_case_int_reference(wa),
@@ -4082,8 +4111,8 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or pt.complaint_time,
-                        'date_str': (link.link_created_at or pt.complaint_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or pt.complaint_time) else 'N/A',
+                        'date': pt.complaint_time,  # Use actual complaint time
+                        'date_str': pt.complaint_time.strftime('%Y-%m-%d %H:%M') if pt.complaint_time else 'N/A',
                         'id': pt.id,
                         'reference': pt.int_reference or f'PATROL-{pt.id}',
                         'case_int': get_case_int_reference(pt),
@@ -4106,8 +4135,8 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or sv_datetime,
-                        'date_str': (link.link_created_at or sv_datetime).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or sv_datetime) else 'N/A',
+                        'date': sv_datetime,  # Use actual surveillance date
+                        'date_str': sv_datetime.strftime('%Y-%m-%d') if sv_datetime else 'N/A',
                         'id': sv.id,
                         'reference': f'SURV-{sv.id}',
                         'case_int': None,  # Surveillance entries don't have caseprofile_id yet
@@ -4129,8 +4158,8 @@ def alleged_subject_profile_detail(poi_id):
                         'confidence': link.confidence_score,
                         'case_name': link.case_name,
                         'case_id': link.case_id,
-                        'date': link.link_created_at or rbh.received_time,
-                        'date_str': (link.link_created_at or rbh.received_time).strftime('%Y-%m-%d %H:%M') if (link.link_created_at or rbh.received_time) else 'N/A',
+                        'date': rbh.received_time,  # Use actual received time
+                        'date_str': rbh.received_time.strftime('%Y-%m-%d %H:%M') if rbh.received_time else 'N/A',
                         'id': rbh.id,
                         'reference': rbh.int_reference or f'RBH-{rbh.id}',
                         'case_int': rbh.int_reference,
