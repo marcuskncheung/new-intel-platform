@@ -93,14 +93,33 @@
     background: #fee2e2;
 }
 
-/* Profile Header Card */
+.btn-poi-edit {
+    background: var(--poi-primary);
+    color: white;
+}
+
+.btn-poi-edit:hover {
+    background: var(--poi-primary-dark);
+}
+
+.btn-poi-export {
+    background: var(--poi-success);
+    color: white;
+}
+
+.btn-poi-export:hover {
+    background: #059669;
+}
+
+/* Profile Header Card - Enhanced */
 .poi-profile-header {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-    border-radius: 20px;
-    padding: 2rem 2.5rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4338ca 100%);
+    border-radius: 24px;
+    padding: 2.5rem 3rem;
     margin-bottom: 1.5rem;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 10px 40px rgba(67, 56, 202, 0.3);
 }
 
 .poi-profile-header::before {
@@ -318,6 +337,138 @@
     font-size: 0.8rem;
     color: var(--poi-gray-600);
     margin: 0;
+}
+
+/* Risk Score Gauge */
+.poi-risk-gauge {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--poi-gray-100);
+    text-align: center;
+}
+
+.poi-risk-gauge-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--poi-gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+}
+
+.poi-risk-meter {
+    width: 120px;
+    height: 60px;
+    margin: 0 auto 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.poi-risk-meter::before {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 12px solid var(--poi-gray-200);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+    transform: rotate(-45deg);
+    top: 0;
+    left: 0;
+}
+
+.poi-risk-meter-fill {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 12px solid transparent;
+    border-top-color: var(--poi-success);
+    border-right-color: var(--poi-success);
+    transform: rotate(-45deg);
+    top: 0;
+    left: 0;
+    transition: all 0.5s ease;
+}
+
+.poi-risk-meter-fill.high {
+    border-top-color: var(--poi-danger);
+    border-right-color: var(--poi-danger);
+}
+
+.poi-risk-meter-fill.medium {
+    border-top-color: var(--poi-warning);
+    border-right-color: var(--poi-warning);
+}
+
+.poi-risk-level {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+}
+
+.poi-risk-level.high { color: var(--poi-danger); }
+.poi-risk-level.medium { color: var(--poi-warning); }
+.poi-risk-level.low { color: var(--poi-success); }
+
+.poi-risk-label {
+    font-size: 0.75rem;
+    color: var(--poi-gray-500);
+}
+
+/* Quick Actions Card */
+.poi-quick-actions {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--poi-gray-100);
+}
+
+.poi-quick-actions-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--poi-gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+    padding: 0 0.25rem;
+}
+
+.poi-quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: var(--poi-gray-50);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--poi-gray-700);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+}
+
+.poi-quick-action-btn:last-child {
+    margin-bottom: 0;
+}
+
+.poi-quick-action-btn:hover {
+    background: var(--poi-primary);
+    color: white;
+}
+
+.poi-quick-action-btn i {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
 }
 
 /* Stats Grid */
@@ -893,6 +1044,37 @@
         
         <!-- Sidebar -->
         <div class="poi-sidebar">
+            <!-- Risk Score Gauge -->
+            <div class="poi-risk-gauge">
+                <div class="poi-risk-gauge-title">Risk Assessment</div>
+                {% set case_count = int_case_count if int_case_count is defined else 0 %}
+                {% set risk_level = 'critical' if case_count >= 5 else ('high' if case_count >= 3 else ('medium' if case_count >= 2 else 'low')) %}
+                <div class="poi-risk-meter">
+                    <div class="poi-risk-meter-fill {{ risk_level }}"></div>
+                </div>
+                <div class="poi-risk-level {{ risk_level }}">
+                    {{ risk_level|upper }}
+                </div>
+                <div class="poi-risk-label">Based on {{ case_count }} case{{ 's' if case_count != 1 else '' }}</div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="poi-quick-actions">
+                <div class="poi-quick-actions-title">Quick Actions</div>
+                <a href="{{ url_for('edit_alleged_person_profile', profile_id=profile.id) }}" class="poi-quick-action-btn">
+                    <i class="bi bi-pencil-square"></i>
+                    Edit Profile
+                </a>
+                <button class="poi-quick-action-btn" onclick="window.print()">
+                    <i class="bi bi-printer"></i>
+                    Print Report
+                </button>
+                <a href="{{ url_for('alleged_subject_list') }}" class="poi-quick-action-btn">
+                    <i class="bi bi-people"></i>
+                    View All POIs
+                </a>
+            </div>
+            
             <!-- Profile Details -->
             <div class="poi-info-card">
                 <div class="poi-info-header">

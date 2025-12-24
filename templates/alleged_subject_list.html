@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-/* POI Dashboard - Professional Modern Design */
+/* POI Dashboard - Enhanced Professional Design v2.0 */
 :root {
     --dash-primary: #4f46e5;
     --dash-primary-dark: #3730a3;
+    --dash-primary-light: #818cf8;
     --dash-success: #10b981;
     --dash-warning: #f59e0b;
     --dash-danger: #ef4444;
@@ -14,9 +15,11 @@
     --dash-gray-100: #f3f4f6;
     --dash-gray-200: #e5e7eb;
     --dash-gray-300: #d1d5db;
+    --dash-gray-400: #9ca3af;
     --dash-gray-500: #6b7280;
     --dash-gray-600: #4b5563;
     --dash-gray-700: #374151;
+    --dash-gray-800: #1f2937;
     --dash-gray-900: #111827;
 }
 
@@ -28,14 +31,15 @@
     min-height: 100vh;
 }
 
-/* Header Section */
+/* Header Section - Enhanced */
 .dash-header {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-    border-radius: 20px;
-    padding: 2rem 2.5rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4338ca 100%);
+    border-radius: 24px;
+    padding: 2.5rem 3rem;
     margin-bottom: 1.5rem;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 10px 40px rgba(67, 56, 202, 0.3);
 }
 
 .dash-header::before {
@@ -126,31 +130,35 @@
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
-/* Stats Summary Bar */
+/* Stats Summary Bar - Enhanced */
 .dash-stats-bar {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
-    flex-wrap: wrap;
 }
 
 .dash-stat-pill {
     background: white;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     border: 1px solid var(--dash-gray-100);
-    flex: 1;
-    min-width: 150px;
+    transition: all 0.2s ease;
+}
+
+.dash-stat-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
 .dash-stat-pill-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -160,6 +168,8 @@
 .dash-stat-pill-icon.total { background: #eef2ff; color: #4f46e5; }
 .dash-stat-pill-icon.active { background: #ecfdf5; color: #059669; }
 .dash-stat-pill-icon.inactive { background: #f3f4f6; color: #6b7280; }
+.dash-stat-pill-icon.cases { background: #f5f3ff; color: #7c3aed; }
+.dash-stat-pill-icon.high { background: #fef2f2; color: #dc2626; }
 
 .dash-stat-pill-info {
     display: flex;
@@ -167,28 +177,92 @@
 }
 
 .dash-stat-pill-value {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.75rem;
+    font-weight: 800;
     color: var(--dash-gray-900);
     line-height: 1;
 }
 
 .dash-stat-pill-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--dash-gray-500);
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-top: 0.25rem;
 }
 
-/* Search and Filter Bar */
+/* Filter Pills */
+.dash-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.filter-pill {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 2px solid var(--dash-gray-200);
+    background: white;
+    color: var(--dash-gray-600);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.filter-pill:hover {
+    border-color: var(--dash-primary);
+    color: var(--dash-primary);
+}
+
+.filter-pill.active {
+    background: var(--dash-primary);
+    border-color: var(--dash-primary);
+    color: white;
+}
+
+.filter-pill.danger.active {
+    background: var(--dash-danger);
+    border-color: var(--dash-danger);
+}
+
+.filter-pill.warning.active {
+    background: var(--dash-warning);
+    border-color: var(--dash-warning);
+}
+
+.filter-pill.success.active {
+    background: var(--dash-success);
+    border-color: var(--dash-success);
+}
+
+.filter-pill .count {
+    background: rgba(0,0,0,0.1);
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+}
+
+.filter-pill.active .count {
+    background: rgba(255,255,255,0.25);
+}
+
+/* Search and Filter Bar - Enhanced */
 .dash-toolbar {
     background: white;
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     border: 1px solid var(--dash-gray-100);
+}
+
+.dash-toolbar-row {
     display: flex;
     gap: 1rem;
     align-items: center;
@@ -197,23 +271,25 @@
 
 .dash-search {
     flex: 1;
-    min-width: 250px;
+    min-width: 280px;
     position: relative;
 }
 
 .dash-search input {
     width: 100%;
-    padding: 0.625rem 1rem 0.625rem 2.75rem;
-    border: 1px solid var(--dash-gray-200);
-    border-radius: 8px;
-    font-size: 0.875rem;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border: 2px solid var(--dash-gray-200);
+    border-radius: 12px;
+    font-size: 0.9rem;
     transition: all 0.2s ease;
+    background: var(--dash-gray-50);
 }
 
 .dash-search input:focus {
     outline: none;
     border-color: var(--dash-primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    background: white;
 }
 
 .dash-search i {
@@ -224,76 +300,180 @@
     color: var(--dash-gray-400);
 }
 
+/* Sort Dropdown */
+.dash-sort {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dash-sort label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--dash-gray-600);
+    white-space: nowrap;
+}
+
+.dash-sort select {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 2px solid var(--dash-gray-200);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--dash-gray-700);
+    background: white url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") right 0.5rem center/1.2em no-repeat;
+    appearance: none;
+    cursor: pointer;
+}
+
+.dash-sort select:focus {
+    outline: none;
+    border-color: var(--dash-primary);
+}
+
 .dash-view-toggle {
     display: flex;
     gap: 0.25rem;
     background: var(--dash-gray-100);
-    border-radius: 8px;
-    padding: 0.25rem;
+    border-radius: 10px;
+    padding: 0.3rem;
 }
 
 .dash-view-btn {
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.85rem;
     border: none;
     background: transparent;
-    border-radius: 6px;
-    color: var(--dash-gray-600);
+    border-radius: 8px;
+    color: var(--dash-gray-500);
     cursor: pointer;
     transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.dash-view-btn:hover {
+    color: var(--dash-gray-700);
 }
 
 .dash-view-btn.active {
     background: white;
     color: var(--dash-primary);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* POI Grid */
+/* Results Count */
+.dash-results {
+    font-size: 0.85rem;
+    color: var(--dash-gray-500);
+    margin-left: auto;
+}
+
+.dash-results strong {
+    color: var(--dash-gray-800);
+    font-weight: 700;
+}
+
+/* POI Grid - Enhanced */
 .poi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.5rem;
 }
 
-/* POI Card */
+/* POI Card - Enhanced */
 .poi-card {
     background: white;
-    border-radius: 16px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    border: 1px solid var(--dash-gray-100);
-    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 2px solid var(--dash-gray-100);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .poi-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-    border-color: var(--dash-primary);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(79, 70, 229, 0.15);
+    border-color: var(--dash-primary-light);
+}
+
+/* Risk Level Indicator */
+.poi-card.risk-high {
+    border-left: 4px solid var(--dash-danger);
+}
+
+.poi-card.risk-medium {
+    border-left: 4px solid var(--dash-warning);
+}
+
+.poi-card.risk-low {
+    border-left: 4px solid var(--dash-success);
+}
+
+.poi-risk-badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 10;
+}
+
+.poi-risk-badge.high {
+    background: var(--dash-danger);
+    color: white;
+}
+
+.poi-risk-badge.medium {
+    background: var(--dash-warning);
+    color: white;
+}
+
+.poi-risk-badge.low {
+    background: var(--dash-success);
+    color: white;
 }
 
 .poi-card-header {
-    background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
-    padding: 1.25rem;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    padding: 1.5rem;
     position: relative;
+}
+
+.poi-card-header::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
 }
 
 .poi-card-header-content {
     display: flex;
     align-items: center;
     gap: 1rem;
+    position: relative;
+    z-index: 1;
 }
 
 .poi-card-avatar {
-    width: 52px;
-    height: 52px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 12px;
+    width: 56px;
+    height: 56px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     color: white;
     flex-shrink: 0;
 }
@@ -565,7 +745,7 @@
         </div>
     </div>
     
-    <!-- Stats Summary -->
+    <!-- Stats Summary - Enhanced -->
     <div class="dash-stats-bar">
         <div class="dash-stat-pill">
             <div class="dash-stat-pill-icon total">
@@ -573,24 +753,88 @@
             </div>
             <div class="dash-stat-pill-info">
                 <span class="dash-stat-pill-value">{{ targets|length }}</span>
-                <span class="dash-stat-pill-label">Total POI Recorded</span>
+                <span class="dash-stat-pill-label">Total POIs</span>
+            </div>
+        </div>
+        <div class="dash-stat-pill">
+            <div class="dash-stat-pill-icon cases">
+                <i class="bi bi-folder-fill"></i>
+            </div>
+            <div class="dash-stat-pill-info">
+                <span class="dash-stat-pill-value">{{ targets|sum(attribute='case_count') if targets else 0 }}</span>
+                <span class="dash-stat-pill-label">Total Cases</span>
+            </div>
+        </div>
+        <div class="dash-stat-pill">
+            <div class="dash-stat-pill-icon high">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div class="dash-stat-pill-info">
+                <span class="dash-stat-pill-value">{{ targets|selectattr('case_count', 'ge', 3)|list|length if targets else 0 }}</span>
+                <span class="dash-stat-pill-label">High Priority</span>
+            </div>
+        </div>
+        <div class="dash-stat-pill">
+            <div class="dash-stat-pill-icon active">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <div class="dash-stat-pill-info">
+                <span class="dash-stat-pill-value">{{ targets|selectattr('status', 'equalto', 'ACTIVE')|list|length if targets else 0 }}</span>
+                <span class="dash-stat-pill-label">Active</span>
             </div>
         </div>
     </div>
     
-    <!-- Toolbar -->
+    <!-- Toolbar - Enhanced -->
     <div class="dash-toolbar">
-        <div class="dash-search">
-            <i class="bi bi-search"></i>
-            <input type="text" id="poiSearchInput" placeholder="Search by name, ID, company..." onkeyup="filterPOIs()">
+        <!-- Filter Pills -->
+        <div class="dash-filters">
+            <button class="filter-pill active" onclick="filterByRisk('all', this)">
+                <i class="bi bi-grid-3x3"></i> All
+                <span class="count">{{ targets|length }}</span>
+            </button>
+            <button class="filter-pill danger" onclick="filterByRisk('high', this)">
+                <i class="bi bi-exclamation-triangle"></i> High Priority
+                <span class="count">{{ targets|selectattr('case_count', 'ge', 3)|list|length if targets else 0 }}</span>
+            </button>
+            <button class="filter-pill warning" onclick="filterByRisk('medium', this)">
+                <i class="bi bi-exclamation-circle"></i> Medium
+            </button>
+            <button class="filter-pill success" onclick="filterByRisk('low', this)">
+                <i class="bi bi-check-circle"></i> Low
+            </button>
         </div>
-        <div class="dash-view-toggle">
-            <button class="dash-view-btn active" title="Grid View">
-                <i class="bi bi-grid-3x3-gap-fill"></i>
-            </button>
-            <button class="dash-view-btn" title="List View">
-                <i class="bi bi-list-ul"></i>
-            </button>
+        
+        <div class="dash-toolbar-row">
+            <div class="dash-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="poiSearchInput" placeholder="Search by name, POI ID, company, license..." onkeyup="filterPOIs()">
+            </div>
+            
+            <div class="dash-sort">
+                <label><i class="bi bi-sort-down"></i></label>
+                <select id="poiSortSelect" onchange="sortPOIs()">
+                    <option value="name">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="cases-desc">Cases (High to Low)</option>
+                    <option value="cases">Cases (Low to High)</option>
+                    <option value="intel-desc">Total Intel (High to Low)</option>
+                    <option value="recent">Recently Added</option>
+                </select>
+            </div>
+            
+            <div class="dash-view-toggle">
+                <button class="dash-view-btn active" title="Grid View" onclick="setView('grid')">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
+                <button class="dash-view-btn" title="List View" onclick="setView('list')">
+                    <i class="bi bi-list-ul"></i>
+                </button>
+            </div>
+            
+            <div class="dash-results">
+                Showing <strong id="visibleCount">{{ targets|length }}</strong> of <strong>{{ targets|length }}</strong> POIs
+            </div>
         </div>
     </div>
     
@@ -598,7 +842,22 @@
     {% if targets and targets|length > 0 %}
     <div class="poi-grid" id="poiGrid">
         {% for t in targets %}
-        <div class="poi-card" data-search="{{ t.label|lower }} {{ t.subtitle|lower if t.subtitle else '' }} {{ t.poi_id|lower if t.poi_id else '' }} {{ t.company|lower if t.company else '' }}">
+        {% set case_count = t.case_count or 0 %}
+        {% set risk_level = 'high' if case_count >= 3 else ('medium' if case_count >= 1 else 'low') %}
+        <div class="poi-card risk-{{ risk_level }}" 
+             data-search="{{ t.label|lower }} {{ t.subtitle|lower if t.subtitle else '' }} {{ t.poi_id|lower if t.poi_id else '' }} {{ t.company|lower if t.company else '' }}"
+             data-risk="{{ risk_level }}"
+             data-cases="{{ case_count }}"
+             data-intel="{{ (t.email_count or 0) + (t.whatsapp_count or 0) + (t.patrol_count or 0) + (t.received_by_hand_count or 0) }}"
+             data-name="{{ t.label|lower if t.label else 'zzz' }}">
+            
+            <!-- Risk Badge -->
+            {% if case_count >= 3 %}
+            <span class="poi-risk-badge high">High Risk</span>
+            {% elif case_count >= 1 %}
+            <span class="poi-risk-badge medium">Medium</span>
+            {% endif %}
+            
             <div class="poi-card-header">
                 <div class="poi-card-header-content">
                     <div class="poi-card-avatar">
@@ -716,19 +975,103 @@
 </div>
 
 <script>
+// Current filter state
+let currentRiskFilter = 'all';
+
+// Update visible count
+function updateVisibleCount() {
+    const cards = document.querySelectorAll('.poi-card');
+    let visibleCount = 0;
+    cards.forEach(card => {
+        if (card.style.display !== 'none') visibleCount++;
+    });
+    document.getElementById('visibleCount').textContent = visibleCount;
+}
+
+// Filter by search
 function filterPOIs() {
     const searchValue = document.getElementById('poiSearchInput').value.toLowerCase();
     const cards = document.querySelectorAll('.poi-card');
     
     cards.forEach(card => {
         const searchData = card.getAttribute('data-search');
-        if (searchData.includes(searchValue)) {
+        const riskLevel = card.getAttribute('data-risk');
+        
+        const matchesSearch = searchData.includes(searchValue);
+        const matchesRisk = currentRiskFilter === 'all' || riskLevel === currentRiskFilter;
+        
+        if (matchesSearch && matchesRisk) {
             card.style.display = '';
         } else {
             card.style.display = 'none';
         }
     });
+    
+    updateVisibleCount();
 }
+
+// Filter by risk level
+function filterByRisk(risk, btn) {
+    currentRiskFilter = risk;
+    
+    // Update button states
+    document.querySelectorAll('.filter-pill').forEach(pill => pill.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Re-apply filters
+    filterPOIs();
+}
+
+// Sort POIs
+function sortPOIs() {
+    const sortBy = document.getElementById('poiSortSelect').value;
+    const grid = document.getElementById('poiGrid');
+    const cards = Array.from(grid.querySelectorAll('.poi-card'));
+    
+    cards.sort((a, b) => {
+        switch(sortBy) {
+            case 'name':
+                return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+            case 'name-desc':
+                return b.getAttribute('data-name').localeCompare(a.getAttribute('data-name'));
+            case 'cases-desc':
+                return parseInt(b.getAttribute('data-cases') || 0) - parseInt(a.getAttribute('data-cases') || 0);
+            case 'cases':
+                return parseInt(a.getAttribute('data-cases') || 0) - parseInt(b.getAttribute('data-cases') || 0);
+            case 'intel-desc':
+                return parseInt(b.getAttribute('data-intel') || 0) - parseInt(a.getAttribute('data-intel') || 0);
+            case 'recent':
+                // By default, keep original order (newest first from backend)
+                return 0;
+            default:
+                return 0;
+        }
+    });
+    
+    // Re-append cards in new order
+    cards.forEach(card => grid.appendChild(card));
+}
+
+// Toggle view mode
+function setView(mode) {
+    const grid = document.getElementById('poiGrid');
+    const buttons = document.querySelectorAll('.dash-view-btn');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    if (mode === 'list') {
+        grid.style.gridTemplateColumns = '1fr';
+        buttons[1].classList.add('active');
+    } else {
+        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(360px, 1fr))';
+        buttons[0].classList.add('active');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateVisibleCount();
+});
 </script>
 
 <!-- Rebuild POI Modal (Admin Only) -->
