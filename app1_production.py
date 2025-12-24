@@ -4634,10 +4634,10 @@ def login():
                 print(f"⚠️ Audit log error during successful login: {audit_error}")
                 # Continue with login flow even if audit fails
             
-            # Get next URL or default to home
+            # Get next URL or default to dashboard
             next_page = request.args.get('next')
             if not next_page or not next_page.startswith('/'):
-                next_page = url_for('home')
+                next_page = url_for('home')  # This goes to /dashboard
             
             print(f"🔄 Redirecting to: {next_page}")
             return redirect(next_page)
@@ -4682,12 +4682,11 @@ def signup():
 @login_required
 def root():
     """
-    🏠 ROOT URL: Redirect to Global Search
+    🏠 ROOT URL: Redirect to Dashboard
     
-    The Global Search is now the main landing page - it's the most useful feature
-    for users to quickly find any intelligence across all sources.
+    The Dashboard is the main landing page after login.
     """
-    return redirect(url_for('global_search_page'))
+    return redirect(url_for('home'))
 
 @app.route('/home')
 @app.route('/welcome')
