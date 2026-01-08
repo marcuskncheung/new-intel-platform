@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-email_bp = Blueprint('email', __name__)
+email_intel_bp = Blueprint('email_intel', __name__)
 
 # Routes to be moved:
 # - /int_source (line 5031) - Main email inbox view

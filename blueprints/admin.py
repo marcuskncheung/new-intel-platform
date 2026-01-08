@@ -8,14 +8,16 @@ import threading
 import csv
 from io import StringIO
 from datetime import datetime
-from flask import render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
-from blueprints import admin_bp
 from extensions import db
 from models.user import User, AuditLog, FeatureSettings
 from utils.decorators import admin_required
 from utils.helpers import get_hk_time
+
+# Create blueprint
+admin_bp = Blueprint('admin', __name__)
 
 # Try to import psutil for system info
 try:

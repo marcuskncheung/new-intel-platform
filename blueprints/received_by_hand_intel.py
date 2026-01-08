@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-received_by_hand_bp = Blueprint('received_by_hand', __name__)
+received_by_hand_intel_bp = Blueprint('received_by_hand_intel', __name__)
 
 # Routes to be moved:
 # - /add_received_by_hand (line 10844)

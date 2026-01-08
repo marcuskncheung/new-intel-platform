@@ -1,12 +1,13 @@
 # blueprints/main.py
 # Main routes: home, dashboard, about, global-search, tools, health
 
-from flask import render_template, redirect, url_for, jsonify, request
+from flask import Blueprint, render_template, redirect, url_for, jsonify, request
 from flask_login import login_required
-from blueprints import main_bp
 from extensions import db
 import time
 
+# Create blueprint
+main_bp = Blueprint('main', __name__)
 
 # Request stats for health check
 request_stats = {

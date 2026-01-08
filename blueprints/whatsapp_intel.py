@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-whatsapp_bp = Blueprint('whatsapp', __name__)
+whatsapp_intel_bp = Blueprint('whatsapp_intel', __name__)
 
 # Routes to be moved:
 # - /add_whatsapp (line 8190)

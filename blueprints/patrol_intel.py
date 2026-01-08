@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-patrol_bp = Blueprint('patrol', __name__)
+patrol_intel_bp = Blueprint('patrol_intel', __name__)
 
 # Routes to be moved:
 # - /add_online_patrol (line 8390)

@@ -1,14 +1,16 @@
 # blueprints/auth.py
 # Authentication routes: login, logout, signup
 
-from flask import render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from blueprints import auth_bp
 from extensions import db
 from models.user import User, AuditLog
 import pytz
 from datetime import datetime
+
+# Create blueprint
+auth_bp = Blueprint('auth', __name__)
 
 HK_TZ = pytz.timezone('Asia/Hong_Kong')
 

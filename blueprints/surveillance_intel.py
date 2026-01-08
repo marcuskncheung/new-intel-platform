@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-surveillance_bp = Blueprint('surveillance', __name__)
+surveillance_intel_bp = Blueprint('surveillance_intel', __name__)
 
 # Routes to be moved:
 # - /add_surveillance (line 9002)
