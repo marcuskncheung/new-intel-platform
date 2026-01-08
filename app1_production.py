@@ -640,10 +640,36 @@ def fromjson_filter(value):
 @app.context_processor
 def inject_reference_helpers():
     """Make reference system helper functions available in all templates"""
+    from flask_login import current_user
+    
+    def can_see_feature(feature_key):
+        """Check if current user can see a feature"""
+        # Import here to avoid circular import
+        try:
+            from flask import current_app
+            with current_app.app_context():
+                setting = FeatureSettings.query.filter_by(feature_key=feature_key).first()
+                if not setting:
+                    return True  # If setting doesn't exist, show by default
+                
+                if not setting.is_enabled:
+                    return False  # Feature is completely disabled
+                
+                if setting.admin_only:
+                    # Check if user is admin
+                    if current_user.is_authenticated and hasattr(current_user, 'is_admin'):
+                        return current_user.is_admin() if callable(current_user.is_admin) else current_user.is_admin
+                    return False
+                
+                return True  # Feature is enabled for all users
+        except Exception:
+            return True  # Default to showing if any error
+    
     return dict(
         get_source_display_id=get_source_display_id,
         get_case_int_reference=get_case_int_reference,
-        format_intelligence_reference=format_intelligence_reference
+        format_intelligence_reference=format_intelligence_reference,
+        can_see_feature=can_see_feature
     )
     
     
@@ -835,6 +861,112 @@ class AuditLog(db.Model):
             'severity': self.severity
         }
 
+
+# ===== FEATURE VISIBILITY CONTROL SYSTEM =====
+class FeatureSettings(db.Model):
+    """Admin-controlled feature visibility settings"""
+    __tablename__ = 'feature_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    feature_key = db.Column(db.String(100), unique=True, nullable=False)  # e.g., 'ai_analysis', 'surveillance_tab'
+    feature_name = db.Column(db.String(200), nullable=False)  # Human-readable name
+    description = db.Column(db.Text)  # Description of what the feature does
+    is_enabled = db.Column(db.Boolean, default=True)  # Whether feature is enabled for all users
+    admin_only = db.Column(db.Boolean, default=False)  # Whether feature is admin-only
+    updated_at = db.Column(db.DateTime, default=get_hk_time, onupdate=get_hk_time)
+    updated_by = db.Column(db.String(100))  # Who last changed this setting
+    
+    # Default features to initialize
+    DEFAULT_FEATURES = [
+        {
+            'feature_key': 'ai_analysis',
+            'feature_name': 'AI Analysis (Email)',
+            'description': 'AI-powered comprehensive analysis for emails including attachments and alleged persons detection',
+            'is_enabled': True,
+            'admin_only': True  # Default: Admin only
+        },
+        {
+            'feature_key': 'ai_status_button',
+            'feature_name': 'AI Status Button',
+            'description': 'Button to check AI analysis status in Email inbox',
+            'is_enabled': True,
+            'admin_only': True
+        },
+        {
+            'feature_key': 'rebuild_poi_list',
+            'feature_name': 'Rebuild POI List',
+            'description': 'Button to rebuild/resync POI list from all sources',
+            'is_enabled': True,
+            'admin_only': True
+        },
+        {
+            'feature_key': 'surveillance_tab',
+            'feature_name': 'Surveillance Tab',
+            'description': 'Surveillance Operation tab in Intel Source',
+            'is_enabled': True,
+            'admin_only': False
+        },
+        {
+            'feature_key': 'database_admin',
+            'feature_name': 'Database Overview',
+            'description': 'Access to database statistics and management',
+            'is_enabled': True,
+            'admin_only': True
+        },
+    ]
+    
+    @classmethod
+    def get_setting(cls, feature_key):
+        """Get a feature setting by key"""
+        return cls.query.filter_by(feature_key=feature_key).first()
+    
+    @classmethod
+    def is_feature_visible(cls, feature_key, user=None):
+        """Check if a feature should be visible to the given user"""
+        setting = cls.get_setting(feature_key)
+        if not setting:
+            return True  # If setting doesn't exist, show by default
+        
+        if not setting.is_enabled:
+            return False  # Feature is completely disabled
+        
+        if setting.admin_only:
+            # Check if user is admin
+            if user and hasattr(user, 'is_admin'):
+                return user.is_admin() if callable(user.is_admin) else user.is_admin
+            return False
+        
+        return True  # Feature is enabled for all users
+    
+    @classmethod
+    def initialize_defaults(cls):
+        """Initialize default feature settings if they don't exist"""
+        for feature in cls.DEFAULT_FEATURES:
+            existing = cls.query.filter_by(feature_key=feature['feature_key']).first()
+            if not existing:
+                new_setting = cls(
+                    feature_key=feature['feature_key'],
+                    feature_name=feature['feature_name'],
+                    description=feature['description'],
+                    is_enabled=feature['is_enabled'],
+                    admin_only=feature['admin_only'],
+                    updated_by='system'
+                )
+                db.session.add(new_setting)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Error initializing feature settings: {e}")
+
+
+# Helper function to check feature visibility in templates
+def can_see_feature(feature_key):
+    """Template helper to check if current user can see a feature"""
+    from flask_login import current_user
+    return FeatureSettings.is_feature_visible(feature_key, current_user if current_user.is_authenticated else None)
+
+
 # Initialize security system
 if SECURITY_MODULE_AVAILABLE:
     # Initialize security after database setup
@@ -851,6 +983,8 @@ with app.app_context():
             print("Created new database tables with security enhancements")
         else:
             print("Database tables already exist - checking for security upgrades...")
+            # Still run create_all to add any new tables like feature_settings
+            db.create_all()
     except Exception as e:
         print(f"⚠️ Database inspection failed, creating tables anyway: {e}")
         try:
@@ -858,6 +992,13 @@ with app.app_context():
             print("✅ Database tables created successfully")
         except Exception as create_error:
             print(f"❌ Failed to create database tables: {create_error}")
+    
+    # Initialize Feature Settings defaults
+    try:
+        FeatureSettings.initialize_defaults()
+        print("✅ Feature settings initialized")
+    except Exception as feature_error:
+        print(f"⚠️ Feature settings initialization failed: {feature_error}")
     
     # Initialize security module
     if SECURITY_MODULE_AVAILABLE:
@@ -6423,6 +6564,84 @@ def admin_dashboard():
                          db_stats=db_stats,
                          recent_logs=recent_logs,
                          system_info=system_info)
+
+
+# ===== FEATURE VISIBILITY CONTROL ROUTES =====
+@app.route("/admin/features")
+@login_required
+def admin_features():
+    """Admin page to control feature visibility"""
+    if not current_user.is_admin():
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    # Initialize default features if needed
+    FeatureSettings.initialize_defaults()
+    
+    features = FeatureSettings.query.order_by(FeatureSettings.feature_name).all()
+    
+    AuditLog.log_action('Admin feature settings accessed', 'feature_settings', None, None, current_user)
+    
+    return render_template('admin_features.html', features=features)
+
+
+@app.route("/admin/features/update", methods=["POST"])
+@login_required
+def admin_features_update():
+    """Update feature visibility settings"""
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        feature_key = request.form.get('feature_key')
+        action = request.form.get('action')  # 'toggle_enabled', 'toggle_admin_only'
+        
+        setting = FeatureSettings.query.filter_by(feature_key=feature_key).first()
+        if not setting:
+            return jsonify({'success': False, 'error': 'Feature not found'}), 404
+        
+        if action == 'toggle_enabled':
+            setting.is_enabled = not setting.is_enabled
+        elif action == 'toggle_admin_only':
+            setting.admin_only = not setting.admin_only
+        else:
+            return jsonify({'success': False, 'error': 'Invalid action'}), 400
+        
+        setting.updated_by = current_user.username
+        setting.updated_at = get_hk_time()
+        
+        db.session.commit()
+        
+        AuditLog.log_action(
+            f'Feature setting changed: {feature_key} - {action}',
+            'feature_settings',
+            feature_key,
+            f'is_enabled={setting.is_enabled}, admin_only={setting.admin_only}',
+            current_user
+        )
+        
+        return jsonify({
+            'success': True,
+            'is_enabled': setting.is_enabled,
+            'admin_only': setting.admin_only,
+            'message': f'Feature "{setting.feature_name}" updated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route("/api/features/check/<feature_key>")
+@login_required
+def api_feature_check(feature_key):
+    """API to check if a feature is visible to current user"""
+    is_visible = FeatureSettings.is_feature_visible(feature_key, current_user)
+    return jsonify({
+        'feature_key': feature_key,
+        'is_visible': is_visible
+    })
+
 
 # User Management
 @app.route("/admin/users")

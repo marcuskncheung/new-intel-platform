@@ -59,7 +59,7 @@
 
   <!-- Quick Navigation Cards -->
   <div class="row mb-4 g-3">
-    <div class="col-md-3">
+    <div class="col-md-3 col-lg-2">
       <a href="{{ url_for('admin_users') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-primary text-white">
           <div class="card-body text-center py-4">
@@ -70,7 +70,18 @@
         </div>
       </a>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-lg-2">
+      <a href="{{ url_for('admin_features') }}" class="text-decoration-none">
+        <div class="card admin-nav-card bg-purple text-white" style="background: linear-gradient(135deg, #6f42c1, #9b59b6);">
+          <div class="card-body text-center py-4">
+            <i class="bi bi-toggles" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-2 mb-0">Feature Controls</h5>
+            <small>Show/Hide Features</small>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3 col-lg-2">
       <a href="{{ url_for('admin_database') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-success text-white">
           <div class="card-body text-center py-4">
@@ -81,7 +92,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-lg-2">
       <a href="{{ url_for('admin_logs') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-info text-white">
           <div class="card-body text-center py-4">
@@ -92,7 +103,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-lg-2">
       <a href="{{ url_for('security_admin') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-warning text-dark">
           <div class="card-body text-center py-4">

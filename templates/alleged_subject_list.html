@@ -734,7 +734,7 @@
                     <i class="bi bi-search"></i> Find & Merge Duplicates
                 </a>
                 {% endif %}
-                {% if current_user.is_admin %}
+                {% if can_see_feature('rebuild_poi_list') %}
                 <!-- Admin Only: Rebuild POI List from All Sources -->
                 <button type="button" class="btn-dash" style="background: rgba(220, 53, 69, 0.9); color: white;" 
                         data-bs-toggle="modal" data-bs-target="#rebuildPoiModal">
@@ -1075,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Rebuild POI Modal (Admin Only) -->
-{% if current_user.is_admin %}
+{% if can_see_feature('rebuild_poi_list') %}
 <div class="modal fade" id="rebuildPoiModal" tabindex="-1" aria-labelledby="rebuildPoiModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

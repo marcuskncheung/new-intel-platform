@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.feature-card {
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+}
+.feature-card:hover {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.feature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.feature-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.toggle-switch {
+  position: relative;
+  width: 50px;
+  height: 26px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 26px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+input:checked + .toggle-slider {
+  background-color: #198754;
+}
+input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+.admin-badge {
+  background: linear-gradient(135deg, #ffc107, #ff9800);
+  color: #000;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+.all-users-badge {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #fff;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+.disabled-overlay {
+  opacity: 0.5;
+  pointer-events: none;
+}
+</style>
+
+<div class="container-fluid px-4">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+        <div>
+          <h2 class="mb-0"><i class="bi bi-toggles text-primary"></i> Feature Visibility Control</h2>
+          <small class="text-muted">Control which features are visible to regular users vs admin-only</small>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Admin
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-light border-0">
+        <div class="card-body py-3">
+          <div class="d-flex flex-wrap gap-4 align-items-center">
+            <div class="d-flex align-items-center">
+              <span class="admin-badge me-2">Admin Only</span>
+              <small class="text-muted">Only administrators can see this feature</small>
+            </div>
+            <div class="d-flex align-items-center">
+              <span class="all-users-badge me-2">All Users</span>
+              <small class="text-muted">All logged-in users can see this feature</small>
+            </div>
+            <div class="d-flex align-items-center">
+              <span class="badge bg-secondary me-2">Disabled</span>
+              <small class="text-muted">Feature is completely hidden from everyone</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Cards -->
+  <div class="row">
+    {% for feature in features %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card feature-card {% if not feature.is_enabled %}bg-light{% endif %}" id="feature-{{ feature.feature_key }}">
+        <div class="card-body">
+          <div class="feature-header mb-3">
+            <div class="d-flex align-items-center">
+              <div class="feature-icon {% if feature.is_enabled %}bg-primary bg-opacity-10 text-primary{% else %}bg-secondary bg-opacity-10 text-secondary{% endif %} me-3">
+                {% if 'ai' in feature.feature_key %}
+                  <i class="bi bi-robot"></i>
+                {% elif 'surveillance' in feature.feature_key %}
+                  <i class="bi bi-camera-video"></i>
+                {% elif 'poi' in feature.feature_key or 'rebuild' in feature.feature_key %}
+                  <i class="bi bi-person-badge"></i>
+                {% elif 'database' in feature.feature_key %}
+                  <i class="bi bi-database"></i>
+                {% else %}
+                  <i class="bi bi-gear"></i>
+                {% endif %}
+              </div>
+              <div>
+                <h6 class="mb-0">{{ feature.feature_name }}</h6>
+                <small class="text-muted">{{ feature.feature_key }}</small>
+              </div>
+            </div>
+            
+            <!-- Status Badge -->
+            {% if not feature.is_enabled %}
+              <span class="badge bg-secondary">Disabled</span>
+            {% elif feature.admin_only %}
+              <span class="admin-badge">Admin Only</span>
+            {% else %}
+              <span class="all-users-badge">All Users</span>
+            {% endif %}
+          </div>
+          
+          <p class="text-muted small mb-3">{{ feature.description }}</p>
+          
+          <!-- Controls -->
+          <div class="border-top pt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small"><i class="bi bi-power"></i> Enabled</span>
+              <label class="toggle-switch">
+                <input type="checkbox" 
+                       {% if feature.is_enabled %}checked{% endif %}
+                       onchange="toggleFeature('{{ feature.feature_key }}', 'toggle_enabled', this)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center {% if not feature.is_enabled %}disabled-overlay{% endif %}">
+              <span class="small"><i class="bi bi-shield-lock"></i> Admin Only</span>
+              <label class="toggle-switch">
+                <input type="checkbox" 
+                       {% if feature.admin_only %}checked{% endif %}
+                       onchange="toggleFeature('{{ feature.feature_key }}', 'toggle_admin_only', this)"
+                       {% if not feature.is_enabled %}disabled{% endif %}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <!-- Last Updated -->
+          {% if feature.updated_by and feature.updated_at %}
+          <div class="mt-3 pt-2 border-top">
+            <small class="text-muted">
+              <i class="bi bi-clock-history"></i> 
+              Updated by {{ feature.updated_by }} on {{ feature.updated_at.strftime('%Y-%m-%d %H:%M') }}
+            </small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  
+  <!-- Info Card -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card border-info">
+        <div class="card-body">
+          <h6 class="text-info"><i class="bi bi-info-circle"></i> How Feature Controls Work</h6>
+          <ul class="mb-0 small text-muted">
+            <li><strong>Enabled:</strong> Turn off to completely hide a feature from all users (including admins)</li>
+            <li><strong>Admin Only:</strong> When enabled, only users with admin role can see this feature</li>
+            <li>Changes take effect immediately - no restart required</li>
+            <li>All changes are logged in the audit log for security tracking</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleFeature(featureKey, action, checkbox) {
+  const formData = new FormData();
+  formData.append('feature_key', featureKey);
+  formData.append('action', action);
+  
+  fetch('{{ url_for("admin_features_update") }}', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Update the UI
+      const card = document.getElementById('feature-' + featureKey);
+      
+      // Update badge
+      const badges = card.querySelectorAll('.admin-badge, .all-users-badge, .badge.bg-secondary');
+      badges.forEach(b => b.remove());
+      
+      const headerDiv = card.querySelector('.feature-header');
+      let newBadge;
+      
+      if (!data.is_enabled) {
+        newBadge = document.createElement('span');
+        newBadge.className = 'badge bg-secondary';
+        newBadge.textContent = 'Disabled';
+        card.classList.add('bg-light');
+      } else if (data.admin_only) {
+        newBadge = document.createElement('span');
+        newBadge.className = 'admin-badge';
+        newBadge.textContent = 'Admin Only';
+        card.classList.remove('bg-light');
+      } else {
+        newBadge = document.createElement('span');
+        newBadge.className = 'all-users-badge';
+        newBadge.textContent = 'All Users';
+        card.classList.remove('bg-light');
+      }
+      headerDiv.appendChild(newBadge);
+      
+      // Update icon color
+      const iconDiv = card.querySelector('.feature-icon');
+      if (data.is_enabled) {
+        iconDiv.className = iconDiv.className.replace('bg-secondary bg-opacity-10 text-secondary', 'bg-primary bg-opacity-10 text-primary');
+      } else {
+        iconDiv.className = iconDiv.className.replace('bg-primary bg-opacity-10 text-primary', 'bg-secondary bg-opacity-10 text-secondary');
+      }
+      
+      // Enable/disable admin-only toggle based on enabled state
+      const adminToggle = card.querySelector('[onchange*="toggle_admin_only"]');
+      const adminRow = adminToggle.closest('.d-flex');
+      if (!data.is_enabled) {
+        adminToggle.disabled = true;
+        adminRow.classList.add('disabled-overlay');
+      } else {
+        adminToggle.disabled = false;
+        adminRow.classList.remove('disabled-overlay');
+      }
+      
+      // Show success toast
+      showToast('success', data.message);
+    } else {
+      // Revert checkbox
+      checkbox.checked = !checkbox.checked;
+      showToast('error', data.error || 'Failed to update feature');
+    }
+  })
+  .catch(error => {
+    // Revert checkbox
+    checkbox.checked = !checkbox.checked;
+    showToast('error', 'Error: ' + error.message);
+  });
+}
+
+function showToast(type, message) {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+  toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; animation: slideIn 0.3s ease;';
+  toast.innerHTML = `
+    <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+    ${message}
+  `;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+</script>
+
+<style>
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+</style>
+{% endblock %}
