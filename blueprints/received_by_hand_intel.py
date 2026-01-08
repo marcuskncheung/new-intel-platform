@@ -22,6 +22,16 @@ import io
 received_by_hand_intel_bp = Blueprint('received_by_hand_intel', __name__)
 
 
+# ==================== LIST ROUTE ====================
+
+@received_by_hand_intel_bp.route('/')
+@received_by_hand_intel_bp.route('/list')
+@login_required
+def received_by_hand_list():
+    """List all received by hand entries - redirects to int_source with filter"""
+    return redirect(url_for('email_intel.int_source', source_filter='received_by_hand'))
+
+
 @received_by_hand_intel_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_received_by_hand():

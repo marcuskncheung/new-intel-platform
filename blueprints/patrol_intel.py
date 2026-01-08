@@ -22,6 +22,25 @@ import io
 patrol_intel_bp = Blueprint('patrol_intel', __name__)
 
 
+# ==================== LIST ROUTE ====================
+
+@patrol_intel_bp.route('/')
+@patrol_intel_bp.route('/list')
+@login_required
+def list_int_source_online_patrol_aligned():
+    """List all online patrol entries - redirects to int_source with filter"""
+    return redirect(url_for('email_intel.int_source', source_filter='patrol'))
+
+
+# ==================== ALIAS ROUTES FOR TEMPLATE COMPATIBILITY ====================
+
+@patrol_intel_bp.route('/add_online_patrol', methods=['GET', 'POST'])
+@login_required
+def add_online_patrol():
+    """Alias for add_patrol for template compatibility"""
+    return add_patrol()
+
+
 @patrol_intel_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_patrol():

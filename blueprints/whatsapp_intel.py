@@ -22,6 +22,16 @@ import io
 whatsapp_intel_bp = Blueprint('whatsapp_intel', __name__)
 
 
+# ==================== LIST ROUTE ====================
+
+@whatsapp_intel_bp.route('/')
+@whatsapp_intel_bp.route('/list')
+@login_required
+def list_whatsapp_entries_aligned():
+    """List all WhatsApp entries - redirects to int_source with filter"""
+    return redirect(url_for('email_intel.int_source', source_filter='whatsapp'))
+
+
 @whatsapp_intel_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_whatsapp():

@@ -19,6 +19,16 @@ from utils.helpers import get_hk_time
 # Create blueprint
 admin_bp = Blueprint('admin', __name__)
 
+
+# ==================== ALIAS ROUTES FOR TEMPLATE COMPATIBILITY ====================
+
+@admin_bp.route("/security_admin", methods=["GET"])
+@login_required
+def security_admin():
+    """Alias for admin_security"""
+    return redirect(url_for('admin.admin_security'))
+
+
 # Try to import psutil for system info
 try:
     import psutil

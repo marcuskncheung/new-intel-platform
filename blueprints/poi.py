@@ -21,6 +21,45 @@ from utils.helpers import get_hk_time
 poi_bp = Blueprint('poi', __name__)
 
 
+# ==================== ALIAS ROUTES FOR TEMPLATE COMPATIBILITY ====================
+
+@poi_bp.route('/rebuild_poi_list', methods=['POST'])
+@login_required
+def rebuild_poi_list():
+    """Alias for refresh_profiles - rebuild POI list"""
+    return refresh_profiles()
+
+
+@poi_bp.route('/refresh_poi_profiles', methods=['POST'])
+@login_required
+def refresh_poi_profiles():
+    """Alias for refresh_profiles"""
+    return refresh_profiles()
+
+
+@poi_bp.route('/find_duplicate_poi_profiles', methods=['GET', 'POST'])
+@login_required
+def find_duplicate_poi_profiles():
+    """Alias for find_duplicates"""
+    return find_duplicates()
+
+
+@poi_bp.route('/merge_poi_profiles', methods=['POST'])
+@login_required
+def merge_poi_profiles():
+    """Alias for merge_profiles"""
+    return merge_profiles()
+
+
+@poi_bp.route('/create_manual_profile', methods=['GET', 'POST'])
+@login_required
+def create_manual_profile():
+    """Alias for create_manual_poi_profile"""
+    return create_manual_poi_profile()
+
+
+# ==================== MAIN ROUTES ====================
+
 @poi_bp.route('/list')
 @poi_bp.route('/alleged_subject_list')
 @login_required

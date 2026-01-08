@@ -21,6 +21,16 @@ from utils.helpers import get_hk_time
 surveillance_intel_bp = Blueprint('surveillance_intel', __name__)
 
 
+# ==================== LIST ROUTE ====================
+
+@surveillance_intel_bp.route('/')
+@surveillance_intel_bp.route('/list')
+@login_required
+def surveillance_list():
+    """List all surveillance entries - redirects to int_source with filter"""
+    return redirect(url_for('email_intel.int_source', source_filter='surveillance'))
+
+
 @surveillance_intel_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_surveillance():

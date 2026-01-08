@@ -29,6 +29,29 @@ import mimetypes
 email_intel_bp = Blueprint('email_intel', __name__)
 
 
+# ==================== ALIAS ROUTES FOR TEMPLATE COMPATIBILITY ====================
+
+@email_intel_bp.route('/list')
+@login_required
+def list_int_source_email():
+    """Alias for int_source for template compatibility"""
+    return redirect(url_for('email_intel.int_source'))
+
+
+@email_intel_bp.route('/master_export')
+@login_required
+def int_source_master_export():
+    """Alias for export.master_export for template compatibility"""
+    return redirect(url_for('export.master_export'))
+
+
+@email_intel_bp.route('/ai_grouped_export/excel')
+@login_required
+def int_source_ai_grouped_excel_export():
+    """Alias for AI grouped export - redirect to export blueprint"""
+    return redirect(url_for('export.master_export'))
+
+
 @email_intel_bp.route('')
 @email_intel_bp.route('/')
 @login_required
