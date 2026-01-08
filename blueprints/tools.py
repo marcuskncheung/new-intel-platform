@@ -299,3 +299,132 @@ def bulk_delete():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== IMAGE COUNT & MIGRATION ====================
+
+@tools_bp.route('/count-images')
+@login_required
+def count_images():
+    """Count all images in the system"""
+    try:
+        from models import WhatsAppEntry, OnlinePatrolEntry
+        from models.whatsapp import WhatsAppImage
+        from models.patrol import OnlinePatrolFile
+        
+        whatsapp_images = WhatsAppImage.query.count()
+        patrol_files = OnlinePatrolFile.query.count()
+        
+        return jsonify({
+            'success': True,
+            'counts': {
+                'whatsapp_images': whatsapp_images,
+                'patrol_files': patrol_files,
+                'total': whatsapp_images + patrol_files
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@tools_bp.route('/migrate-attachments-to-db')
+@login_required
+def migrate_attachments_to_db():
+    """Migrate email attachments from filesystem to database"""
+    from extensions import db
+    
+    if not current_user.username == 'admin':
+        flash('Admin access required', 'error')
+        return redirect(url_for('main.home'))
+    
+    migrated = 0
+    errors = []
+    
+    try:
+        from models.email import Attachment
+        
+        attachments = Attachment.query.filter(
+            Attachment.data == None,
+            Attachment.file_path != None
+        ).all()
+        
+        for att in attachments:
+            try:
+                if att.file_path and os.path.exists(att.file_path):
+                    with open(att.file_path, 'rb') as f:
+                        att.data = f.read()
+                    migrated += 1
+            except Exception as e:
+                errors.append(f'{att.id}: {str(e)}')
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'migrated': migrated,
+            'errors': errors
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@tools_bp.route('/migrate-whatsapp-images-to-db')
+@login_required
+def migrate_whatsapp_images_to_db():
+    """Migrate WhatsApp images from filesystem to database"""
+    if not current_user.username == 'admin':
+        flash('Admin access required', 'error')
+        return redirect(url_for('main.home'))
+    
+    return jsonify({
+        'success': True,
+        'status': 'WhatsApp images migration placeholder',
+        'note': 'Run migrate_whatsapp_images.py script for full migration'
+    })
+
+
+@tools_bp.route('/migrate-email-attachments-folder-to-db')
+@login_required
+def migrate_email_attachments_folder_to_db():
+    """Migrate email attachments folder to database"""
+    if not current_user.username == 'admin':
+        flash('Admin access required', 'error')
+        return redirect(url_for('main.home'))
+    
+    return jsonify({
+        'success': True,
+        'status': 'Email attachments folder migration placeholder',
+        'note': 'Run migration script for full migration'
+    })
+
+
+# ==================== ADDITIONAL CHART TESTS ====================
+
+@tools_bp.route('/simple-chart-test')
+@login_required
+def simple_chart_test():
+    """Simple chart test page"""
+    return render_template('simple_chart_test.html')
+
+
+@tools_bp.route('/debug-chart')
+@login_required
+def debug_chart():
+    """Debug chart page"""
+    return render_template('debug_chart.html')
+
+
+# ==================== TEST AUTOMATION ====================
+
+@tools_bp.route('/test_automation')
+@login_required
+def test_automation():
+    """Test automation functions"""
+    try:
+        from alleged_person_automation import test_automation as run_test
+        result = run_test()
+        return jsonify({'success': True, 'result': result})
+    except ImportError:
+        return jsonify({'success': False, 'error': 'Automation module not found'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

@@ -195,3 +195,56 @@ def update_int_reference(entry_id):
         flash(f'Error updating INT reference: {str(e)}', 'danger')
     
     return redirect(url_for('patrol_intel.patrol_detail', entry_id=entry_id))
+
+
+# ==================== ADDITIONAL ROUTES ====================
+
+@patrol_intel_bp.route('/update_patrol_details/<int:entry_id>', methods=['POST'])
+@login_required
+def update_patrol_details(entry_id):
+    """
+    📝 Update Patrol Entry Details
+    """
+    try:
+        entry = OnlinePatrolEntry.query.get_or_404(entry_id)
+        
+        # Update fields from form
+        entry.title = request.form.get('title', entry.title)
+        entry.platform = request.form.get('platform', entry.platform)
+        entry.link = request.form.get('link', entry.link)
+        entry.account_id = request.form.get('account_id', entry.account_id)
+        entry.account_name = request.form.get('account_name', entry.account_name)
+        entry.notes = request.form.get('notes', entry.notes)
+        
+        db.session.commit()
+        flash('Details updated successfully', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating details: {str(e)}', 'danger')
+    
+    return redirect(url_for('patrol_intel.patrol_detail', entry_id=entry_id))
+
+
+@patrol_intel_bp.route('/delete_patrol_file/<int:file_id>', methods=['POST'])
+@login_required
+def delete_patrol_file(file_id):
+    """
+    🗑️ Delete Patrol File/Photo
+    """
+    from models.patrol import OnlinePatrolFile
+    
+    try:
+        file = OnlinePatrolFile.query.get_or_404(file_id)
+        entry_id = file.online_patrol_id
+        
+        db.session.delete(file)
+        db.session.commit()
+        flash('File deleted', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting file: {str(e)}', 'danger')
+        entry_id = request.form.get('entry_id', 1)
+    
+    return redirect(url_for('patrol_intel.patrol_detail', entry_id=entry_id))

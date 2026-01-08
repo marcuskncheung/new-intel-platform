@@ -130,6 +130,7 @@ def create_alleged_person_profile():
 
 
 @poi_bp.route('/create_manual', methods=['POST'])
+@poi_bp.route('/create_manual_profile', methods=['POST'])
 @login_required
 def create_manual_poi_profile():
     """
@@ -277,4 +278,129 @@ def merge_profiles():
         db.session.rollback()
         flash(f'Error merging profiles: {str(e)}', 'danger')
     
+    return redirect(url_for('poi.alleged_subject_profiles'))
+
+
+@poi_bp.route('/profiles/recalculate_counts', methods=['POST'])
+@login_required
+def recalculate_poi_counts():
+    """
+    🔄 Recalculate intelligence counts for all POI profiles
+    """
+    try:
+        from models_poi_enhanced import AllegedPersonProfile, POIIntelligenceLink
+        
+        profiles = AllegedPersonProfile.query.all()
+        updated = 0
+        
+        for profile in profiles:
+            # Count linked intelligence
+            link_count = POIIntelligenceLink.query.filter_by(poi_id=profile.id).count()
+            profile.intelligence_count = link_count
+            updated += 1
+        
+        db.session.commit()
+        flash(f'Recalculated counts for {updated} profiles', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error recalculating counts: {str(e)}', 'danger')
+    
+    return redirect(url_for('poi.alleged_subject_profiles'))
+
+
+@poi_bp.route('/profiles/resequence_ids', methods=['POST'])
+@login_required
+def resequence_poi_ids():
+    """
+    🔢 Resequence POI IDs to ensure no gaps
+    """
+    try:
+        from models_poi_enhanced import AllegedPersonProfile
+        
+        profiles = AllegedPersonProfile.query.order_by(AllegedPersonProfile.created_at).all()
+        
+        for i, profile in enumerate(profiles, start=1):
+            new_poi_id = f"POI-{i:04d}"
+            if profile.poi_id != new_poi_id:
+                profile.poi_id = new_poi_id
+        
+        db.session.commit()
+        flash(f'Resequenced {len(profiles)} POI IDs', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error resequencing POI IDs: {str(e)}', 'danger')
+    
+    return redirect(url_for('poi.alleged_subject_profiles'))
+
+
+@poi_bp.route('/process_existing_profile_data', methods=['POST'])
+@login_required
+def process_existing_profile_data():
+    """
+    🔄 Process and update existing profile data from intelligence sources
+    """
+    try:
+        from models_poi_enhanced import AllegedPersonProfile
+        from alleged_person_automation import process_existing_profiles
+        
+        result = process_existing_profiles()
+        
+        flash(f'Processed {result.get("updated", 0)} profiles', 'success')
+        
+    except Exception as e:
+        flash(f'Error processing profiles: {str(e)}', 'danger')
+    
+    return redirect(url_for('poi.alleged_subject_profiles'))
+
+
+@poi_bp.route('/old_alleged_subject_list')
+@login_required
+def old_alleged_subject_list():
+    """
+    📜 Legacy POI list view (for backwards compatibility)
+    """
+    return redirect(url_for('poi.alleged_subject_list'))
+
+
+@poi_bp.route('/alleged_person_profile_old/<int:profile_id>')
+@poi_bp.route('/alleged_person_profile/<int:profile_id>')
+@login_required
+def alleged_person_profile_old(profile_id):
+    """
+    📜 Legacy profile view (for backwards compatibility)
+    """
+    profile = get_profile_by_id(profile_id)
+    if profile:
+        return redirect(url_for('poi.alleged_subject_profile', poi_id=profile.poi_id))
+    flash('Profile not found', 'warning')
+    return redirect(url_for('poi.alleged_subject_list'))
+
+
+@poi_bp.route('/profiles/<int:profile_id>')
+@poi_bp.route('/alleged_subject_profiles/<int:profile_id>')
+@login_required
+def alleged_subject_profile_by_id(profile_id):
+    """
+    👤 View Single POI Profile by Database ID
+    """
+    profile = get_profile_by_id(profile_id)
+    if profile:
+        return redirect(url_for('poi.alleged_subject_profile', poi_id=profile.poi_id))
+    flash('Profile not found', 'warning')
+    return redirect(url_for('poi.alleged_subject_profiles'))
+
+
+@poi_bp.route('/profiles/<int:profile_id>/edit', methods=['GET', 'POST'])
+@poi_bp.route('/alleged_subject_profiles/<int:profile_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_alleged_subject_profile_by_id(profile_id):
+    """
+    ✏️ Edit POI Profile by Database ID
+    """
+    profile = get_profile_by_id(profile_id)
+    if profile:
+        return redirect(url_for('poi.edit_alleged_subject_profile', poi_id=profile.poi_id))
+    flash('Profile not found', 'warning')
     return redirect(url_for('poi.alleged_subject_profiles'))

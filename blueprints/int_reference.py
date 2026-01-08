@@ -209,3 +209,41 @@ def reorder_all_int_references():
         flash(f'Error reordering: {str(e)}', 'danger')
     
     return redirect(url_for('int_reference.list_int_references'))
+
+
+@int_reference_bp.route('/<int_number>/emails')
+@login_required
+def get_emails_by_int_reference(int_number):
+    """
+    📧 Get All Emails Linked to a Specific INT Reference
+    """
+    try:
+        int_reference = f"INT-{int_number:03d}" if isinstance(int_number, int) else int_number
+        
+        # Find emails with this INT reference
+        emails = Email.query.filter(
+            Email.unified_int_reference == int_reference
+        ).order_by(Email.received.desc()).all()
+        
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({
+                'success': True,
+                'int_reference': int_reference,
+                'count': len(emails),
+                'emails': [{
+                    'id': e.id,
+                    'subject': e.subject,
+                    'sender': e.sender,
+                    'received': e.received.isoformat() if e.received else None
+                } for e in emails]
+            })
+        
+        return render_template('int_reference_emails.html',
+                             int_reference=int_reference,
+                             emails=emails)
+        
+    except Exception as e:
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error loading emails: {str(e)}', 'danger')
+        return redirect(url_for('int_reference.list_int_references'))

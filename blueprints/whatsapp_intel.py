@@ -194,3 +194,54 @@ def update_int_reference(entry_id):
         flash(f'Error updating INT reference: {str(e)}', 'danger')
     
     return redirect(url_for('whatsapp_intel.whatsapp_detail', entry_id=entry_id))
+
+
+# ==================== ADDITIONAL ROUTES ====================
+
+@whatsapp_intel_bp.route('/update_whatsapp_details/<int:entry_id>', methods=['POST'])
+@login_required
+def update_whatsapp_details(entry_id):
+    """
+    📝 Update WhatsApp Entry Details
+    """
+    try:
+        entry = WhatsAppEntry.query.get_or_404(entry_id)
+        
+        # Update fields from form
+        entry.contact_name = request.form.get('contact_name', entry.contact_name)
+        entry.phone_number = request.form.get('phone_number', entry.phone_number)
+        entry.message_content = request.form.get('message_content', entry.message_content)
+        entry.notes = request.form.get('notes', entry.notes)
+        
+        db.session.commit()
+        flash('Details updated successfully', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating details: {str(e)}', 'danger')
+    
+    return redirect(url_for('whatsapp_intel.whatsapp_detail', entry_id=entry_id))
+
+
+@whatsapp_intel_bp.route('/delete_whatsapp_file/<int:file_id>', methods=['POST'])
+@login_required
+def delete_whatsapp_file(file_id):
+    """
+    🗑️ Delete WhatsApp Image/File
+    """
+    from models.whatsapp import WhatsAppImage
+    
+    try:
+        file = WhatsAppImage.query.get_or_404(file_id)
+        entry_id = file.whatsapp_id
+        
+        db.session.delete(file)
+        db.session.commit()
+        flash('File deleted', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting file: {str(e)}', 'danger')
+        entry_id = request.form.get('entry_id', 1)
+    
+    return redirect(url_for('whatsapp_intel.whatsapp_detail', entry_id=entry_id))

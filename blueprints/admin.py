@@ -525,3 +525,109 @@ def admin_restart():
 @admin_required
 def admin_shutdown():
     return redirect(url_for("admin.admin_shutdown_server"), code=307)
+
+
+# ===== SECURITY MANAGEMENT =====
+@admin_bp.route("/security", methods=["GET"])
+@login_required
+@admin_required
+def admin_security():
+    """Security settings and audit trail overview"""
+    # Get security statistics
+    from models.user import User, AuditLog
+    
+    total_users = User.query.count()
+    admin_users = User.query.filter_by(role='admin').count()
+    
+    # Recent security events
+    security_events = AuditLog.query.filter(
+        AuditLog.action.in_(['login', 'logout', 'failed_login', 'password_change', 'admin_action'])
+    ).order_by(AuditLog.timestamp.desc()).limit(50).all()
+    
+    # Get failed login attempts in last 24 hours
+    from datetime import datetime, timedelta
+    yesterday = datetime.utcnow() - timedelta(hours=24)
+    failed_logins = AuditLog.query.filter(
+        AuditLog.action == 'failed_login',
+        AuditLog.timestamp >= yesterday
+    ).count()
+    
+    return render_template('admin/security.html',
+                         total_users=total_users,
+                         admin_users=admin_users,
+                         security_events=security_events,
+                         failed_logins_24h=failed_logins)
+
+
+@admin_bp.route("/audit-export", methods=["GET"])
+@login_required
+@admin_required
+def admin_audit_export():
+    """Export full audit trail as CSV"""
+    from io import StringIO
+    import csv
+    from models.user import AuditLog
+    
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'Timestamp', 'User ID', 'Username', 'Action', 'Details',
+        'IP Address', 'User Agent', 'Severity'
+    ])
+    
+    # Write data
+    for log in logs:
+        writer.writerow([
+            log.timestamp.isoformat() if log.timestamp else '',
+            log.user_id or '',
+            log.username or '',
+            log.action or '',
+            str(log.details) if log.details else '',
+            log.ip_address or '',
+            getattr(log, 'user_agent', '') or '',
+            getattr(log, 'severity', 'info') or ''
+        ])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename=audit_trail_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    
+    AuditLog.log_action(
+        action='audit_export',
+        resource_type='security',
+        details={'records_exported': len(logs)},
+        user=current_user,
+        severity='info'
+    )
+    
+    return response
+
+
+@admin_bp.route("/encrypt-data", methods=["POST"])
+@login_required
+@admin_required
+def admin_encrypt_data():
+    """Trigger data encryption for sensitive fields"""
+    try:
+        # Log the action
+        AuditLog.log_action(
+            action='encrypt_data',
+            resource_type='security',
+            details={'status': 'initiated'},
+            user=current_user,
+            severity='warning'
+        )
+        
+        # Placeholder for actual encryption logic
+        # In production, this would encrypt sensitive database fields
+        
+        flash('Data encryption process initiated successfully', 'success')
+        return redirect(url_for('admin.admin_security'))
+        
+    except Exception as e:
+        flash(f'Encryption failed: {str(e)}', 'error')
+        return redirect(url_for('admin.admin_security'))

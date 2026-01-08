@@ -254,3 +254,316 @@ def update_int_reference(email_id):
 # - /process-exchange-inbox
 # - /api/refresh-emails
 # - bulk operations
+
+
+# ==================== LEGACY ROUTES ====================
+
+@email_intel_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+def legacy_create():
+    """
+    DEPRECATED: Legacy create route.
+    CaseProfile entries are now created automatically.
+    """
+    flash("CaseProfile entries are created automatically when you add intelligence from Email, WhatsApp, Online Patrol, or Received by Hand sources.", "info")
+    return redirect(url_for("email_intel.int_source"))
+
+
+@email_intel_bp.route('/delete/<int:idx>', methods=['POST'])
+@login_required
+def legacy_delete(idx):
+    """DEPRECATED: Legacy delete route for CaseProfile"""
+    cp = CaseProfile.query.get_or_404(idx)
+    db.session.delete(cp)
+    db.session.commit()
+    flash("Profile deleted", "info")
+    return redirect(url_for("poi.alleged_subject_list"))
+
+
+@email_intel_bp.route('/details/<int:idx>', methods=['GET', 'POST'])
+@login_required
+def legacy_details(idx):
+    """
+    DEPRECATED: Legacy details page for CaseProfile.
+    Redirects to the appropriate source detail page.
+    """
+    cp = CaseProfile.query.get_or_404(idx)
+    
+    # Redirect to the appropriate source detail page
+    if cp.source_type == 'EMAIL' and cp.email_id:
+        return redirect(url_for('email_intel.email_detail', email_id=cp.email_id))
+    elif cp.source_type == 'WHATSAPP' and cp.whatsapp_id:
+        return redirect(url_for('whatsapp_intel.whatsapp_detail', entry_id=cp.whatsapp_id))
+    elif cp.source_type == 'PATROL' and cp.patrol_id:
+        return redirect(url_for('patrol_intel.online_patrol_detail', entry_id=cp.patrol_id))
+    elif cp.source_type == 'RECEIVED_BY_HAND' and cp.received_by_hand_id:
+        return redirect(url_for('received_by_hand_intel.received_by_hand_detail', entry_id=cp.received_by_hand_id))
+    else:
+        # Fallback: redirect to INT reference detail
+        flash(f"Redirecting to INT Reference {cp.int_reference}", "info")
+        return redirect(url_for('int_reference.int_reference_detail', int_reference=cp.int_reference))
+
+
+# ==================== ADDITIONAL ROUTES ====================
+
+@email_intel_bp.route('/embedded_attachment_viewer/<int:att_id>')
+@login_required
+def embedded_attachment_viewer(att_id):
+    """View attachment in embedded viewer"""
+    try:
+        attachment = Attachment.query.get_or_404(att_id)
+        
+        # Determine content type
+        content_type = attachment.content_type or 'application/octet-stream'
+        
+        return render_template('embedded_attachment.html',
+                             attachment=attachment,
+                             content_type=content_type)
+    except Exception as e:
+        flash(f'Error loading attachment: {str(e)}', 'danger')
+        return redirect(url_for('email_intel.int_source'))
+
+
+@email_intel_bp.route('/debug/attachment/<int:att_id>')
+@login_required  
+def debug_attachment(att_id):
+    """Debug attachment information"""
+    try:
+        attachment = Attachment.query.get_or_404(att_id)
+        
+        return jsonify({
+            'id': attachment.id,
+            'email_id': attachment.email_id,
+            'filename': attachment.filename,
+            'content_type': attachment.content_type,
+            'has_data': attachment.data is not None,
+            'data_size': len(attachment.data) if attachment.data else 0,
+            'file_path': getattr(attachment, 'file_path', None)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== EXCHANGE & REFRESH ROUTES ====================
+
+@email_intel_bp.route('/process-exchange-inbox')
+@login_required
+def process_exchange_inbox():
+    """
+    📥 Process Exchange Inbox - Import emails from Exchange server
+    """
+    try:
+        from fresh_ews_import import process_exchange_inbox as do_import
+        
+        result = do_import()
+        flash(f'Processed {result.get("imported", 0)} emails', 'success')
+        
+    except ImportError:
+        flash('Exchange import module not available', 'warning')
+    except Exception as e:
+        flash(f'Error processing inbox: {str(e)}', 'danger')
+    
+    return redirect(url_for('email_intel.int_source'))
+
+
+@email_intel_bp.route('/api/refresh-emails', methods=['POST'])
+@login_required
+def refresh_emails():
+    """
+    🔄 Refresh Emails API - Re-fetch emails from Exchange
+    """
+    try:
+        from fresh_ews_import import process_exchange_inbox as do_import
+        
+        result = do_import()
+        
+        return jsonify({
+            'success': True,
+            'imported': result.get('imported', 0),
+            'message': f'Imported {result.get("imported", 0)} new emails'
+        })
+        
+    except ImportError:
+        return jsonify({'success': False, 'error': 'Exchange module not available'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@email_intel_bp.route('/assign-case-number/<int:email_id>', methods=['POST'])
+@login_required
+def assign_case_number(email_id):
+    """
+    📋 Assign Case Number to Email
+    """
+    try:
+        email = Email.query.get_or_404(email_id)
+        case_number = request.form.get('case_number', '').strip()
+        
+        if case_number:
+            email.case_number = case_number
+            db.session.commit()
+            flash(f'Case number {case_number} assigned', 'success')
+        else:
+            flash('Please provide a case number', 'warning')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('email_intel.email_detail', email_id=email_id))
+
+
+# ==================== BULK OPERATIONS ====================
+
+@email_intel_bp.route('/bulk_mark-reviewed', methods=['POST'])
+@login_required
+def bulk_mark_reviewed():
+    """Mark multiple emails as reviewed"""
+    try:
+        email_ids = request.form.getlist('email_ids[]') or request.json.get('email_ids', [])
+        
+        for email_id in email_ids:
+            email = Email.query.get(email_id)
+            if email:
+                email.status = 'reviewed'
+        
+        db.session.commit()
+        
+        if request.is_json:
+            return jsonify({'success': True, 'count': len(email_ids)})
+        
+        flash(f'Marked {len(email_ids)} emails as reviewed', 'success')
+        return redirect(url_for('email_intel.int_source'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('email_intel.int_source'))
+
+
+@email_intel_bp.route('/bulk_mark-pending', methods=['POST'])
+@login_required
+def bulk_mark_pending():
+    """Mark multiple emails as pending"""
+    try:
+        email_ids = request.form.getlist('email_ids[]') or request.json.get('email_ids', [])
+        
+        for email_id in email_ids:
+            email = Email.query.get(email_id)
+            if email:
+                email.status = 'pending'
+        
+        db.session.commit()
+        
+        if request.is_json:
+            return jsonify({'success': True, 'count': len(email_ids)})
+        
+        flash(f'Marked {len(email_ids)} emails as pending', 'success')
+        return redirect(url_for('email_intel.int_source'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('email_intel.int_source'))
+
+
+@email_intel_bp.route('/bulk_open-case', methods=['POST'])
+@login_required
+def bulk_open_case():
+    """Open case for multiple emails"""
+    try:
+        email_ids = request.form.getlist('email_ids[]') or request.json.get('email_ids', [])
+        case_number = request.form.get('case_number') or request.json.get('case_number', '')
+        
+        for email_id in email_ids:
+            email = Email.query.get(email_id)
+            if email:
+                email.case_number = case_number
+                email.status = 'case_opened'
+        
+        db.session.commit()
+        
+        if request.is_json:
+            return jsonify({'success': True, 'count': len(email_ids)})
+        
+        flash(f'Opened case for {len(email_ids)} emails', 'success')
+        return redirect(url_for('email_intel.int_source'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('email_intel.int_source'))
+
+
+@email_intel_bp.route('/bulk_export', methods=['POST'])
+@login_required
+def bulk_export():
+    """Export multiple emails"""
+    try:
+        email_ids = request.form.getlist('email_ids[]') or request.json.get('email_ids', [])
+        export_format = request.form.get('format', 'csv') or request.json.get('format', 'csv')
+        
+        emails = Email.query.filter(Email.id.in_(email_ids)).all()
+        
+        if export_format == 'csv':
+            import csv
+            from io import StringIO
+            
+            output = StringIO()
+            writer = csv.writer(output)
+            writer.writerow(['ID', 'Subject', 'Sender', 'Received', 'Status'])
+            
+            for email in emails:
+                writer.writerow([
+                    email.id,
+                    email.subject,
+                    email.sender,
+                    email.received.isoformat() if email.received else '',
+                    email.status or ''
+                ])
+            
+            response = make_response(output.getvalue())
+            response.headers['Content-Type'] = 'text/csv'
+            response.headers['Content-Disposition'] = 'attachment; filename=emails_export.csv'
+            return response
+        
+        return jsonify({'success': False, 'error': 'Unsupported format'}), 400
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@email_intel_bp.route('/bulk_delete', methods=['POST'])
+@login_required
+def bulk_delete_emails():
+    """Delete multiple emails"""
+    try:
+        email_ids = request.form.getlist('email_ids[]') or request.json.get('email_ids', [])
+        
+        deleted = 0
+        for email_id in email_ids:
+            email = Email.query.get(email_id)
+            if email:
+                db.session.delete(email)
+                deleted += 1
+        
+        db.session.commit()
+        
+        if request.is_json:
+            return jsonify({'success': True, 'deleted': deleted})
+        
+        flash(f'Deleted {deleted} emails', 'success')
+        return redirect(url_for('email_intel.int_source'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('email_intel.int_source'))
