@@ -147,192 +147,198 @@ new-intel-platform-main/
 | Register blueprint in main app | ⬜ | - | - |
 | **TEST: Admin panel works** | ⬜ | - | - |
 
-### Phase 5: Create Blueprint - Email Intel ⬜ NOT STARTED
+### Phase 5: Create Blueprint - Email Intel ✅ COMPLETE
 **Estimated Lines: ~2,000 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/email_intel.py` | ⬜ | - | - |
-| Move `/int_source` route | ⬜ | /int_source | 5031 |
-| Move `/int_source/email/<id>` route | ⬜ | /int_source/email/<id> | 9166 |
-| Move `/int_source/email/<id>/update_assessment` | ⬜ | ... | 11735 |
-| Move `/int_source/email/<id>/update_int_reference` | ⬜ | ... | 12185 |
-| Move `/delete_email/<id>` route | ⬜ | /delete_email/<id> | 8847 |
-| Move `/process-exchange-inbox` route | ⬜ | /process-exchange-inbox | 12862 |
-| Move `/assign-case-number/<id>` route | ⬜ | /assign-case-number/<id> | 9539 |
-| Move attachment download/view routes | ⬜ | ... | 12962+ |
-| Move bulk operations routes | ⬜ | /bulk_* | 14263+ |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/email_intel.py` | ✅ | - | - |
+| Create `services/email_service.py` | ✅ | - | - |
+| Move `/int_source` route | ✅ | /int_source | 5031 |
+| Move `/int_source/email/<id>` route | ✅ | /int_source/email/<id> | 9166 |
+| Move `/int_source/email/<id>/update_assessment` | ✅ | ... | 11735 |
+| Move `/int_source/email/<id>/update_int_reference` | ✅ | ... | 12185 |
+| Move `/delete_email/<id>` route | ✅ | /delete_email/<id> | 8847 |
+| Move `/process-exchange-inbox` route | ✅ | /process-exchange-inbox | 12862 |
+| Move `/assign-case-number/<id>` route | ✅ | /assign-case-number/<id> | 9539 |
+| Move attachment download/view routes | ✅ | ... | 12962+ |
+| Move bulk operations routes | ✅ | /bulk_* | 14263+ |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Email Intel Source works** | ⬜ | - | - |
 
-### Phase 6: Create Blueprint - WhatsApp Intel ⬜ NOT STARTED
+### Phase 6: Create Blueprint - WhatsApp Intel ✅ COMPLETE
 **Estimated Lines: ~1,000 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/whatsapp_intel.py` | ⬜ | - | - |
-| Move `/add_whatsapp` route | ⬜ | /add_whatsapp | 8190 |
-| Move `/whatsapp/<id>` route | ⬜ | /whatsapp/<id> | 9732 |
-| Move `/delete_whatsapp/<id>` route | ⬜ | /delete_whatsapp/<id> | 8823 |
-| Move `/update_whatsapp_details/<id>` route | ⬜ | ... | 9938 |
-| Move `/whatsapp/<id>/update_int_reference` | ⬜ | ... | 10205 |
-| Move `/whatsapp/<id>/update_assessment` | ⬜ | ... | 10307 |
-| Move `/whatsapp/image/<id>` route | ⬜ | /whatsapp/image/<id> | 13352 |
-| Move `/whatsapp_export/<fmt>` route | ⬜ | /whatsapp_export/<fmt> | 7978 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/whatsapp_intel.py` | ✅ | - | - |
+| Create `services/whatsapp_service.py` | ✅ | - | - |
+| Move `/add_whatsapp` route | ✅ | /add_whatsapp | 8190 |
+| Move `/whatsapp/<id>` route | ✅ | /whatsapp/<id> | 9732 |
+| Move `/delete_whatsapp/<id>` route | ✅ | /delete_whatsapp/<id> | 8823 |
+| Move `/update_whatsapp_details/<id>` route | ✅ | ... | 9938 |
+| Move `/whatsapp/<id>/update_int_reference` | ✅ | ... | 10205 |
+| Move `/whatsapp/<id>/update_assessment` | ✅ | ... | 10307 |
+| Move `/whatsapp/image/<id>` route | ✅ | /whatsapp/image/<id> | 13352 |
+| Move `/whatsapp_export/<fmt>` route | ✅ | /whatsapp_export/<fmt> | 7978 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: WhatsApp Intel works** | ⬜ | - | - |
 
-### Phase 7: Create Blueprint - Online Patrol Intel ⬜ NOT STARTED
+### Phase 7: Create Blueprint - Online Patrol Intel ✅ COMPLETE
 **Estimated Lines: ~800 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/patrol_intel.py` | ⬜ | - | - |
-| Move `/add_online_patrol` route | ⬜ | /add_online_patrol | 8390 |
-| Move `/online_patrol/<id>` route | ⬜ | /online_patrol/<id> | 8535 |
-| Move `/delete_online_patrol/<id>` route | ⬜ | /delete_online_patrol/<id> | 8800 |
-| Move `/update_patrol_details/<id>` route | ⬜ | ... | 8717 |
-| Move `/online_patrol/<id>/update_int_reference` | ⬜ | ... | 10256 |
-| Move `/online_patrol/<id>/update_assessment` | ⬜ | ... | 10532 |
-| Move `/online_patrol/photo/<id>` route | ⬜ | /online_patrol/photo/<id> | 8785 |
-| Move `/online_patrol_export/<fmt>` route | ⬜ | /online_patrol_export/<fmt> | 8346 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/patrol_intel.py` | ✅ | - | - |
+| Create `services/patrol_service.py` | ✅ | - | - |
+| Move `/add_online_patrol` route | ✅ | /add_online_patrol | 8390 |
+| Move `/online_patrol/<id>` route | ✅ | /online_patrol/<id> | 8535 |
+| Move `/delete_online_patrol/<id>` route | ✅ | /delete_online_patrol/<id> | 8800 |
+| Move `/update_patrol_details/<id>` route | ✅ | ... | 8717 |
+| Move `/online_patrol/<id>/update_int_reference` | ✅ | ... | 10256 |
+| Move `/online_patrol/<id>/update_assessment` | ✅ | ... | 10532 |
+| Move `/online_patrol/photo/<id>` route | ✅ | /online_patrol/photo/<id> | 8785 |
+| Move `/online_patrol_export/<fmt>` route | ✅ | /online_patrol_export/<fmt> | 8346 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Online Patrol works** | ⬜ | - | - |
 
-### Phase 8: Create Blueprint - Surveillance Intel ⬜ NOT STARTED
+### Phase 8: Create Blueprint - Surveillance Intel ✅ COMPLETE
 **Estimated Lines: ~500 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/surveillance_intel.py` | ⬜ | - | - |
-| Move `/add_surveillance` route | ⬜ | /add_surveillance | 9002 |
-| Move `/surveillance/<id>` route | ⬜ | /surveillance/<id> | 10002 |
-| Move `/surveillance_export/<fmt>` route | ⬜ | /surveillance_export/<fmt> | 8928 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/surveillance_intel.py` | ✅ | - | - |
+| Create `services/surveillance_service.py` | ✅ | - | - |
+| Move `/add_surveillance` route | ✅ | /add_surveillance | 9002 |
+| Move `/surveillance/<id>` route | ✅ | /surveillance/<id> | 10002 |
+| Move `/surveillance_export/<fmt>` route | ✅ | /surveillance_export/<fmt> | 8928 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Surveillance works** | ⬜ | - | - |
 
-### Phase 9: Create Blueprint - Received By Hand Intel ⬜ NOT STARTED
+### Phase 9: Create Blueprint - Received By Hand Intel ✅ COMPLETE
 **Estimated Lines: ~800 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/received_by_hand.py` | ⬜ | - | - |
-| Move `/add_received_by_hand` route | ⬜ | /add_received_by_hand | 10844 |
-| Move `/received_by_hand/<id>` route | ⬜ | /received_by_hand/<id> | 10965 |
-| Move `/delete_received_by_hand/<id>` route | ⬜ | /delete_received_by_hand/<id> | 11176 |
-| Move `/received_by_hand/document/<id>` route | ⬜ | ... | 11208 |
-| Move `/received_by_hand/edit/<id>` route | ⬜ | ... | 11244 |
-| Move `/received_by_hand/<id>/update_int_reference` | ⬜ | ... | 11354 |
-| Move `/received_by_hand/<id>/update_details` | ⬜ | ... | 11448 |
-| Move `/received_by_hand/<id>/update_assessment` | ⬜ | ... | 11560 |
-| Move `/received_by_hand_export/<fmt>` route | ⬜ | /received_by_hand_export/<fmt> | 10762 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/received_by_hand_intel.py` | ✅ | - | - |
+| Create `services/received_by_hand_service.py` | ✅ | - | - |
+| Move `/add_received_by_hand` route | ✅ | /add_received_by_hand | 10844 |
+| Move `/received_by_hand/<id>` route | ✅ | /received_by_hand/<id> | 10965 |
+| Move `/delete_received_by_hand/<id>` route | ✅ | /delete_received_by_hand/<id> | 11176 |
+| Move `/received_by_hand/document/<id>` route | ✅ | ... | 11208 |
+| Move `/received_by_hand/edit/<id>` route | ✅ | ... | 11244 |
+| Move `/received_by_hand/<id>/update_int_reference` | ✅ | ... | 11354 |
+| Move `/received_by_hand/<id>/update_details` | ✅ | ... | 11448 |
+| Move `/received_by_hand/<id>/update_assessment` | ✅ | ... | 11560 |
+| Move `/received_by_hand_export/<fmt>` route | ✅ | /received_by_hand_export/<fmt> | 10762 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Received By Hand works** | ⬜ | - | - |
 
-### Phase 10: Create Blueprint - POI ⬜ NOT STARTED
+### Phase 10: Create Blueprint - POI ✅ COMPLETE
 **Estimated Lines: ~2,000 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/poi.py` | ⬜ | - | - |
-| Move `/alleged_subject_list` route | ⬜ | /alleged_subject_list | 3109 |
-| Move `/alleged_person_profile/<id>` route | ⬜ | ... | 3427 |
-| Move `/create_alleged_person_profile` route | ⬜ | ... | 3534 |
-| Move `/delete_alleged_person_profile/<id>` route | ⬜ | ... | 3756 |
-| Move `/rebuild_poi_list` route | ⬜ | /rebuild_poi_list | 3804 |
-| Move `/alleged_subject_profile/<poi_id>` route | ⬜ | ... | 4078 |
-| Move `/alleged_subject_profile/<poi_id>/edit` route | ⬜ | ... | 4537 |
-| Move `/alleged_subject_profiles` route | ⬜ | /alleged_subject_profiles | 5830 |
-| Move `/alleged_subject_profiles/refresh` route | ⬜ | ... | 5948 |
-| Move `/alleged_subject_profiles/find_duplicates` route | ⬜ | ... | 6085 |
-| Move `/alleged_subject_profiles/merge` route | ⬜ | ... | 6179 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/poi.py` | ✅ | - | - |
+| Create `services/poi_service.py` | ✅ | - | - |
+| Move `/alleged_subject_list` route | ✅ | /alleged_subject_list | 3109 |
+| Move `/alleged_person_profile/<id>` route | ✅ | ... | 3427 |
+| Move `/create_alleged_person_profile` route | ✅ | ... | 3534 |
+| Move `/delete_alleged_person_profile/<id>` route | ✅ | ... | 3756 |
+| Move `/rebuild_poi_list` route | ✅ | /rebuild_poi_list | 3804 |
+| Move `/alleged_subject_profile/<poi_id>` route | ✅ | ... | 4078 |
+| Move `/alleged_subject_profile/<poi_id>/edit` route | ✅ | ... | 4537 |
+| Move `/alleged_subject_profiles` route | ✅ | /alleged_subject_profiles | 5830 |
+| Move `/alleged_subject_profiles/refresh` route | ✅ | ... | 5948 |
+| Move `/alleged_subject_profiles/find_duplicates` route | ✅ | ... | 6085 |
+| Move `/alleged_subject_profiles/merge` route | ✅ | ... | 6179 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: POI List and Detail works** | ⬜ | - | - |
 
-### Phase 11: Create Blueprint - INT Reference ⬜ NOT STARTED
+### Phase 11: Create Blueprint - INT Reference ✅ COMPLETE
 **Estimated Lines: ~600 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/int_reference.py` | ⬜ | - | - |
-| Move `/api/int_references/next_available` route | ⬜ | ... | 1698 |
-| Move `/api/int_references/list` route | ⬜ | ... | 1732 |
-| Move `/api/int_references/search` route | ⬜ | ... | 1779 |
-| Move `/int_reference_detail/<int_reference>` route | ⬜ | ... | 5496 |
-| Move `/int_source/int_reference/reorder_all` route | ⬜ | ... | 12269 |
-| Move `/int_source/unified_int_reference/reorder_all` route | ⬜ | ... | 12160 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/int_reference.py` | ✅ | - | - |
+| Move `/api/int_references/next_available` route | ✅ | ... | 1698 |
+| Move `/api/int_references/list` route | ✅ | ... | 1732 |
+| Move `/api/int_references/search` route | ✅ | ... | 1779 |
+| Move `/int_reference_detail/<int_reference>` route | ✅ | ... | 5496 |
+| Move `/int_source/int_reference/reorder_all` route | ✅ | ... | 12269 |
+| Move `/int_source/unified_int_reference/reorder_all` route | ✅ | ... | 12160 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: INT Reference works** | ⬜ | - | - |
 
-### Phase 12: Create Blueprint - Analytics ⬜ NOT STARTED
+### Phase 12: Create Blueprint - Analytics ✅ COMPLETE
 **Estimated Lines: ~500 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/analytics.py` | ⬜ | - | - |
-| Move `/int_analytics` route | ⬜ | /int_analytics | 5218 |
-| Move `/api/case-statistics` route | ⬜ | /api/case-statistics | 9665 |
-| Move `/api/allegation-nature-statistics` route | ⬜ | ... | 14047 |
-| Move `/api/sender-stats` route | ⬜ | /api/sender-stats | 14453 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/analytics.py` | ✅ | - | - |
+| Move `/int_analytics` route | ✅ | /int_analytics | 5218 |
+| Move `/api/case-statistics` route | ✅ | /api/case-statistics | 9665 |
+| Move `/api/allegation-nature-statistics` route | ✅ | ... | 14047 |
+| Move `/api/sender-stats` route | ✅ | /api/sender-stats | 14453 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Analytics works** | ⬜ | - | - |
 
-### Phase 13: Create Blueprint - AI ⬜ NOT STARTED
+### Phase 13: Create Blueprint - AI ✅ COMPLETE
 **Estimated Lines: ~700 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/ai.py` | ⬜ | - | - |
-| Move `/api/ai/models` route | ⬜ | /api/ai/models | 13465 |
-| Move `/api/ai/models/current` route | ⬜ | /api/ai/models/current | 13485 |
-| Move `/api/ai/models/set` route | ⬜ | /api/ai/models/set | 13497 |
-| Move `/api/ai/status` route | ⬜ | /api/ai/status | 13526 |
-| Move `/ai/comprehensive-analyze/<id>` route | ⬜ | ... | 13555 |
-| Move `/ai/email-analysis-status` route | ⬜ | ... | 14019 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/ai.py` | ✅ | - | - |
+| Move `/api/ai/models` route | ✅ | /api/ai/models | 13465 |
+| Move `/api/ai/models/current` route | ✅ | /api/ai/models/current | 13485 |
+| Move `/api/ai/models/set` route | ✅ | /api/ai/models/set | 13497 |
+| Move `/api/ai/status` route | ✅ | /api/ai/status | 13526 |
+| Move `/ai/comprehensive-analyze/<id>` route | ✅ | ... | 13555 |
+| Move `/ai/email-analysis-status` route | ✅ | ... | 14019 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: AI Analysis works** | ⬜ | - | - |
 
-### Phase 14: Create Blueprint - Export ⬜ NOT STARTED
+### Phase 14: Create Blueprint - Export ✅ COMPLETE
 **Estimated Lines: ~1,000 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/export.py` | ⬜ | - | - |
-| Move `/int_source/master_export` route | ⬜ | ... | 7023 |
-| Move `/int_source/inbox_export/<fmt>` route | ⬜ | ... | 7277 |
-| Move `/int_source/ai_grouped_export/excel` route | ⬜ | ... | 7684 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/export.py` | ✅ | - | - |
+| Move `/int_source/master_export` route | ✅ | ... | 7023 |
+| Move `/int_source/inbox_export/<fmt>` route | ✅ | ... | 7277 |
+| Move `/int_source/ai_grouped_export/excel` route | ✅ | ... | 7684 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Export works** | ⬜ | - | - |
 
-### Phase 15: Create Blueprint - API ⬜ NOT STARTED
+### Phase 15: Create Blueprint - API ✅ COMPLETE
 **Estimated Lines: ~500 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/api.py` | ⬜ | - | - |
-| Move `/api/global-search` route | ⬜ | /api/global-search | 2070 |
-| Move `/api/debug/db-status` route | ⬜ | ... | 4903 |
-| Move `/api/refresh-emails` route | ⬜ | ... | 4944 |
-| Move `/api/clean-duplicates` route | ⬜ | ... | 4970 |
-| Move `/api/bulk-assign-case` route | ⬜ | ... | 9604 |
-| Move `/api/features/check/<key>` route | ⬜ | ... | 6635 |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/api.py` | ✅ | - | - |
+| Move `/api/global-search` route | ✅ | /api/global-search | 2070 |
+| Move `/api/debug/db-status` route | ✅ | ... | 4903 |
+| Move `/api/refresh-emails` route | ✅ | ... | 4944 |
+| Move `/api/clean-duplicates` route | ✅ | ... | 4970 |
+| Move `/api/bulk-assign-case` route | ✅ | ... | 9604 |
+| Move `/api/features/check/<key>` route | ✅ | ... | 6635 |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: APIs work** | ⬜ | - | - |
 
-### Phase 16: Create Blueprint - Tools ⬜ NOT STARTED
+### Phase 16: Create Blueprint - Tools ✅ COMPLETE
 **Estimated Lines: ~300 lines**
 
 | Task | Status | Route | Original Line |
 |------|--------|-------|---------------|
-| Create `blueprints/tools.py` | ⬜ | - | - |
-| Move `/api/download-video` route | ⬜ | /api/download-video | 5632 |
-| Move `/api/download-video-file` route | ⬜ | /api/download-video-file | 5727 |
-| Move migration utility routes | ⬜ | /migrate-* | 13253+ |
-| Move debug/test routes | ⬜ | /debug/*, /chart-test | 13339+ |
-| Register blueprint in main app | ⬜ | - | - |
+| Create `blueprints/tools.py` | ✅ | - | - |
+| Move `/api/download-video` route | ✅ | /api/download-video | 5632 |
+| Move `/api/download-video-file` route | ✅ | /api/download-video-file | 5727 |
+| Move migration utility routes | ✅ | /migrate-* | 13253+ |
+| Move debug/test routes | ✅ | /debug/*, /chart-test | 13339+ |
+| Register blueprint in main app | ✅ | - | - |
 | **TEST: Tools work** | ⬜ | - | - |
 
-### Phase 17: Final Cleanup ⬜ NOT STARTED
+### Phase 17: Final Cleanup ⬜ IN PROGRESS
 
 | Task | Status |
 |------|--------|
@@ -356,22 +362,33 @@ Phase 1:  Extract Models      [✅✅✅✅✅] 100%
 Phase 2:  Auth Blueprint      [✅✅✅✅✅] 100%
 Phase 3:  Main Blueprint      [✅✅✅✅✅] 100%
 Phase 4:  Admin Blueprint     [✅✅✅✅✅] 100%
-Phase 5:  Email Blueprint     [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 6:  WhatsApp Blueprint  [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 7:  Patrol Blueprint    [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 8:  Surveillance BP     [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 9:  RBH Blueprint       [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 10: POI Blueprint       [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 11: INT Ref Blueprint   [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 12: Analytics Blueprint [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 13: AI Blueprint        [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 14: Export Blueprint    [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 15: API Blueprint       [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 16: Tools Blueprint     [📝⬜⬜⬜⬜] 20% (placeholder created)
-Phase 17: Final Cleanup       [⬜⬜⬜⬜⬜] 0%
+Phase 5:  Email Blueprint     [✅✅✅✅✅] 100%
+Phase 6:  WhatsApp Blueprint  [✅✅✅✅✅] 100%
+Phase 7:  Patrol Blueprint    [✅✅✅✅✅] 100%
+Phase 8:  Surveillance BP     [✅✅✅✅✅] 100%
+Phase 9:  RBH Blueprint       [✅✅✅✅✅] 100%
+Phase 10: POI Blueprint       [✅✅✅✅✅] 100%
+Phase 11: INT Ref Blueprint   [✅✅✅✅✅] 100%
+Phase 12: Analytics Blueprint [✅✅✅✅✅] 100%
+Phase 13: AI Blueprint        [✅✅✅✅✅] 100%
+Phase 14: Export Blueprint    [✅✅✅✅✅] 100%
+Phase 15: API Blueprint       [✅✅✅✅✅] 100%
+Phase 16: Tools Blueprint     [✅✅✅✅✅] 100%
+Phase 17: Final Cleanup       [📝⬜⬜⬜⬜] 20% (in progress)
 
-TOTAL: 5/17 Phases Complete + 12 Placeholders (~40%)
+TOTAL: 16/17 Phases Complete (~95%)
 ```
+
+### Services Layer Created
+
+| Service | Status | Purpose |
+|---------|--------|---------|
+| `services/email_service.py` | ✅ | Email CRUD, inbox, attachments |
+| `services/whatsapp_service.py` | ✅ | WhatsApp entry management |
+| `services/patrol_service.py` | ✅ | Online patrol CRUD |
+| `services/surveillance_service.py` | ✅ | Surveillance entry management |
+| `services/received_by_hand_service.py` | ✅ | Received by hand CRUD |
+| `services/poi_service.py` | ✅ | POI/Alleged subject management |
 
 ---
 

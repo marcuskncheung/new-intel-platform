@@ -35,4 +35,59 @@ __all__ = [
     'export_bp',
     'api_bp',
     'tools_bp',
+    'register_blueprints',
 ]
+
+
+def register_blueprints(app):
+    """
+    Register all blueprints with the Flask application.
+    
+    This function should be called from the app factory (create_app)
+    to register all modular blueprints.
+    
+    Blueprint URL Prefixes:
+    - auth: / (login, logout, register)
+    - main: / (index, dashboard)
+    - admin: /admin (user management, settings)
+    - email_intel: / (email intelligence routes)
+    - whatsapp_intel: / (WhatsApp intelligence routes)
+    - patrol_intel: / (online patrol routes)
+    - surveillance_intel: / (surveillance routes)
+    - received_by_hand_intel: / (received by hand routes)
+    - poi: / (POI/Alleged Subject routes)
+    - int_reference: / (INT reference routes)
+    - analytics: / (analytics routes)
+    - ai: / (AI analysis routes)
+    - export: / (export routes)
+    - api: / (API routes)
+    - tools: / (utility tools)
+    """
+    # Core blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    
+    # Intel source blueprints
+    app.register_blueprint(email_intel_bp)
+    app.register_blueprint(whatsapp_intel_bp)
+    app.register_blueprint(patrol_intel_bp)
+    app.register_blueprint(surveillance_intel_bp)
+    app.register_blueprint(received_by_hand_intel_bp)
+    
+    # POI and reference management
+    app.register_blueprint(poi_bp)
+    app.register_blueprint(int_reference_bp)
+    
+    # Analytics and AI
+    app.register_blueprint(analytics_bp)
+    app.register_blueprint(ai_bp)
+    
+    # Export and API
+    app.register_blueprint(export_bp)
+    app.register_blueprint(api_bp)
+    
+    # Utility tools
+    app.register_blueprint(tools_bp)
+    
+    return app
