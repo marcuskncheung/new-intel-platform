@@ -13,6 +13,21 @@ from functools import wraps
 tools_bp = Blueprint('tools', __name__)
 
 
+# ==================== MAIN TOOLS PAGE ====================
+
+@tools_bp.route('/')
+@login_required
+def tools():
+    """
+    🛠️ Utility Tools Page
+    
+    Provides various tools for investigators:
+    - Video downloader (YouTube, Facebook, Instagram, etc.)
+    - Future tools can be added here
+    """
+    return render_template('tools.html')
+
+
 # ==================== VIDEO DOWNLOAD TOOLS ====================
 
 @tools_bp.route('/api/download-video', methods=['POST'])
