@@ -1,19 +1,20 @@
 # services/__init__.py
 # Service layer for business logic separation
-# Each service encapsulates CRUD operations and business rules for a specific domain
+# Each service module contains functions for CRUD operations and business rules
 
-from services.email_service import EmailService
-from services.whatsapp_service import WhatsAppService
-from services.patrol_service import PatrolService
-from services.surveillance_service import SurveillanceService
-from services.received_by_hand_service import ReceivedByHandService
-from services.poi_service import POIService
+# Import service functions from modules
+from services import email_service
+from services import whatsapp_service
+from services import patrol_service
+from services import surveillance_service
+from services import received_by_hand_service
+from services import poi_service
 
 __all__ = [
-    'EmailService',
-    'WhatsAppService',
-    'PatrolService',
-    'SurveillanceService',
-    'ReceivedByHandService',
-    'POIService',
+    'email_service',
+    'whatsapp_service',
+    'patrol_service',
+    'surveillance_service',
+    'received_by_hand_service',
+    'poi_service',
 ]
