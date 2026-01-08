@@ -57,7 +57,7 @@
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ url_for('alleged_subject_profiles') }}">Profiles</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('poi.alleged_subject_profiles') }}">Profiles</a></li>
                             <li class="breadcrumb-item active">{{ profile.name_english }}</li>
                         </ol>
                     </nav>
@@ -68,7 +68,7 @@
                     </h2>
                 </div>
                 <div class="btn-group">
-                    <a href="{{ url_for('edit_profile', profile_id=profile.id) }}" class="btn btn-primary">
+                    <a href="{{ url_for('poi.edit_profile', profile_id=profile.id) }}" class="btn btn-primary">
                         <i class="bi bi-pencil"></i> Edit Profile
                     </a>
                     <button type="button" class="btn btn-info" onclick="generateReport()">
@@ -281,7 +281,7 @@
                                 {% for allegation in allegations %}
                                 <tr class="allegation-row" data-source="{{ allegation.source_type }}" data-link-id="{{ allegation.link_id }}">
                                     <td>
-                                        <a href="{{ url_for('int_source_email_detail', email_id=allegation.source_id) }}" 
+                                        <a href="{{ url_for('email_intel.int_source_email_detail', email_id=allegation.source_id) }}" 
                                            class="text-decoration-none" target="_blank">
                                             <strong>{{ allegation.source_reference }}</strong>
                                             <i class="bi bi-box-arrow-up-right ms-1"></i>

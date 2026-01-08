@@ -43,5 +43,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Expose port
 EXPOSE 8080
 
-# Default command
-CMD ["python", "app1_production.py"]
+# Default command - Using new blueprint-based app.py
+CMD ["python", "app.py"]

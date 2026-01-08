@@ -60,7 +60,7 @@
   <!-- Quick Navigation Cards -->
   <div class="row mb-4 g-3">
     <div class="col-md-3 col-lg-2">
-      <a href="{{ url_for('admin_users') }}" class="text-decoration-none">
+      <a href="{{ url_for('admin.admin_users') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-primary text-white">
           <div class="card-body text-center py-4">
             <i class="bi bi-people-fill" style="font-size: 2.5rem;"></i>
@@ -71,7 +71,7 @@
       </a>
     </div>
     <div class="col-md-3 col-lg-2">
-      <a href="{{ url_for('admin_features') }}" class="text-decoration-none">
+      <a href="{{ url_for('admin.admin_features') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-purple text-white" style="background: linear-gradient(135deg, #6f42c1, #9b59b6);">
           <div class="card-body text-center py-4">
             <i class="bi bi-toggles" style="font-size: 2.5rem;"></i>
@@ -82,7 +82,7 @@
       </a>
     </div>
     <div class="col-md-3 col-lg-2">
-      <a href="{{ url_for('admin_database') }}" class="text-decoration-none">
+      <a href="{{ url_for('admin.admin_database') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-success text-white">
           <div class="card-body text-center py-4">
             <i class="bi bi-database-fill" style="font-size: 2.5rem;"></i>
@@ -93,7 +93,7 @@
       </a>
     </div>
     <div class="col-md-3 col-lg-2">
-      <a href="{{ url_for('admin_logs') }}" class="text-decoration-none">
+      <a href="{{ url_for('admin.admin_logs') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-info text-white">
           <div class="card-body text-center py-4">
             <i class="bi bi-journal-text" style="font-size: 2.5rem;"></i>
@@ -104,7 +104,7 @@
       </a>
     </div>
     <div class="col-md-3 col-lg-2">
-      <a href="{{ url_for('security_admin') }}" class="text-decoration-none">
+      <a href="{{ url_for('admin.security_admin') }}" class="text-decoration-none">
         <div class="card admin-nav-card bg-warning text-dark">
           <div class="card-body text-center py-4">
             <i class="bi bi-shield-lock-fill" style="font-size: 2.5rem;"></i>
@@ -311,7 +311,7 @@
       <div class="card data-table-card">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
           <h5 class="mb-0"><i class="bi bi-clock-history text-info me-2"></i>Recent Activity</h5>
-          <a href="{{ url_for('admin_logs') }}" class="btn btn-sm btn-outline-primary">View All</a>
+          <a href="{{ url_for('admin.admin_logs') }}" class="btn btn-sm btn-outline-primary">View All</a>
         </div>
         <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
           {% if recent_logs %}
@@ -365,22 +365,22 @@
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-3">
-              <a href="{{ url_for('admin_create_user') }}" class="btn btn-outline-primary w-100 quick-action-btn">
+              <a href="{{ url_for('admin.admin_create_user') }}" class="btn btn-outline-primary w-100 quick-action-btn">
                 <i class="bi bi-person-plus-fill me-2"></i>Create New User
               </a>
             </div>
             <div class="col-md-3">
-              <a href="{{ url_for('admin_logs_export') }}" class="btn btn-outline-success w-100 quick-action-btn">
+              <a href="{{ url_for('admin.admin_logs_export') }}" class="btn btn-outline-success w-100 quick-action-btn">
                 <i class="bi bi-download me-2"></i>Export Activity Logs
               </a>
             </div>
             <div class="col-md-3">
-              <a href="{{ url_for('security_admin') }}" class="btn btn-outline-warning w-100 quick-action-btn">
+              <a href="{{ url_for('admin.security_admin') }}" class="btn btn-outline-warning w-100 quick-action-btn">
                 <i class="bi bi-shield-check me-2"></i>Security Audit
               </a>
             </div>
             <div class="col-md-3">
-              <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-outline-info w-100 quick-action-btn">
+              <a href="{{ url_for('poi.alleged_subject_list') }}" class="btn btn-outline-info w-100 quick-action-btn">
                 <i class="bi bi-people me-2"></i>View POI List
               </a>
             </div>

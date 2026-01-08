@@ -17,7 +17,7 @@
           <i class="bi bi-gear"></i> AI Analysis
         </button>
         {% endif %}
-        <a href="{{ url_for('int_source') }}#inbox" class="btn btn-outline-light btn-sm">
+        <a href="{{ url_for('email_intel.int_source') }}#inbox" class="btn btn-outline-light btn-sm">
           <i class="bi bi-arrow-left"></i> Back to Inbox
         </a>
       </div>
@@ -83,7 +83,7 @@
           </div>
 
           <!-- Case INT Assignment (Editable) -->
-          <form method="POST" action="{{ url_for('update_int_reference', email_id=email.id) }}">
+          <form method="POST" action="{{ url_for('email_intel.update_int_reference', email_id=email.id) }}">
             <div class="row align-items-end">
               <div class="col-md-8">
                 <label class="form-label"><strong>Case INT Reference:</strong></label>
@@ -164,12 +164,12 @@
                   <strong>{{ att.filename }}</strong>
                 </div>
                 <div class="btn-group" role="group">
-                  <a href="{{ url_for('int_source_embedded_attachment_viewer', att_id=att.id) }}" 
+                  <a href="{{ url_for('email_intel.int_source_embedded_attachment_viewer', att_id=att.id) }}" 
                      class="btn btn-sm btn-outline-primary" 
                      title="View attachment">
                     <i class="bi bi-eye"></i> View
                   </a>
-                  <a href="{{ url_for('int_source_download_email_attachment', att_id=att.id) }}" 
+                  <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=att.id) }}" 
                      class="btn btn-sm btn-outline-secondary" 
                      download
                      title="Download attachment">
@@ -330,7 +330,7 @@
       {% endif %}
 
       <!-- Assessment Form -->
-      <form method="POST" action="{{ url_for('int_source_update_assessment', email_id=email.id) }}" class="mt-4" novalidate id="assessmentForm">
+      <form method="POST" action="{{ url_for('email_intel.int_source_update_assessment', email_id=email.id) }}" class="mt-4" novalidate id="assessmentForm">
         <h6 class="text-primary mb-3">Assessment Details</h6>
         <table class="table table-bordered align-middle" style="max-width:800px;margin:auto;">
           <tr>

@@ -454,7 +454,7 @@
     
     <!-- Quick Stats Grid -->
     <div class="stats-grid">
-        <a href="{{ url_for('alleged_subject_list') }}" class="stat-card">
+        <a href="{{ url_for('poi.alleged_subject_list') }}" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon poi">
                     <i class="bi bi-people-fill"></i>
@@ -465,7 +465,7 @@
             <div class="stat-card-label">POI Profiles</div>
         </a>
         
-        <a href="{{ url_for('int_source') }}" class="stat-card">
+        <a href="{{ url_for('email_intel.int_source') }}" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon email">
                     <i class="bi bi-envelope-fill"></i>
@@ -478,7 +478,7 @@
             <div class="stat-card-label">Email Intelligence</div>
         </a>
         
-        <a href="{{ url_for('int_source') }}#whatsapp-tab" class="stat-card">
+        <a href="{{ url_for('email_intel.int_source') }}#whatsapp-tab" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon whatsapp">
                     <i class="bi bi-whatsapp"></i>
@@ -488,7 +488,7 @@
             <div class="stat-card-label">WhatsApp Entries</div>
         </a>
         
-        <a href="{{ url_for('int_source') }}#patrol-tab" class="stat-card">
+        <a href="{{ url_for('email_intel.int_source') }}#patrol-tab" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon patrol">
                     <i class="bi bi-globe"></i>
@@ -498,7 +498,7 @@
             <div class="stat-card-label">Online Patrol</div>
         </a>
         
-        <a href="{{ url_for('int_source') }}#surveillance-tab" class="stat-card">
+        <a href="{{ url_for('email_intel.int_source') }}#surveillance-tab" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon surveillance">
                     <i class="bi bi-camera-video-fill"></i>
@@ -508,7 +508,7 @@
             <div class="stat-card-label">Surveillance</div>
         </a>
         
-        <a href="{{ url_for('int_source') }}#rbh-tab" class="stat-card">
+        <a href="{{ url_for('email_intel.int_source') }}#rbh-tab" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon rbh">
                     <i class="bi bi-hand-index-fill"></i>
@@ -518,7 +518,7 @@
             <div class="stat-card-label">Received by Hand</div>
         </a>
         
-        <a href="{{ url_for('int_source') }}" class="stat-card">
+        <a href="{{ url_for('email_intel.int_source') }}" class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-icon cases">
                     <i class="bi bi-folder-fill"></i>
@@ -542,7 +542,7 @@
     <!-- Quick Actions -->
     <h2 class="section-title"><i class="bi bi-lightning-fill"></i> Quick Actions</h2>
     <div class="quick-actions">
-        <a href="{{ url_for('global_search_page') }}" class="action-card">
+        <a href="{{ url_for('main.global_search_page') }}" class="action-card">
             <div class="action-icon search">
                 <i class="bi bi-search"></i>
             </div>
@@ -552,7 +552,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('int_source') }}" class="action-card">
+        <a href="{{ url_for('email_intel.int_source') }}" class="action-card">
             <div class="action-icon inbox">
                 <i class="bi bi-inbox-fill"></i>
             </div>
@@ -562,7 +562,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('alleged_subject_list') }}" class="action-card">
+        <a href="{{ url_for('poi.alleged_subject_list') }}" class="action-card">
             <div class="action-icon poi">
                 <i class="bi bi-people-fill"></i>
             </div>
@@ -572,7 +572,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('add_whatsapp') }}" class="action-card">
+        <a href="{{ url_for('whatsapp_intel.add_whatsapp') }}" class="action-card">
             <div class="action-icon add">
                 <i class="bi bi-plus-circle-fill"></i>
             </div>
@@ -582,7 +582,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('add_online_patrol') }}" class="action-card">
+        <a href="{{ url_for('patrol_intel.add_online_patrol') }}" class="action-card">
             <div class="action-icon add">
                 <i class="bi bi-globe"></i>
             </div>
@@ -592,7 +592,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('add_received_by_hand') }}" class="action-card">
+        <a href="{{ url_for('received_by_hand_intel.add_received_by_hand') }}" class="action-card">
             <div class="action-icon add">
                 <i class="bi bi-hand-index-fill"></i>
             </div>
@@ -602,7 +602,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('int_source_master_export') }}" class="action-card">
+        <a href="{{ url_for('email_intel.int_source_master_export') }}" class="action-card">
             <div class="action-icon export">
                 <i class="bi bi-file-earmark-excel-fill"></i>
             </div>
@@ -612,7 +612,7 @@
             </div>
         </a>
         
-        <a href="{{ url_for('admin_dashboard') }}" class="action-card">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="action-card">
             <div class="action-icon admin">
                 <i class="bi bi-gear-fill"></i>
             </div>
@@ -632,7 +632,7 @@
                 <span class="activity-card-title">
                     <i class="bi bi-envelope-fill"></i> Recent Emails
                 </span>
-                <a href="{{ url_for('int_source') }}" class="activity-view-all">View All →</a>
+                <a href="{{ url_for('email_intel.int_source') }}" class="activity-view-all">View All →</a>
             </div>
             <div class="activity-list">
                 {% if recent_emails and recent_emails|length > 0 %}
@@ -669,7 +669,7 @@
                 <span class="activity-card-title">
                     <i class="bi bi-whatsapp"></i> Recent WhatsApp
                 </span>
-                <a href="{{ url_for('int_source') }}#whatsapp-tab" class="activity-view-all">View All →</a>
+                <a href="{{ url_for('email_intel.int_source') }}#whatsapp-tab" class="activity-view-all">View All →</a>
             </div>
             <div class="activity-list">
                 {% if recent_whatsapp and recent_whatsapp|length > 0 %}
@@ -706,7 +706,7 @@
                 <span class="activity-card-title">
                     <i class="bi bi-globe"></i> Recent Online Patrol
                 </span>
-                <a href="{{ url_for('int_source') }}#patrol-tab" class="activity-view-all">View All →</a>
+                <a href="{{ url_for('email_intel.int_source') }}#patrol-tab" class="activity-view-all">View All →</a>
             </div>
             <div class="activity-list">
                 {% if recent_patrol and recent_patrol|length > 0 %}

@@ -434,7 +434,7 @@
         {{ entry and "Edit" or "Add" }} Surveillance Operation
       </h1>
       <div class="surveillance-edit-actions">
-        <a href="{{ url_for('int_source') }}#surveillance" class="action-btn">
+        <a href="{{ url_for('email_intel.int_source') }}#surveillance" class="action-btn">
           <i class="bi bi-arrow-left"></i> Back to List
         </a>
       </div>
@@ -666,7 +666,7 @@
           <i class="bi bi-check-circle"></i>
           {{ entry and "💾 Update Operation" or "✅ Create Operation" }}
         </button>
-        <a href="{{ url_for('int_source') }}#surveillance" class="btn-secondary-enhanced">
+        <a href="{{ url_for('email_intel.int_source') }}#surveillance" class="btn-secondary-enhanced">
           <i class="bi bi-x-circle"></i>
           Cancel
         </a>
@@ -686,7 +686,7 @@
         <div class="documents-section">
           {% for doc in documents %}
           <div class="document-item">
-            <a href="{{ url_for('surveillance_document_download', doc_id=doc.id) }}" class="document-link">
+            <a href="{{ url_for('surveillance_intel.surveillance_document_download', doc_id=doc.id) }}" class="document-link">
               <i class="bi bi-file-earmark-text"></i>
               {{ doc.filename }}
             </a>
@@ -708,7 +708,7 @@
           <i class="bi bi-check-circle"></i>
           {{ entry and "Update Operation" or "Save Operation" }}
         </button>
-        <a href="{{ url_for('int_source') }}#surveillance" class="btn-secondary-enhanced">
+        <a href="{{ url_for('email_intel.int_source') }}#surveillance" class="btn-secondary-enhanced">
           <i class="bi bi-x-circle"></i>
           Cancel
         </a>

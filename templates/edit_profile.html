@@ -9,8 +9,8 @@
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('alleged_subject_profiles') }}">Profiles</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('profile_detail', profile_id=profile.id) }}">{{ profile.name_english }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('poi.alleged_subject_profiles') }}">Profiles</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('poi.profile_detail', profile_id=profile.id) }}">{{ profile.name_english }}</a></li>
                     <li class="breadcrumb-item active">Edit</li>
                 </ol>
             </nav>
@@ -26,7 +26,7 @@
                     <h5><i class="bi bi-person-vcard"></i> Profile Information</h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ url_for('edit_profile', profile_id=profile.id) }}" method="POST">
+                    <form action="{{ url_for('poi.edit_profile', profile_id=profile.id) }}" method="POST">
                         <!-- Basic Information -->
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -112,7 +112,7 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-check-lg"></i> Save Changes
                                 </button>
-                                <a href="{{ url_for('profile_detail', profile_id=profile.id) }}" class="btn btn-secondary">
+                                <a href="{{ url_for('poi.profile_detail', profile_id=profile.id) }}" class="btn btn-secondary">
                                     <i class="bi bi-x-lg"></i> Cancel
                                 </a>
                             </div>

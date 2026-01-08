@@ -11,7 +11,7 @@
         <small>Contact: {{ entry.contact_name or entry.phone_number or 'Unknown' }} | Created: {{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at else 'N/A' }}</small>
       </div>
       <div class="btn-group">
-        <a href="{{ url_for('int_source') }}#whatsapp" class="btn btn-outline-light btn-sm">
+        <a href="{{ url_for('email_intel.int_source') }}#whatsapp" class="btn btn-outline-light btn-sm">
           <i class="bi bi-arrow-left"></i> Back to Sources
         </a>
       </div>
@@ -23,7 +23,7 @@
       {% set source_id = entry.id %}
       {% set source_display_id = "WHATSAPP-" ~ entry.id %}
       {% set current_int_reference = get_case_int_reference(entry) or '' %}
-      {% set update_url = url_for('update_whatsapp_int_reference', entry_id=entry.id) %}
+      {% set update_url = url_for('whatsapp_intel.update_whatsapp_int_reference', entry_id=entry.id) %}
       {% include 'components/int_reference_component.html' with context %}
 
       <!-- WhatsApp Content Section - SIMPLIFIED & EDITABLE -->
@@ -32,7 +32,7 @@
           <h5 class="mb-0"><i class="bi bi-whatsapp"></i> WhatsApp Details</h5>
         </div>
         <div class="card-body">
-          <form method="POST" action="{{ url_for('update_whatsapp_details', entry_id=entry.id) }}" enctype="multipart/form-data">
+          <form method="POST" action="{{ url_for('whatsapp_intel.update_whatsapp_details', entry_id=entry.id) }}" enctype="multipart/form-data">
             <div class="row">
               <div class="col-md-4 mb-3">
                 <label class="form-label"><strong>Complaint Name:</strong></label>
@@ -71,13 +71,13 @@
             {% for image in images %}
             <div class="col-md-3 mb-3">
               <div class="card">
-                <img src="{{ url_for('whatsapp_image_download', image_id=image.id) }}" 
+                <img src="{{ url_for('whatsapp_intel.whatsapp_image_download', image_id=image.id) }}" 
                      class="card-img-top" 
                      alt="WhatsApp image" 
                      style="max-height: 200px; object-fit: cover; cursor: pointer;"
                      onclick="window.open(this.src, '_blank')">
                 <div class="card-body p-2 text-center">
-                  <form method="POST" action="{{ url_for('delete_whatsapp_file', file_id=image.id) }}" style="display: inline;">
+                  <form method="POST" action="{{ url_for('whatsapp_intel.delete_whatsapp_file', file_id=image.id) }}" style="display: inline;">
                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this file?');">
                       <i class="bi bi-trash"></i> Delete
                     </button>
@@ -92,7 +92,7 @@
       </div>
 
       <!-- Assessment Form -->
-      <form method="POST" action="{{ url_for('int_source_whatsapp_update_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
+      <form method="POST" action="{{ url_for('whatsapp_intel.int_source_whatsapp_update_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
         <div class="card border-primary">
           <div class="card-header bg-primary text-white">
             <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Assessment Details</h5>
@@ -337,7 +337,7 @@
               <button type="submit" class="btn btn-primary btn-lg">
                 <i class="bi bi-save"></i> Save Assessment
               </button>
-              <a href="{{ url_for('int_source') }}#whatsapp" class="btn btn-secondary btn-lg">
+              <a href="{{ url_for('email_intel.int_source') }}#whatsapp" class="btn btn-secondary btn-lg">
                 <i class="bi bi-x-circle"></i> Cancel
               </a>
             </div>

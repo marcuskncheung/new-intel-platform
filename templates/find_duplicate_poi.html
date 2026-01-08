@@ -3,7 +3,7 @@
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-search"></i> Find & Merge Duplicate POI Profiles</h2>
-    <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-secondary">
+    <a href="{{ url_for('poi.alleged_subject_list') }}" class="btn btn-secondary">
       <i class="bi bi-arrow-left"></i> Back to POI List
     </a>
   </div>
@@ -90,7 +90,7 @@
           {% endfor %}
         </div>
 
-        <form method="POST" action="{{ url_for('merge_poi_profiles') }}" class="mt-3">
+        <form method="POST" action="{{ url_for('poi.merge_poi_profiles') }}" class="mt-3">
           <input type="hidden" name="master_poi_id" value="{{ group.master.poi_id }}">
           {% for dup in group.duplicates %}
           <input type="hidden" name="duplicate_ids" value="{{ dup.poi_id }}">
@@ -112,7 +112,7 @@
       <p class="mb-0">All POI profiles appear to be unique.</p>
     </div>
     <div class="text-center mt-3">
-      <a href="{{ url_for('alleged_subject_list') }}" class="btn btn-primary">
+      <a href="{{ url_for('poi.alleged_subject_list') }}" class="btn btn-primary">
         <i class="bi bi-arrow-left"></i> Back to POI List
       </a>
     </div>
@@ -121,7 +121,7 @@
       <div class="card-body text-center py-5">
         <h4><i class="bi bi-search"></i> Find Duplicate POI Profiles</h4>
         <p class="text-muted">Scan all POI profiles to find potential duplicates based on name similarity.</p>
-        <form method="POST" action="{{ url_for('find_duplicate_poi_profiles') }}">
+        <form method="POST" action="{{ url_for('poi.find_duplicate_poi_profiles') }}">
           <button type="submit" class="btn btn-primary btn-lg">
             <i class="bi bi-search"></i> Start Scanning
           </button>

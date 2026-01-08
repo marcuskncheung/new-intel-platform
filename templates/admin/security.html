@@ -43,8 +43,8 @@
         <!-- Navigation -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_dashboard') }}">Admin</a></li>
                 <li class="breadcrumb-item active">Security</li>
             </ol>
         </nav>
@@ -147,7 +147,7 @@
                         <h5><i class="bi bi-funnel"></i> Audit Log Filters</h5>
                     </div>
                     <div class="card-body">
-                        <form method="GET" action="{{ url_for('security_admin') }}">
+                        <form method="GET" action="{{ url_for('admin.security_admin') }}">
                             <div class="row">
                                 <div class="col-md-2">
                                     <label for="action" class="form-label">Action</label>
@@ -178,7 +178,7 @@
                                     <label class="form-label">&nbsp;</label>
                                     <div class="d-grid gap-2">
                                         <button type="submit" class="btn btn-primary">Filter</button>
-                                        <a href="{{ url_for('security_admin') }}" class="btn btn-secondary">Clear</a>
+                                        <a href="{{ url_for('admin.security_admin') }}" class="btn btn-secondary">Clear</a>
                                     </div>
                                 </div>
                             </div>
@@ -194,7 +194,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h4>Audit Trail ({{ audit_logs.total }} records)</h4>
                     <div>
-                        <a href="{{ url_for('export_audit_logs', **filters) }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('admin.export_audit_logs', **filters) }}" class="btn btn-outline-primary">
                             <i class="bi bi-download"></i> Export CSV
                         </a>
                     </div>
@@ -281,7 +281,7 @@
                     <ul class="pagination justify-content-center">
                         {% if audit_logs.has_prev %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('security_admin', page=audit_logs.prev_num, **filters) }}">Previous</a>
+                                <a class="page-link" href="{{ url_for('admin.security_admin', page=audit_logs.prev_num, **filters) }}">Previous</a>
                             </li>
                         {% endif %}
                         
@@ -289,7 +289,7 @@
                             {% if page_num %}
                                 {% if page_num != audit_logs.page %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('security_admin', page=page_num, **filters) }}">{{ page_num }}</a>
+                                        <a class="page-link" href="{{ url_for('admin.security_admin', page=page_num, **filters) }}">{{ page_num }}</a>
                                     </li>
                                 {% else %}
                                     <li class="page-item active">
@@ -305,7 +305,7 @@
                         
                         {% if audit_logs.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('security_admin', page=audit_logs.next_num, **filters) }}">Next</a>
+                                <a class="page-link" href="{{ url_for('admin.security_admin', page=audit_logs.next_num, **filters) }}">Next</a>
                             </li>
                         {% endif %}
                     </ul>

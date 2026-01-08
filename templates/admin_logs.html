@@ -26,10 +26,10 @@
           <small class="text-muted">Complete system activity history</small>
         </div>
         <div class="d-flex gap-2">
-          <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+          <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Back to Dashboard
           </a>
-          <a href="{{ url_for('admin_logs_export') }}" class="btn btn-success">
+          <a href="{{ url_for('admin.admin_logs_export') }}" class="btn btn-success">
             <i class="bi bi-download"></i> Export CSV
           </a>
         </div>
@@ -157,12 +157,12 @@
                   <ul class="pagination justify-content-center mb-0">
                     {% if logs.has_prev %}
                       <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_logs', page=1) }}">
+                        <a class="page-link" href="{{ url_for('admin.admin_logs', page=1) }}">
                           <i class="bi bi-chevron-double-left"></i>
                         </a>
                       </li>
                       <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_logs', page=logs.prev_num) }}">
+                        <a class="page-link" href="{{ url_for('admin.admin_logs', page=logs.prev_num) }}">
                           <i class="bi bi-chevron-left"></i> Prev
                         </a>
                       </li>
@@ -172,7 +172,7 @@
                       {% if page_num %}
                         {% if page_num != logs.page %}
                           <li class="page-item">
-                            <a class="page-link" href="{{ url_for('admin_logs', page=page_num) }}">{{ page_num }}</a>
+                            <a class="page-link" href="{{ url_for('admin.admin_logs', page=page_num) }}">{{ page_num }}</a>
                           </li>
                         {% else %}
                           <li class="page-item active">
@@ -188,12 +188,12 @@
                     
                     {% if logs.has_next %}
                       <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_logs', page=logs.next_num) }}">
+                        <a class="page-link" href="{{ url_for('admin.admin_logs', page=logs.next_num) }}">
                           Next <i class="bi bi-chevron-right"></i>
                         </a>
                       </li>
                       <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin_logs', page=logs.pages) }}">
+                        <a class="page-link" href="{{ url_for('admin.admin_logs', page=logs.pages) }}">
                           <i class="bi bi-chevron-double-right"></i>
                         </a>
                       </li>

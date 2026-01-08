@@ -11,7 +11,7 @@
         <small>Complainant: {{ entry.complaint_name or 'Unknown' }} | Created: {{ entry.received_time.strftime('%Y-%m-%d %H:%M') if entry.received_time else 'N/A' }}</small>
       </div>
       <div class="btn-group">
-        <a href="{{ url_for('int_source') }}#received_by_hand" class="btn btn-outline-light btn-sm">
+        <a href="{{ url_for('email_intel.int_source') }}#received_by_hand" class="btn btn-outline-light btn-sm">
           <i class="bi bi-arrow-left"></i> Back to Sources
         </a>
       </div>
@@ -23,7 +23,7 @@
       {% set source_id = entry.id %}
       {% set source_display_id = "RBH-" ~ entry.id %}
       {% set current_int_reference = int_reference or entry.int_reference or '' %}
-      {% set update_url = url_for('update_received_by_hand_int_reference', entry_id=entry.id) %}
+      {% set update_url = url_for('received_by_hand_intel.update_received_by_hand_int_reference', entry_id=entry.id) %}
       {% include 'components/int_reference_component.html' with context %}
 
       <!-- Received by Hand Content Section -->
@@ -32,7 +32,7 @@
           <h5 class="mb-0"><i class="bi bi-hand-index-thumb-fill"></i> Entry Details</h5>
         </div>
         <div class="card-body">
-          <form method="POST" action="{{ url_for('update_received_by_hand_details', entry_id=entry.id) }}" enctype="multipart/form-data">
+          <form method="POST" action="{{ url_for('received_by_hand_intel.update_received_by_hand_details', entry_id=entry.id) }}" enctype="multipart/form-data">
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label"><strong>Complainant Name:</strong></label>
@@ -99,10 +99,10 @@
                     </div>
                   </div>
                   <div class="mt-2">
-                    <a href="{{ url_for('received_by_hand_document_download', document_id=doc.id) }}" class="btn btn-sm btn-primary">
+                    <a href="{{ url_for('received_by_hand_intel.received_by_hand_document_download', document_id=doc.id) }}" class="btn btn-sm btn-primary">
                       <i class="bi bi-download"></i> Download
                     </a>
-                    <form method="POST" action="{{ url_for('delete_received_by_hand_document', document_id=doc.id) }}" style="display: inline;">
+                    <form method="POST" action="{{ url_for('received_by_hand_intel.delete_received_by_hand_document', document_id=doc.id) }}" style="display: inline;">
                       <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this document?');">
                         <i class="bi bi-trash"></i>
                       </button>
@@ -118,7 +118,7 @@
       </div>
 
       <!-- Assessment Form -->
-      <form method="POST" action="{{ url_for('update_received_by_hand_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
+      <form method="POST" action="{{ url_for('received_by_hand_intel.update_received_by_hand_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
         <div class="card border-primary">
           <div class="card-header bg-primary text-white">
             <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Assessment Details</h5>
@@ -345,7 +345,7 @@
               <button type="submit" class="btn btn-primary btn-lg">
                 <i class="bi bi-save"></i> Save Assessment
               </button>
-              <a href="{{ url_for('int_source') }}#received_by_hand" class="btn btn-secondary btn-lg">
+              <a href="{{ url_for('email_intel.int_source') }}#received_by_hand" class="btn btn-secondary btn-lg">
                 <i class="bi bi-x-circle"></i> Cancel
               </a>
             </div>
@@ -356,7 +356,7 @@
       <!-- Delete Entry Section -->
       <div class="card border-danger mt-4">
         <div class="card-body text-center">
-          <form method="POST" action="{{ url_for('delete_received_by_hand', entry_id=entry.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this entry? This cannot be undone.');">
+          <form method="POST" action="{{ url_for('received_by_hand_intel.delete_received_by_hand', entry_id=entry.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this entry? This cannot be undone.');">
             <button type="submit" class="btn btn-outline-danger">
               <i class="bi bi-trash"></i> Delete This Entry
             </button>

@@ -55,7 +55,7 @@
   <div class="rbh-form-pro">
     <h3><i class="fas fa-hand-holding"></i> Add Received by Hand Entry</h3>
     
-    <form method="POST" action="{{ url_for('add_received_by_hand') }}">
+    <form method="POST" action="{{ url_for('received_by_hand_intel.add_received_by_hand') }}">
       <!-- Complainant Information -->
       <div class="section-title">📋 Complainant Information</div>
       
@@ -196,7 +196,7 @@
         <button type="submit" class="btn btn-success btn-lg flex-grow-1">
           <i class="fas fa-save"></i> Create Entry
         </button>
-        <a href="{{ url_for('int_source') }}" class="btn btn-secondary btn-lg">
+        <a href="{{ url_for('email_intel.int_source') }}" class="btn btn-secondary btn-lg">
           <i class="fas fa-times"></i> Cancel
         </a>
       </div>

@@ -881,17 +881,17 @@
     <!-- Top Bar -->
     <div class="poi-topbar">
         <div class="poi-breadcrumb">
-            <a href="{{ url_for('int_source') }}"><i class="bi bi-house-door"></i></a>
+            <a href="{{ url_for('email_intel.int_source') }}"><i class="bi bi-house-door"></i></a>
             <i class="bi bi-chevron-right"></i>
-            <a href="{{ url_for('alleged_subject_list') }}">POI Profiles</a>
+            <a href="{{ url_for('poi.alleged_subject_list') }}">POI Profiles</a>
             <i class="bi bi-chevron-right"></i>
             <span>{{ profile.poi_id }}</span>
         </div>
         <div class="poi-actions">
-            <a href="{{ url_for('alleged_subject_list') }}" class="btn-poi btn-poi-back">
+            <a href="{{ url_for('poi.alleged_subject_list') }}" class="btn-poi btn-poi-back">
                 <i class="bi bi-arrow-left"></i> Back to List
             </a>
-            <form method="post" action="{{ url_for('delete_alleged_person_profile', profile_id=profile.id) }}"
+            <form method="post" action="{{ url_for('poi.delete_alleged_person_profile', profile_id=profile.id) }}"
                   onsubmit="return confirm('⚠️ DELETE {{ profile.poi_id }}?\n\nThis will permanently remove this profile.\nThis action cannot be undone.\n\nAre you sure?')"
                   style="display: inline;">
                 <button class="btn-poi btn-poi-delete" type="submit">
@@ -1061,7 +1061,7 @@
             <!-- Quick Actions -->
             <div class="poi-quick-actions">
                 <div class="poi-quick-actions-title">Quick Actions</div>
-                <a href="{{ url_for('edit_alleged_subject_profile', poi_id=profile.poi_id) }}" class="poi-quick-action-btn">
+                <a href="{{ url_for('poi.edit_alleged_subject_profile', poi_id=profile.poi_id) }}" class="poi-quick-action-btn">
                     <i class="bi bi-pencil-square"></i>
                     Edit Profile
                 </a>
@@ -1069,7 +1069,7 @@
                     <i class="bi bi-printer"></i>
                     Print Report
                 </button>
-                <a href="{{ url_for('alleged_subject_list') }}" class="poi-quick-action-btn">
+                <a href="{{ url_for('poi.alleged_subject_list') }}" class="poi-quick-action-btn">
                     <i class="bi bi-people"></i>
                     View All POIs
                 </a>
@@ -1229,15 +1229,15 @@
                                 {% if intel.get('view_url') %}
                                     <a href="{{ intel.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif intel.get('source_type') == 'EMAIL' and intel.get('id') %}
-                                    <a href="{{ url_for('int_source_email_detail', email_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('email_intel.int_source_email_detail', email_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif intel.get('source_type') == 'WHATSAPP' and intel.get('id') %}
-                                    <a href="{{ url_for('whatsapp_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('whatsapp_intel.whatsapp_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif intel.get('source_type') == 'PATROL' and intel.get('id') %}
-                                    <a href="{{ url_for('online_patrol_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('patrol_intel.online_patrol_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif intel.get('source_type') == 'SURVEILLANCE' and intel.get('id') %}
-                                    <a href="{{ url_for('surveillance_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('surveillance_intel.surveillance_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif intel.get('source_type') == 'RECEIVED_BY_HAND' and intel.get('id') %}
-                                    <a href="{{ url_for('received_by_hand_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('received_by_hand_intel.received_by_hand_detail', entry_id=intel.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% else %}
                                     <span class="text-muted">—</span>
                                 {% endif %}
@@ -1275,7 +1275,7 @@
                             <td><span class="poi-intel-subject">{{ email.get('title') or email.get('subject') or email.get('summary') or '—' }}</span></td>
                             <td style="text-align: center;">
                                 {% if email.get('id') %}
-                                    <a href="{{ url_for('int_source_email_detail', email_id=email.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('email_intel.int_source_email_detail', email_id=email.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% else %}<span class="text-muted">—</span>{% endif %}
                             </td>
                         </tr>
@@ -1313,7 +1313,7 @@
                                 {% if msg.get('view_url') %}
                                     <a href="{{ msg.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif msg.get('id') %}
-                                    <a href="{{ url_for('whatsapp_detail', entry_id=msg.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('whatsapp_intel.whatsapp_detail', entry_id=msg.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% else %}<span class="text-muted">—</span>{% endif %}
                             </td>
                         </tr>
@@ -1351,7 +1351,7 @@
                                 {% if entry.get('view_url') %}
                                     <a href="{{ entry.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif entry.get('id') %}
-                                    <a href="{{ url_for('online_patrol_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('patrol_intel.online_patrol_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% else %}<span class="text-muted">—</span>{% endif %}
                             </td>
                         </tr>
@@ -1389,7 +1389,7 @@
                                 {% if entry.get('view_url') %}
                                     <a href="{{ entry.get('view_url') }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% elif entry.get('id') %}
-                                    <a href="{{ url_for('received_by_hand_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ url_for('received_by_hand_intel.received_by_hand_detail', entry_id=entry.get('id')) }}" class="btn-poi-view"><i class="bi bi-eye"></i></a>
                                 {% else %}<span class="text-muted">—</span>{% endif %}
                             </td>
                         </tr>

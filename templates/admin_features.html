@@ -94,7 +94,7 @@ input:checked + .toggle-slider:before {
           <small class="text-muted">Control which features are visible to regular users vs admin-only</small>
         </div>
         <div class="d-flex gap-2">
-          <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+          <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Back to Admin
           </a>
         </div>
@@ -228,7 +228,7 @@ function toggleFeature(featureKey, action, checkbox) {
   formData.append('feature_key', featureKey);
   formData.append('action', action);
   
-  fetch('{{ url_for("admin_features_update") }}', {
+  fetch('{{ url_for('admin.admin_features_update') }}', {
     method: 'POST',
     body: formData
   })

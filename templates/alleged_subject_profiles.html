@@ -13,7 +13,7 @@
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProfileModal">
                         <i class="bi bi-plus-lg"></i> Add Manual Profile
                     </button>
-                    <form method="POST" action="{{ url_for('refresh_poi_profiles') }}" style="display: inline;">
+                    <form method="POST" action="{{ url_for('poi.refresh_poi_profiles') }}" style="display: inline;">
                         <button type="submit" class="btn btn-info">
                             <i class="bi bi-arrow-clockwise"></i> Refresh All Sources
                         </button>
@@ -147,7 +147,7 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-search"></i> Apply Filters
                                 </button>
-                                <a href="{{ url_for('alleged_subject_profiles') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('poi.alleged_subject_profiles') }}" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Clear Filters
                                 </a>
                             </div>
@@ -300,7 +300,7 @@
                 <h5 class="modal-title">Add Manual Profile</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ url_for('create_manual_profile') }}" method="POST">
+            <form action="{{ url_for('poi.create_manual_profile') }}" method="POST">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">

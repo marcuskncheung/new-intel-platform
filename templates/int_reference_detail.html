@@ -141,7 +141,7 @@
 </style>
 
 <div class="detail-container">
-  <a href="{{ url_for('int_source') }}" class="back-button">
+  <a href="{{ url_for('email_intel.int_source') }}" class="back-button">
     <i class="bi bi-arrow-left"></i> Back to INT Source
   </a>
 
@@ -186,7 +186,7 @@
     </div>
     <div class="item-list">
       {% for email in emails %}
-      <div class="item-row" onclick="window.location.href='{{ url_for('int_source_email_detail', email_id=email.id) }}'">
+      <div class="item-row" onclick="window.location.href='{{ url_for('email_intel.int_source_email_detail', email_id=email.id) }}'">
         <div class="item-content">
           <div class="item-title">{{ email.subject or '[No Subject]' }}</div>
           <div class="item-meta">
@@ -215,7 +215,7 @@
     </div>
     <div class="item-list">
       {% for wa in whatsapp_entries %}
-      <div class="item-row" onclick="window.location.href='{{ url_for('int_source_whatsapp_detail', whatsapp_id=wa.id) }}'">
+      <div class="item-row" onclick="window.location.href='{{ url_for('whatsapp_intel.int_source_whatsapp_detail', whatsapp_id=wa.id) }}'">
         <div class="item-content">
           <div class="item-title">{{ wa.complaint_name or '[No Title]' }}</div>
           <div class="item-meta">
@@ -244,7 +244,7 @@
     </div>
     <div class="item-list">
       {% for patrol in patrol_entries %}
-      <div class="item-row" onclick="window.location.href='{{ url_for('int_source_online_patrol_detail', patrol_id=patrol.id) }}'">
+      <div class="item-row" onclick="window.location.href='{{ url_for('patrol_intel.int_source_online_patrol_detail', patrol_id=patrol.id) }}'">
         <div class="item-content">
           <div class="item-title">{{ patrol.source or '[Online Patrol Entry]' }}</div>
           <div class="item-meta">
@@ -273,7 +273,7 @@
     </div>
     <div class="item-list">
       {% for surv in surveillance_entries %}
-      <div class="item-row" onclick="window.location.href='{{ url_for('int_source_surveillance_detail', surveillance_id=surv.id) }}'">
+      <div class="item-row" onclick="window.location.href='{{ url_for('surveillance_intel.int_source_surveillance_detail', surveillance_id=surv.id) }}'">
         <div class="item-content">
           <div class="item-title">Surveillance: {{ surv.location or '[No Location]' }}</div>
           <div class="item-meta">

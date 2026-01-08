@@ -1493,7 +1493,7 @@
           <button id="refresh-emails-btn" class="btn btn-outline-info btn-sm" title="Refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
           
           <!-- NEW: Exchange Web Services (EWS) Import Button -->
-          <a href="{{ url_for('process_exchange_inbox') }}" class="btn btn-primary btn-sm" title="Import Intelligence emails using Exchange Web Services (New Method)">
+          <a href="{{ url_for('email_intel.process_exchange_inbox') }}" class="btn btn-primary btn-sm" title="Import Intelligence emails using Exchange Web Services (New Method)">
             <i class="bi bi-cloud-download"></i> Import Intelligence via EWS
           </a>
           
@@ -1514,7 +1514,7 @@
                 <i class="bi bi-file-earmark-excel"></i> 📋 Individual Emails (Classic)
               </a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('int_source_ai_grouped_excel_export') }}" title="Individual emails with source classification">
+              <li><a class="dropdown-item" href="{{ url_for('email_intel.int_source_ai_grouped_excel_export') }}" title="Individual emails with source classification">
                 <i class="bi bi-file-earmark-spreadsheet"></i> 📊 Email Export (with Source)
               </a></li>
               <li><hr class="dropdown-divider"></li>
@@ -1708,7 +1708,7 @@
               </td>
               <td>
                 {% if email.caseprofile and email.caseprofile.int_reference %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=email.caseprofile.int_reference) }}" 
+                  <a href="{{ url_for('int_reference.int_reference_detail', int_reference=email.caseprofile.int_reference) }}" 
                      class="badge bg-primary text-decoration-none" 
                      title="View INT Reference Details">
                     {{ email.caseprofile.int_reference }}
@@ -1744,7 +1744,7 @@
               <td>{{ email.received }}</td>
               <td>
                 <div class="pro-action-btns">
-                  <a href="{{ url_for('int_source_email_detail', email_id=email.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                  <a href="{{ url_for('email_intel.int_source_email_detail', email_id=email.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
                   
                   <!-- AI Analysis Button -->
                   {% if not email.alleged_subject or email.alleged_subject == '' %}
@@ -1786,8 +1786,8 @@
           <button id="whatsapp-refresh-btn" class="btn btn-outline-light btn-sm" title="Refresh Data">
             <i class="bi bi-arrow-clockwise"></i> Refresh
           </button>
-          <a href="{{ url_for('whatsapp_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_whatsapp') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
+          <a href="{{ url_for('whatsapp_intel.whatsapp_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+          <a href="{{ url_for('whatsapp_intel.add_whatsapp') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
         </div>
       </div>
 
@@ -1912,7 +1912,7 @@
               </td>
               <td>
                 {% if w.int_reference %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=w.int_reference) }}" 
+                  <a href="{{ url_for('int_reference.int_reference_detail', int_reference=w.int_reference) }}" 
                      class="badge bg-primary text-decoration-none" 
                      title="View INT Reference Details">
                     {{ w.int_reference }}
@@ -1961,8 +1961,8 @@
               </td>
               <td>
                 <div class="pro-action-btns">
-                  <a href="{{ url_for('whatsapp_detail', entry_id=w.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                  <form method="post" action="{{ url_for('delete_whatsapp', entry_id=w.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this WhatsApp entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
+                  <a href="{{ url_for('whatsapp_intel.whatsapp_detail', entry_id=w.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                  <form method="post" action="{{ url_for('whatsapp_intel.delete_whatsapp', entry_id=w.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Delete this WhatsApp entry?\n\nThis will:\n• Delete the entry and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
                     <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
                   </form>
                 </div>
@@ -1981,8 +1981,8 @@
           <button id="online-refresh-btn" class="btn btn-outline-light btn-sm" title="Refresh Data">
             <i class="bi bi-arrow-clockwise"></i> Refresh
           </button>
-          <a href="{{ url_for('online_patrol_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_online_patrol') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
+          <a href="{{ url_for('patrol_intel.online_patrol_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+          <a href="{{ url_for('patrol_intel.add_online_patrol') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
         </div>
       </div>
 
@@ -2107,7 +2107,7 @@
               </td>
               <td>
                 {% if o.int_reference %}
-                  <a href="{{ url_for('int_reference_detail', int_reference=o.int_reference) }}" 
+                  <a href="{{ url_for('int_reference.int_reference_detail', int_reference=o.int_reference) }}" 
                      class="badge bg-primary text-decoration-none" 
                      title="View INT Reference Details">
                     {{ o.int_reference }}
@@ -2166,13 +2166,13 @@
               </td>
               <td>
                 <div class="pro-action-btns">
-                  <a href="{{ url_for('online_patrol_detail', entry_id=o.id) }}" 
+                  <a href="{{ url_for('patrol_intel.online_patrol_detail', entry_id=o.id) }}" 
                      class="btn btn-sm btn-outline-primary" 
                      title="View & Edit">
                     <i class="bi bi-eye"></i>
                   </a>
                   <form method="post" 
-                        action="{{ url_for('delete_online_patrol', entry_id=o.id) }}" 
+                        action="{{ url_for('patrol_intel.delete_online_patrol', entry_id=o.id) }}" 
                         style="display:inline;" 
                         onsubmit="return confirm('⚠️ Delete this Online Patrol entry?\n\nThis will:\n• Delete the entry, photos, and its CaseProfile\n• Reorder all INT numbers chronologically\n• This action cannot be undone');">
                     <button class="btn btn-sm btn-outline-danger" title="Delete">
@@ -2193,8 +2193,8 @@
         <span><i class="bi bi-eye"></i> Surveillance Operation </span>
         <div class="btn-group">
           
-          <a href="{{ url_for('surveillance_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_surveillance') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
+          <a href="{{ url_for('surveillance_intel.surveillance_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+          <a href="{{ url_for('surveillance_intel.add_surveillance') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
         </div>
       </div>
       <div class="table-responsive">
@@ -2223,7 +2223,7 @@
 
               <td>
                 <div class="pro-action-btns">
-                  <a href="{{ url_for('surveillance_detail', entry_id=s.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                  <a href="{{ url_for('surveillance_intel.surveillance_detail', entry_id=s.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
                 </div>
               </td>
             </tr>
@@ -2238,8 +2238,8 @@
       <div class="pro-section-header">
         <span><i class="bi bi-hand-thumbs-up"></i> Received by Hand</span>
         <div class="btn-group">
-          <a href="{{ url_for('received_by_hand_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-          <a href="{{ url_for('add_received_by_hand') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
+          <a href="{{ url_for('received_by_hand_intel.received_by_hand_export', fmt='excel') }}" class="btn btn-outline-success btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+          <a href="{{ url_for('received_by_hand_intel.add_received_by_hand') }}" class="btn btn-success btn-sm" title="Add"><i class="bi bi-plus-circle"></i> Create Entry</a>
         </div>
       </div>
       <div class="table-responsive">
@@ -2272,7 +2272,7 @@
               <td>{{ rbh.alleged_nature or '—' }}</td>
               <td>
                 <div class="pro-action-btns">
-                  <a href="{{ url_for('received_by_hand_detail', entry_id=rbh.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                  <a href="{{ url_for('received_by_hand_intel.received_by_hand_detail', entry_id=rbh.id) }}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
                 </div>
               </td>
             </tr>

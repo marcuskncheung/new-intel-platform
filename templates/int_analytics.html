@@ -766,7 +766,7 @@
     {% if int_details %}
       <div class="int-list">
         {% for int in int_details %}
-        <div class="int-card" onclick="window.location.href='{{ url_for('int_reference_detail', int_reference=int.int_reference) }}'">
+        <div class="int-card" onclick="window.location.href='{{ url_for('int_reference.int_reference_detail', int_reference=int.int_reference) }}'">
           <div class="int-header">
             <div class="int-number">{{ int.int_reference }}</div>
             <div class="int-total">

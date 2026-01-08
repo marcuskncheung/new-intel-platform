@@ -16,12 +16,14 @@ Features:
 """
 
 import os
-import re
 import sys
-from app1_production import app
 
 # Set production environment
 os.environ.setdefault('PRODUCTION', 'true')
+
+from app import create_app
+
+app = create_app()
 
 if __name__ == "__main__":
     app.run()

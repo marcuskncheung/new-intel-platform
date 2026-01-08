@@ -257,13 +257,13 @@
     <div class="col-md-3 mb-3">
       <div class="card">
         <a href="#" data-bs-toggle="modal" data-bs-target="#imgModal{{ img.id }}">
-          <img src="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="card-img-top" style="object-fit:cover;max-height:180px;">
+          <img src="{{ url_for('whatsapp_intel.whatsapp_image_download', image_id=img.id) }}" class="card-img-top" style="object-fit:cover;max-height:180px;">
         </a>
         <div class="card-body p-2 text-center">
-          <form method="post" action="{{ url_for('delete_whatsapp_image', image_id=img.id) }}" style="display:inline;">
+          <form method="post" action="{{ url_for('whatsapp_intel.delete_whatsapp_image', image_id=img.id) }}" style="display:inline;">
             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this image?')">Delete</button>
           </form>
-          <a href="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="btn btn-sm btn-outline-secondary ms-2" target="_blank" download>Download</a>
+          <a href="{{ url_for('whatsapp_intel.whatsapp_image_download', image_id=img.id) }}" class="btn btn-sm btn-outline-secondary ms-2" target="_blank" download>Download</a>
         </div>
       </div>
     </div>
@@ -275,10 +275,10 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body text-center">
-            <img src="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="img-fluid rounded shadow" style="max-height:70vh;">
+            <img src="{{ url_for('whatsapp_intel.whatsapp_image_download', image_id=img.id) }}" class="img-fluid rounded shadow" style="max-height:70vh;">
           </div>
           <div class="modal-footer border-0">
-            <a href="{{ url_for('whatsapp_image_download', image_id=img.id) }}" class="btn btn-outline-light" download>Download</a>
+            <a href="{{ url_for('whatsapp_intel.whatsapp_image_download', image_id=img.id) }}" class="btn btn-outline-light" download>Download</a>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           </div>
         </div>

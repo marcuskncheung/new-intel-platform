@@ -11,7 +11,7 @@
         <small>Source: {{ entry.source or 'Unknown' }} | Created: {{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at else 'N/A' }}</small>
       </div>
       <div class="btn-group">
-        <a href="{{ url_for('int_source') }}#patrol" class="btn btn-outline-light btn-sm">
+        <a href="{{ url_for('email_intel.int_source') }}#patrol" class="btn btn-outline-light btn-sm">
           <i class="bi bi-arrow-left"></i> Back to Sources
         </a>
       </div>
@@ -23,7 +23,7 @@
       {% set source_id = entry.id %}
       {% set source_display_id = "PATROL-" ~ entry.id %}
       {% set current_int_reference = get_case_int_reference(entry) or '' %}
-      {% set update_url = url_for('update_patrol_int_reference', entry_id=entry.id) %}
+      {% set update_url = url_for('patrol_intel.update_patrol_int_reference', entry_id=entry.id) %}
       {% include 'components/int_reference_component.html' with context %}
 
       <!-- Online Patrol Content Section - Editable Form -->
@@ -32,7 +32,7 @@
           <h5 class="mb-0"><i class="bi bi-compass"></i> Online Patrol Details</h5>
         </div>
         <div class="card-body">
-          <form method="POST" action="{{ url_for('update_patrol_details', entry_id=entry.id) }}" enctype="multipart/form-data">
+          <form method="POST" action="{{ url_for('patrol_intel.update_patrol_details', entry_id=entry.id) }}" enctype="multipart/form-data">
             <div class="row">
               <div class="col-md-4 mb-3">
                 <label class="form-label"><strong>Source Posted Time:</strong></label>
@@ -90,7 +90,7 @@
                       <p class="small mt-2">{{ image.filename }}</p>
                     </div>
                   {% else %}
-                    <img src="{{ url_for('view_patrol_photo', photo_id=image.id) }}" 
+                    <img src="{{ url_for('patrol_intel.view_patrol_photo', photo_id=image.id) }}" 
                          class="card-img-top" 
                          alt="{{ image.filename }}"
                          style="max-height: 200px; object-fit: cover; cursor: pointer;"
@@ -100,7 +100,7 @@
                     </div>
                   {% endif %}
                   <div class="card-footer p-2">
-                    <form method="POST" action="{{ url_for('delete_patrol_file', file_id=image.id) }}" style="display:inline;">
+                    <form method="POST" action="{{ url_for('patrol_intel.delete_patrol_file', file_id=image.id) }}" style="display:inline;">
                       <button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('Delete this file?')">
                         <i class="bi bi-trash"></i> Delete
                       </button>
@@ -161,7 +161,7 @@
             {% for photo in entry.photos %}
             <div class="col-md-3 col-sm-6 mb-3">
               <div class="card">
-                <img src="{{ url_for('view_patrol_photo', photo_id=photo.id) }}" 
+                <img src="{{ url_for('patrol_intel.view_patrol_photo', photo_id=photo.id) }}" 
                      class="card-img-top" 
                      alt="Patrol Photo"
                      style="max-height: 200px; object-fit: cover; cursor: pointer;"
@@ -178,7 +178,7 @@
       {% endif %}
 
       <!-- Assessment Form -->
-      <form method="POST" action="{{ url_for('int_source_patrol_update_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
+      <form method="POST" action="{{ url_for('patrol_intel.int_source_patrol_update_assessment', entry_id=entry.id) }}" class="mt-4" novalidate>
         <div class="card border-primary">
           <div class="card-header bg-primary text-white">
             <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Assessment Details</h5>
@@ -423,7 +423,7 @@
               <button type="submit" class="btn btn-primary btn-lg">
                 <i class="bi bi-save"></i> Save Assessment
               </button>
-              <a href="{{ url_for('int_source') }}#patrol" class="btn btn-secondary btn-lg">
+              <a href="{{ url_for('email_intel.int_source') }}#patrol" class="btn btn-secondary btn-lg">
                 <i class="bi bi-x-circle"></i> Cancel
               </a>
             </div>

@@ -430,7 +430,7 @@
         Surveillance Operation {{ entry.operation_number }}
       </h1>
       <div class="surveillance-actions">
-        <a href="{{ url_for('int_source') }}#surveillance" class="action-btn">
+        <a href="{{ url_for('email_intel.int_source') }}#surveillance" class="action-btn">
           <i class="bi bi-arrow-left"></i> Back to List
         </a>
       </div>
@@ -573,10 +573,10 @@
           <p class="document-name">{{ doc.filename }}</p>
         </div>
         <div class="document-actions">
-          <a href="{{ url_for('surveillance_document_download', doc_id=doc.id) }}" class="doc-btn doc-btn-primary">
+          <a href="{{ url_for('surveillance_intel.surveillance_document_download', doc_id=doc.id) }}" class="doc-btn doc-btn-primary">
             <i class="bi bi-download"></i> Download
           </a>
-          <a href="{{ url_for('surveillance_document_view', doc_id=doc.id) }}" class="doc-btn doc-btn-secondary">
+          <a href="{{ url_for('surveillance_intel.surveillance_document_view', doc_id=doc.id) }}" class="doc-btn doc-btn-secondary">
             <i class="bi bi-eye"></i> View
           </a>
         </div>
@@ -586,7 +586,7 @@
     {% endif %}
 
     <!-- Assessment Section -->
-    <form method="POST" action="{{ url_for('surveillance_detail', entry_id=entry.id) }}" class="mt-4">
+    <form method="POST" action="{{ url_for('surveillance_intel.surveillance_detail', entry_id=entry.id) }}" class="mt-4">
       <input type="hidden" name="update_assessment" value="1">
       
       <div class="content-section" style="background: linear-gradient(135deg, #fefefe 0%, #f0f9ff 100%); border: 2px solid #0ea5e9;">
@@ -703,7 +703,7 @@
 
     <!-- Footer Actions -->
     <div class="footer-actions">
-      <a href="{{ url_for('surveillance_detail', entry_id=entry.id, edit='1') }}" class="footer-btn footer-btn-primary">
+      <a href="{{ url_for('surveillance_intel.surveillance_detail', entry_id=entry.id, edit='1') }}" class="footer-btn footer-btn-primary">
         <i class="bi bi-pencil-square"></i> Edit Entry
       </a>
       <button onclick="window.print()" class="footer-btn footer-btn-secondary">

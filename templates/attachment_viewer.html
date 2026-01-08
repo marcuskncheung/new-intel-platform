@@ -24,7 +24,7 @@
         <small>Size: {{ "%.2f"|format(file_size / 1024) }} KB | Type: {{ mimetype }}</small>
       </div>
       <div>
-        <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+        <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
            class="btn btn-outline-light btn-sm me-2">
           <i class="bi bi-download"></i> Download
         </a>
@@ -104,7 +104,7 @@
                  class="btn btn-primary btn-sm">
                 <i class="bi bi-window"></i> Open in New Window (GUARANTEED)
               </a>
-              <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+              <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                  class="btn btn-secondary btn-sm">
                 <i class="bi bi-download"></i> Download File
               </a>
@@ -129,7 +129,7 @@
           <i class="bi bi-file-earmark-pdf" style="font-size: 4rem; color: #dc3545;"></i>
           <h4 class="mt-3">Large PDF File</h4>
           <p class="text-muted">This file ({{ "%.2f"|format(file_size / 1024 / 1024) }} MB) is too large for online viewing.</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-primary btn-lg">
             <i class="bi bi-download"></i> Download to View
           </a>
@@ -178,7 +178,7 @@
           <div class="alert alert-info">
             <strong>Word document viewing controls:</strong><br>
             <div class="btn-group mt-2">
-              <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+              <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                  class="btn btn-primary btn-sm">
                 <i class="bi bi-download"></i> Download Original
               </a>
@@ -220,7 +220,7 @@
           <i class="bi bi-file-earmark-word" style="font-size: 4rem; color: #2b579a;"></i>
           <h4 class="mt-3">Large Word Document</h4>
           <p class="text-muted">This file ({{ "%.2f"|format(file_size / 1024 / 1024) }} MB) is too large for online viewing.</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-primary btn-lg">
             <i class="bi bi-download"></i> Download to View
           </a>
@@ -238,7 +238,7 @@
             <i class="bi bi-exclamation-triangle"></i>
             Image file too large to display inline.
             <br>
-            <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+            <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                class="btn btn-primary mt-2">
               <i class="bi bi-download"></i> Download to View
             </a>
@@ -290,7 +290,7 @@
           <div class="alert alert-info">
             <strong>Image viewing controls:</strong><br>
             <div class="btn-group mt-2">
-              <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+              <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                  class="btn btn-primary btn-sm">
                 <i class="bi bi-download"></i> Download Original
               </a>
@@ -330,7 +330,7 @@
           <h4 class="mt-3">Large Image File</h4>
           <p class="text-muted">File size: {{ "%.1f"|format(file_size / 1024 / 1024) }} MB</p>
           <p>This image is too large to display inline.</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-success">
             <i class="bi bi-download"></i> Download Image
           </a>
@@ -401,7 +401,7 @@
           <div class="alert alert-info">
             <strong>Video player controls:</strong><br>
             <div class="btn-group mt-2">
-              <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+              <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                  class="btn btn-primary btn-sm">
                 <i class="bi bi-download"></i> Download Original
               </a>
@@ -450,7 +450,7 @@
           <h4 class="mt-3">Large Video File</h4>
           <p class="text-muted">File size: {{ "%.1f"|format(file_size / 1024 / 1024) }} MB</p>
           <p>This video is too large to play inline (limit: 100MB).</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-danger">
             <i class="bi bi-download"></i> Download Video
           </a>
@@ -545,7 +545,7 @@
           <div class="alert alert-info">
             <strong>Email viewing controls:</strong><br>
             <div class="btn-group mt-2">
-              <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+              <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                  class="btn btn-primary btn-sm">
                 <i class="bi bi-download"></i> Download Original
               </a>
@@ -582,7 +582,7 @@
           <h4 class="mt-3">Large MSG File</h4>
           <p class="text-muted">File size: {{ "%.1f"|format(file_size / 1024 / 1024) }} MB</p>
           <p>This MSG file is too large to display inline (limit: 50MB).</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-danger">
             <i class="bi bi-download"></i> Download MSG File
           </a>
@@ -605,7 +605,7 @@
           <i class="bi bi-file-earmark-text"></i>
           <h5>Text File</h5>
           <p>File too large to display inline or content not available.</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-primary">
             <i class="bi bi-download"></i> Download to View
           </a>
@@ -619,7 +619,7 @@
           <h5>{{ attachment.filename }}</h5>
           <p>File type: {{ mimetype }}</p>
           <p>This file type cannot be previewed online.</p>
-          <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+          <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
              class="btn btn-primary btn-lg">
             <i class="bi bi-download"></i> Download File
           </a>
@@ -2125,7 +2125,7 @@ function displayMsgEmailInterface() {
             <strong style="color: #495057;">Quick Actions</strong>
           </div>
           <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-            <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+            <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
                style="background: linear-gradient(45deg, #007bff, #0056b3); color: white; padding: 12px 24px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; box-shadow: 0 4px 15px rgba(0,123,255,0.3); transition: transform 0.2s;"
                onmouseover="this.style.transform='translateY(-2px)'" 
                onmouseout="this.style.transform='translateY(0)'">
@@ -2686,7 +2686,7 @@ function showProfessionalMsgMessage() {
       </div>
       
       <div style="margin-top: 30px;">
-        <a href="{{ url_for('int_source_download_email_attachment', att_id=attachment.id) }}" 
+        <a href="{{ url_for('email_intel.int_source_download_email_attachment', att_id=attachment.id) }}" 
            class="btn btn-primary btn-lg" style="margin: 0 10px; text-decoration: none; display: inline-block;">
           <i class="bi bi-download"></i> Download MSG File
         </a>

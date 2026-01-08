@@ -730,7 +730,7 @@
             </div>
             <div class="dash-actions">
                 {% if automation_enabled %}
-                <a href="{{ url_for('find_duplicate_poi_profiles') }}" class="btn-dash btn-dash-warning">
+                <a href="{{ url_for('poi.find_duplicate_poi_profiles') }}" class="btn-dash btn-dash-warning">
                     <i class="bi bi-search"></i> Find & Merge Duplicates
                 </a>
                 {% endif %}
@@ -938,10 +938,10 @@
                 <!-- Actions -->
                 <div class="poi-card-actions">
                     {% if automation_enabled and t.poi_id %}
-                    <a href="{{ url_for('view_alleged_person_profile', profile_id=t.idx) }}" class="btn-poi-card btn-poi-view">
+                    <a href="{{ url_for('poi.view_alleged_person_profile', profile_id=t.idx) }}" class="btn-poi-card btn-poi-view">
                         <i class="bi bi-eye"></i> View Profile
                     </a>
-                    <form method="post" action="{{ url_for('delete_alleged_person_profile', profile_id=t.idx) }}"
+                    <form method="post" action="{{ url_for('poi.delete_alleged_person_profile', profile_id=t.idx) }}"
                           onsubmit="return confirm('⚠️ Delete {{ t.poi_id }}?\n\nThis will permanently remove this profile.\n\nAre you sure?')"
                           style="margin: 0;">
                         <button class="btn-poi-card btn-poi-delete" type="submit">
@@ -949,10 +949,10 @@
                         </button>
                     </form>
                     {% else %}
-                    <a href="{{ url_for('details', idx=t.idx) }}" class="btn-poi-card btn-poi-view">
+                    <a href="{{ url_for('poi.details', idx=t.idx) }}" class="btn-poi-card btn-poi-view">
                         <i class="bi bi-eye"></i> View Profile
                     </a>
-                    <form method="post" action="{{ url_for('delete', idx=t.idx) }}"
+                    <form method="post" action="{{ url_for('poi.delete', idx=t.idx) }}"
                           onsubmit="return confirm('Delete this profile?')" style="margin: 0;">
                         <button class="btn-poi-card btn-poi-delete" type="submit">
                             <i class="bi bi-trash3"></i>
@@ -1114,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="{{ url_for('rebuild_poi_list') }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('poi.rebuild_poi_list') }}" style="display: inline;">
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-arrow-repeat me-1"></i> Yes, Rebuild POI List
                     </button>
